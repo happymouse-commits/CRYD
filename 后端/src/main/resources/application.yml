@@ -1,0 +1,73 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: CRYD
+
+  # ===== 数据库配置（开发阶段用H2，正式换MySQL） =====
+  datasource:
+    url: jdbc:h2:file:./data/cryd;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    # MySQL配置（正式环境切换）
+    # url: jdbc:mysql://localhost:3306/cryd?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    # driver-class-name: com.mysql.cj.jdbc.Driver
+    # username: root
+    # password: your_password
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# ===== 讯飞星火大模型配置 =====
+spark:
+  api:
+    url: wss://spark-api.xf-yun.com/v3.5/chat
+    app-id: 9fc73775
+    api-key: 14f0f6dd2dcd7ae6ca62aaed68035914
+    api-secret: ZTQ0M2Q3MzRhNDY4ZDdlZmYzMTJjOWMz
+    domain: generalv3.5
+
+# ===== 多智能体配置 =====
+agent:
+  # 画像分析师
+  profile-analyst:
+    name: 画像分析师
+    description: 通过对话分析学生学习画像，提取6个维度特征
+  # 知识库管理员
+  knowledge-manager:
+    name: 知识库管理员
+    description: 管理课程知识库，提供知识点检索服务
+  # 课程设计师
+  course-designer:
+    name: 课程设计师
+    description: 根据学生画像生成个性化讲解文档和思维导图
+  # 出题专家
+  question-expert:
+    name: 出题专家
+    description: 根据知识点和学生水平生成不同难度的练习题
+  # 路径规划师
+  path-planner:
+    name: 路径规划师
+    description: 根据画像和进度规划个性化学习路径
+  # 辅导老师
+  tutor:
+    name: 辅导老师
+    description: 即时答疑解惑，提供多模态辅导

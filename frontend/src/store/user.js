@@ -1,0 +1,49 @@
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+
+export const useUserStore = defineStore('user', () => {
+  const id = ref(Number(localStorage.getItem('cryd_id')) || 0)
+  const token = ref(localStorage.getItem('cryd_token') || '')
+  const username = ref(localStorage.getItem('cryd_username') || '')
+  const nickname = ref(localStorage.getItem('cryd_nickname') || '')
+  const role = ref(localStorage.getItem('cryd_role') || '')
+  const className = ref(localStorage.getItem('cryd_class') || '')
+
+  const isLoggedIn = computed(() => !!token.value)
+  const homePath = computed(() => {
+    const map = { student: '/student/chat', teacher: '/teacher/courses', counselor: '/counselor/warnings', admin: '/admin/dashboard' }
+    return map[role.value] || '/login'
+  })
+
+  function setUser(data) {
+    id.value = data.id || 0
+    token.value = data.token || ''
+    username.value = data.username || ''
+    nickname.value = data.nickname || ''
+    role.value = data.role || ''
+    className.value = data.className || ''
+    localStorage.setItem('cryd_id', String(id.value))
+    localStorage.setItem('cryd_token', token.value)
+    localStorage.setItem('cryd_username', username.value)
+    localStorage.setItem('cryd_nickname', nickname.value)
+    localStorage.setItem('cryd_role', role.value)
+    localStorage.setItem('cryd_class', className.value)
+  }
+
+  function logout() {
+    id.value = 0
+    token.value = ''
+    username.value = ''
+    nickname.value = ''
+    role.value = ''
+    className.value = ''
+    localStorage.removeItem('cryd_id')
+    localStorage.removeItem('cryd_token')
+    localStorage.removeItem('cryd_username')
+    localStorage.removeItem('cryd_nickname')
+    localStorage.removeItem('cryd_role')
+    localStorage.removeItem('cryd_class')
+  }
+
+  return { id, token, username, nickname, role, className, isLoggedIn, homePath, setUser, logout }
+})
