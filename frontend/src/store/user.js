@@ -8,10 +8,11 @@ export const useUserStore = defineStore('user', () => {
   const nickname = ref(localStorage.getItem('cryd_nickname') || '')
   const role = ref(localStorage.getItem('cryd_role') || '')
   const className = ref(localStorage.getItem('cryd_class') || '')
+  const studentId = ref(localStorage.getItem('cryd_studentId') || '')
 
   const isLoggedIn = computed(() => !!token.value)
   const homePath = computed(() => {
-    const map = { student: '/student/chat', teacher: '/teacher/courses', counselor: '/counselor/warnings', admin: '/admin/dashboard' }
+    const map = { student: '/student/home', teacher: '/teacher/home', admin: '/admin/dashboard' }
     return map[role.value] || '/login'
   })
 
@@ -22,12 +23,14 @@ export const useUserStore = defineStore('user', () => {
     nickname.value = data.nickname || ''
     role.value = data.role || ''
     className.value = data.className || ''
+    studentId.value = data.studentId || ''
     localStorage.setItem('cryd_id', String(id.value))
     localStorage.setItem('cryd_token', token.value)
     localStorage.setItem('cryd_username', username.value)
     localStorage.setItem('cryd_nickname', nickname.value)
     localStorage.setItem('cryd_role', role.value)
     localStorage.setItem('cryd_class', className.value)
+    localStorage.setItem('cryd_studentId', studentId.value)
   }
 
   function logout() {
@@ -37,13 +40,15 @@ export const useUserStore = defineStore('user', () => {
     nickname.value = ''
     role.value = ''
     className.value = ''
+    studentId.value = ''
     localStorage.removeItem('cryd_id')
     localStorage.removeItem('cryd_token')
     localStorage.removeItem('cryd_username')
     localStorage.removeItem('cryd_nickname')
     localStorage.removeItem('cryd_role')
     localStorage.removeItem('cryd_class')
+    localStorage.removeItem('cryd_studentId')
   }
 
-  return { id, token, username, nickname, role, className, isLoggedIn, homePath, setUser, logout }
+  return { id, token, username, nickname, role, className, studentId, isLoggedIn, homePath, setUser, logout }
 })

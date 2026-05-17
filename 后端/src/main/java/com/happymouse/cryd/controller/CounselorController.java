@@ -19,7 +19,6 @@ import java.util.*;
  */
 @RestController
 @RequestMapping("/api/counselor")
-@CrossOrigin(origins = "*")
 public class CounselorController {
 
     private final LeaveRequestRepository leaveRequestRepository;

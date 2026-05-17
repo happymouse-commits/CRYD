@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/learning")
-@CrossOrigin(origins = "*")
 public class LearningController {
 
     private final LearningResourceRepository resourceRepository;

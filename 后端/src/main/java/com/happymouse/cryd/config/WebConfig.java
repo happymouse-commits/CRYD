@@ -26,8 +26,13 @@ public class WebConfig implements WebMvcConfigurer {
         // Vue Router SPA: forward all frontend routes to index.html
         registry.addViewController("/student/**").setViewName("forward:/index.html");
         registry.addViewController("/teacher/**").setViewName("forward:/index.html");
-        registry.addViewController("/counselor/**").setViewName("forward:/index.html");
         registry.addViewController("/admin/**").setViewName("forward:/index.html");
+        // Also handle direct route access without trailing slash
+        registry.addViewController("/student").setViewName("forward:/index.html");
+        registry.addViewController("/teacher").setViewName("forward:/index.html");
+        registry.addViewController("/admin").setViewName("forward:/index.html");
+        // Root path redirects to login page
+        registry.addRedirectViewController("/", "/login.html");
         registry.setOrder(Ordered.HIGHEST_PRECEDENCE);
     }
 }

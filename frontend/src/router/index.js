@@ -2,40 +2,42 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../store/user'
 
 const routes = [
-  { path: '/', redirect: '/login' },
-  { path: '/login', component: () => import('../views/Login.vue') },
-  // Student
-  { path: '/student', component: () => import('../views/student/Layout.vue'), meta: { role: 'student' },
+  { path: '/', redirect: '/login.html' },
+  { path: '/login', redirect: '/login.html' },
+  // 学生端
+  { path: '/student', component: () => import('../views/学生端/布局.vue'), meta: { role: 'student' },
     children: [
-      { path: 'chat', component: () => import('../views/student/Chat.vue') },
-      { path: 'profile', component: () => import('../views/student/Profile.vue') },
-      { path: 'resources', component: () => import('../views/student/Resources.vue') },
-      { path: 'path', component: () => import('../views/student/LearningPath.vue') },
+      { path: 'home', component: () => import('../views/student/Home.vue') },
+      { path: 'chat', component: () => import('../views/学生端/AI辅导.vue') },
+      { path: 'profile-card', component: () => import('../views/学生端/我的画像.vue') },
+      { path: 'practice', component: () => import('../views/学生端/刷题房.vue') },
+      { path: 'resources', component: () => import('../views/学生端/学习资源.vue') },
+      { path: 'learning-path', component: () => import('../views/学生端/学习路径.vue') },
+      { path: 'evaluation', component: () => import('../views/学生端/学习评估.vue') },
+      { path: 'my-info', component: () => import('../views/学生端/个人信息.vue') },
+      // 旧路由重定向
+      { path: 'learning-center', redirect: '/student/practice' },
+      { path: 'breakthrough', redirect: '/student/practice' },
     ]
   },
-  // Teacher
-  { path: '/teacher', component: () => import('../views/teacher/Layout.vue'), meta: { role: 'teacher' },
+  // 教师端
+  { path: '/teacher', component: () => import('../views/教师端/布局.vue'), meta: { role: 'teacher' },
     children: [
-      { path: 'courses', component: () => import('../views/teacher/Courses.vue') },
-      { path: 'assignments', component: () => import('../views/teacher/Assignments.vue') },
-      { path: 'submissions', component: () => import('../views/teacher/Submissions.vue') },
-      { path: 'analysis', component: () => import('../views/teacher/Analysis.vue') },
+      { path: 'home', component: () => import('../views/teacher/Home.vue') },
+      { path: 'knowledge-base', component: () => import('../views/教师端/知识库管理.vue') },
+      { path: 'assignments', component: () => import('../views/教师端/布置作业.vue') },
+      { path: 'analysis', component: () => import('../views/教师端/数据分析.vue') },
+      { path: 'students/:id', component: () => import('../views/teacher/StudentProfile.vue') },
+      { path: 'info', component: () => import('../views/教师端/教师信息.vue') },
     ]
   },
-  // Counselor
-  { path: '/counselor', component: () => import('../views/counselor/Layout.vue'), meta: { role: 'counselor' },
+  // 管理员
+  { path: '/admin', component: () => import('../views/管理员/布局.vue'), meta: { role: 'admin' },
     children: [
-      { path: 'warnings', component: () => import('../views/counselor/Warnings.vue') },
-      { path: 'leaves', component: () => import('../views/counselor/Leaves.vue') },
-      { path: 'profiles', component: () => import('../views/counselor/Profiles.vue') },
-    ]
-  },
-  // Admin
-  { path: '/admin', component: () => import('../views/admin/Layout.vue'), meta: { role: 'admin' },
-    children: [
-      { path: 'dashboard', component: () => import('../views/admin/Dashboard.vue') },
-      { path: 'users', component: () => import('../views/admin/Users.vue') },
-      { path: 'system', component: () => import('../views/admin/System.vue') },
+      { path: 'dashboard', component: () => import('../views/管理员/仪表盘.vue') },
+      { path: 'users', component: () => import('../views/管理员/用户管理.vue') },
+      { path: 'config', component: () => import('../views/管理员/系统配置.vue') },
+      { path: 'statistics', component: () => import('../views/admin/Statistics.vue') },
     ]
   },
 ]
@@ -47,13 +49,11 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   if (to.path === '/login') {
-    // 访问旧登录页时，重定向到新前端登录页
     window.location.href = '/login.html'
     return
   }
   const store = useUserStore()
   if (!store.isLoggedIn) {
-    // 未登录，跳转到新前端登录页
     window.location.href = '/login.html'
     return
   }

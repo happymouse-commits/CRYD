@@ -7,7 +7,7 @@ spring:
 
   # ===== 数据库配置（开发阶段用H2，正式换MySQL） =====
   datasource:
-    url: jdbc:h2:file:./data/cryd;AUTO_SERVER=TRUE
+    url: jdbc:h2:file:f:/从容应对/后端/data/cryd;AUTO_SERVER=TRUE
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -39,14 +39,24 @@ spring:
 # ===== 讯飞星火大模型配置 =====
 spark:
   api:
-    url: wss://spark-api.xf-yun.com/v3.5/chat
+    # 星火大模型对话 API — Spark Ultra-32K
+    url: wss://spark-api.xf-yun.com/v4.0/chat
+    # 语音听写 API (自动拼接在 SparkClient 中)
+    # iat-url: ws://iat-api.xfyun.cn/v2/iat
     app-id: 9fc73775
     api-key: 14f0f6dd2dcd7ae6ca62aaed68035914
     api-secret: ZTQ0M2Q3MzRhNDY4ZDdlZmYzMTJjOWMz
-    domain: generalv3.5
+    domain: 4.0Ultra
 
 # ===== 多智能体配置 =====
 agent:
+  # 管道配置
+  pipeline:
+    max-retries: 3
+    task-timeout-ms: 120000
+    review-enabled: true
+    review-threshold: 0.6
+
   # 画像分析师
   profile-analyst:
     name: 画像分析师
@@ -71,3 +81,27 @@ agent:
   tutor:
     name: 辅导老师
     description: 即时答疑解惑，提供多模态辅导
+
+# ===== RAG知识库配置 =====
+rag:
+  enabled: true
+  chunk-size: 512
+  chunk-overlap: 64
+  top-k: 5
+  similarity-threshold: 0.65
+  vector-store: in-memory  # in-memory / redis / milvus
+  embedding:
+    provider: spark  # spark / tfidf
+    dimension: 1536
+
+# ===== 系统功能配置 =====
+system:
+  resource:
+    max-batch-generation: 10
+    max-generation-per-day: 50
+  evaluation:
+    max-questions-per-test: 20
+    default-time-minutes: 45
+  learning-path:
+    max-steps: 10
+    suggest-daily: true

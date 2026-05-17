@@ -33,6 +33,19 @@ public class LearningResource {
 
     private Long studentId;
 
+    @Column(length = 100)
+    private String category;
+
+    @Column(length = 500)
+    private String tags;
+
+    private Integer favoriteCount;
+
+    private Integer commentCount;
+
+    @Column(length = 10)
+    private String isShared; // "0" or "1"
+
     private LocalDateTime createdAt;
 
     @PrePersist
@@ -54,6 +67,16 @@ public class LearningResource {
     public void setGeneratedBy(String generatedBy) { this.generatedBy = generatedBy; }
     public Long getStudentId() { return studentId; }
     public void setStudentId(Long studentId) { this.studentId = studentId; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+    public String getTags() { return tags; }
+    public void setTags(String tags) { this.tags = tags; }
+    public Integer getFavoriteCount() { return favoriteCount; }
+    public void setFavoriteCount(Integer favoriteCount) { this.favoriteCount = favoriteCount; }
+    public Integer getCommentCount() { return commentCount; }
+    public void setCommentCount(Integer commentCount) { this.commentCount = commentCount; }
+    public String getIsShared() { return isShared; }
+    public void setIsShared(String isShared) { this.isShared = isShared; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

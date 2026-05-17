@@ -3,6 +3,7 @@ package com.happymouse.cryd.controller;
 import com.happymouse.cryd.common.Result;
 import com.happymouse.cryd.model.entity.SysUser;
 import com.happymouse.cryd.repository.SysUserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -13,14 +14,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
 public class AuthController {
 
     private final SysUserRepository sysUserRepository;
+    private final PasswordEncoder passwordEncoder;
     private final ConcurrentHashMap<String, String> captchaStore = new ConcurrentHashMap<>();
 
-    public AuthController(SysUserRepository sysUserRepository) {
+    public AuthController(SysUserRepository sysUserRepository, PasswordEncoder passwordEncoder) {
         this.sysUserRepository = sysUserRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /** 登录 - 支持用户名/手机号/学号 */
@@ -36,7 +38,7 @@ public class AuthController {
         if (opt.isEmpty()) return Result.error(401, "账号或密码错误");
 
         SysUser user = opt.get();
-        if (!password.equals(user.getPassword())) return Result.error(401, "账号或密码错误");
+        if (!passwordEncoder.matches(password, user.getPassword())) return Result.error(401, "账号或密码错误");
         if ("disabled".equals(user.getStatus())) return Result.error(403, "账号已被禁用");
 
         Map<String, Object> data = new LinkedHashMap<>();
@@ -65,19 +67,26 @@ public class AuthController {
         if (password == null || password.isEmpty()) return Result.error(400, "密码不能为空");
         if (password.length() < 6) return Result.error(400, "密码至少6位");
 
-        // 手机号即用户名
+        // 角色校验
+        if ("counselor".equals(role)) return Result.error(400, "不支持辅导员注册");
+
         if (sysUserRepository.findByPhone(phone).isPresent()) return Result.error(400, "该手机号已被注册");
 
         if ("student".equals(role)) {
             if (studentId == null || studentId.isEmpty()) return Result.error(400, "学生必须填写学号");
             if (studentId.length() < 4) return Result.error(400, "学号至少4位");
             if (sysUserRepository.findByStudentId(studentId).isPresent()) return Result.error(400, "该学号已被注册");
+            String className = body.get("className");
+            if (className == null || className.isEmpty()) return Result.error(400, "学生必须填写班级");
+            if (className.length() < 2) return Result.error(400, "班级名称至少2位");
         }
 
         SysUser user = new SysUser();
-        user.setUsername(phone); // 手机号当用户名
-        user.setPassword(password);
-        user.setNickname(phone);  // 默认昵称也是手机号
+        // 学生用户名=学号，老师用户名=手机号
+        user.setUsername("student".equals(role) ? studentId : phone);
+        user.setPassword(passwordEncoder.encode(password));
+        String nickname = body.get("nickname");
+        user.setNickname((nickname != null && !nickname.isBlank()) ? nickname : "");
         user.setRole(role);
         user.setPhone(phone);
         user.setStudentId("student".equals(role) ? studentId : null);
@@ -128,7 +137,7 @@ public class AuthController {
         if (opt.isEmpty()) return Result.error(404, "该手机号未注册");
 
         SysUser user = opt.get();
-        user.setPassword(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
         sysUserRepository.save(user);
         captchaStore.remove(phone); // 用完即删
 

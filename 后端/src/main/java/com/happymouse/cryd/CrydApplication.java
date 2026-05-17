@@ -16,7 +16,7 @@ public class CrydApplication {
 
                 ========================================
                   CRYD 多智能体学习系统启动成功！
-                  讯飞星火 + LangChain4j + Spring Boot
+                  讯飞星火 + Spring Boot
                 ========================================
                 """);
     }

@@ -38,6 +38,27 @@ Thumbs.db
 .project
 .settings/
 
+# Node
+node_modules/
+package-lock.json
+
+# Claude Code
+.claude/
+claude
+
+# Frontend build
+frontend/dist/
+
+# Runtime data
+data/
+后端/data/
+
+# Temp working files
+AI驱动成果描述.md
+ClaudeCode_BUG修复清单.md
+ClaudeCode_资源与学习路径.md
+重构设计文档_v2.md
+
 # Temporary files
 *.swp
 *~

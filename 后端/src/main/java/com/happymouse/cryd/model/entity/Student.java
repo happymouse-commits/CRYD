@@ -1,6 +1,7 @@
 package com.happymouse.cryd.model.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -30,7 +31,24 @@ public class Student {
     @Column(length = 20)
     private String learningPace;
 
+    @Column(length = 200)
+    private String interestDirection;
+
+    @Column(length = 200)
+    private String weakAreas;
+
+    @Column(length = 20)
+    private String studyMotivation;
+
+    @Column(length = 20)
+    private String focusLevel;
+
     private Integer progress;
+
+    private Integer totalStudyMinutes;
+    private Integer streakDays;
+
+    private LocalDate lastCheckinDate;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -63,8 +81,22 @@ public class Student {
     public void setLearningPreference(String learningPreference) { this.learningPreference = learningPreference; }
     public String getLearningPace() { return learningPace; }
     public void setLearningPace(String learningPace) { this.learningPace = learningPace; }
+    public String getInterestDirection() { return interestDirection; }
+    public void setInterestDirection(String interestDirection) { this.interestDirection = interestDirection; }
+    public String getWeakAreas() { return weakAreas; }
+    public void setWeakAreas(String weakAreas) { this.weakAreas = weakAreas; }
+    public String getStudyMotivation() { return studyMotivation; }
+    public void setStudyMotivation(String studyMotivation) { this.studyMotivation = studyMotivation; }
+    public String getFocusLevel() { return focusLevel; }
+    public void setFocusLevel(String focusLevel) { this.focusLevel = focusLevel; }
     public Integer getProgress() { return progress; }
     public void setProgress(Integer progress) { this.progress = progress; }
+    public Integer getTotalStudyMinutes() { return totalStudyMinutes; }
+    public void setTotalStudyMinutes(Integer totalStudyMinutes) { this.totalStudyMinutes = totalStudyMinutes; }
+    public Integer getStreakDays() { return streakDays; }
+    public void setStreakDays(Integer streakDays) { this.streakDays = streakDays; }
+    public LocalDate getLastCheckinDate() { return lastCheckinDate; }
+    public void setLastCheckinDate(LocalDate lastCheckinDate) { this.lastCheckinDate = lastCheckinDate; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
