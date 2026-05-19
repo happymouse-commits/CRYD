@@ -1,83 +1,86 @@
 package com.happymouse.cryd.service.rag;
 
-import com.happymouse.cryd.service.spark.SparkClient;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
+import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
- * 向量化服务 — 将文本转为向量
- * 使用星火大模型做语义关键词提取 + 语义相似度评估
+ * 真正的向量化服务 — 调用嵌入模型API将文本转为语义向量
+ * 支持 GLM 嵌入 和 讯飞星火嵌入，通过配置一键切换
+ *
+ * 配置切换方式（application.yml）：
+ *   rag.embedding.provider: glm       → 智谱GLM嵌入
+ *   rag.embedding.provider: spark     → 讯飞星火嵌入
  */
 @Service
 public class EmbeddingService {
 
     private static final Logger log = LoggerFactory.getLogger(EmbeddingService.class);
-    private static final int VECTOR_DIM = 256;
 
-    private final SparkClient sparkClient;
+    @Value("${rag.embedding.provider:glm}")
+    private String provider;
 
-    public EmbeddingService(SparkClient sparkClient) {
-        this.sparkClient = sparkClient;
-    }
+    @Value("${rag.embedding.dimension:1024}")
+    private int vectorDimension;
+
+    // ===== GLM 嵌入配置 =====
+    @Value("${rag.embedding.glm.url:https://open.bigmodel.cn/api/paas/v4/embeddings}")
+    private String glmEmbeddingUrl;
+
+    @Value("${rag.embedding.glm.key:}")
+    private String glmApiKey;
+
+    @Value("${rag.embedding.glm.model:embedding-3}")
+    private String glmModel;
+
+    // ===== 讯飞星火嵌入配置 =====
+    @Value("${rag.embedding.spark.url:https://emb.xf-yun.com/v1/embeddings}")
+    private String sparkEmbeddingUrl;
+
+    @Value("${rag.embedding.spark.key:}")
+    private String sparkApiKey;
+
+    @Value("${rag.embedding.spark.model:embedding-v1}")
+    private String sparkModel;
+
+    private final OkHttpClient httpClient = new OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build();
 
     /**
-     * 将文本映射为语义向量
-     * 使用星火大模型提取关键词，然后映射到固定维度向量
+     * 将文本转为语义向量（调用嵌入模型API）
      */
     public float[] embed(String text) {
-        if (text == null || text.isEmpty()) return new float[VECTOR_DIM];
+        if (text == null || text.isEmpty()) return new float[vectorDimension];
 
-        // 使用星火大模型提取关键词（替代本地TF-IDF）
-        String keywords = "";
         try {
-            keywords = sparkClient.extractKeywords(text);
+            switch (provider.toLowerCase()) {
+                case "glm":
+                    return callGlmEmbedding(text);
+                case "spark":
+                    return callSparkEmbedding(text);
+                default:
+                    log.warn("未知嵌入提供者: {}，回退到GLM", provider);
+                    return callGlmEmbedding(text);
+            }
         } catch (Exception e) {
-            log.warn("AI关键词提取失败，回退到本地分词: {}", e.getMessage());
+            log.error("嵌入API调用失败: provider={}, text_len={}, error={}", provider, text.length(), e.getMessage());
+            return new float[vectorDimension];
         }
-
-        // 如果AI提取失败，回退到本地分词
-        String[] words;
-        if (keywords != null && !keywords.isEmpty()) {
-            words = keywords.split("[,，\\s]+");
-        } else {
-            words = tokenize(text);
-        }
-
-        // 词频统计
-        Map<String, Integer> tf = new LinkedHashMap<>();
-        for (String w : words) {
-            String cleaned = w.trim();
-            if (!cleaned.isEmpty()) {
-                tf.merge(cleaned, 1, Integer::sum);
-            }
-        }
-
-        // 映射到固定维度向量
-        float[] vector = new float[VECTOR_DIM];
-        for (Map.Entry<String, Integer> entry : tf.entrySet()) {
-            int idx = Math.abs(entry.getKey().hashCode()) % VECTOR_DIM;
-            double weight = Math.log1p(entry.getValue());
-            vector[idx] += (float) weight;
-        }
-
-        // L2归一化
-        float norm = 0;
-        for (float v : vector) norm += v * v;
-        norm = (float) Math.sqrt(norm);
-        if (norm > 0) {
-            for (int i = 0; i < VECTOR_DIM; i++) {
-                vector[i] /= norm;
-            }
-        }
-
-        return vector;
     }
 
     /**
-     * 批量embed
+     * 批量嵌入
      */
     public List<float[]> embedBatch(List<String> texts) {
         List<float[]> result = new ArrayList<>();
@@ -91,9 +94,9 @@ public class EmbeddingService {
      * 计算余弦相似度
      */
     public double cosineSimilarity(float[] a, float[] b) {
-        if (a == null || b == null || a.length != VECTOR_DIM || b.length != VECTOR_DIM) return 0;
+        if (a == null || b == null || a.length != b.length) return 0;
         double dot = 0, normA = 0, normB = 0;
-        for (int i = 0; i < VECTOR_DIM; i++) {
+        for (int i = 0; i < a.length; i++) {
             dot += a[i] * b[i];
             normA += a[i] * a[i];
             normB += b[i] * b[i];
@@ -102,35 +105,74 @@ public class EmbeddingService {
         return dot / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 
-    /**
-     * 语义相似度评估 — 使用星火大模型直接评估两段文本相关性
-     */
-    public double semanticSimilarity(String query, String document) {
-        try {
-            return sparkClient.semanticSimilarity(query, document);
-        } catch (Exception e) {
-            log.warn("AI语义相似度评估失败，回退到向量余弦相似度: {}", e.getMessage());
-            return cosineSimilarity(embed(query), embed(document));
+    // ========== GLM 嵌入 ==========
+
+    private float[] callGlmEmbedding(String text) throws IOException {
+        JSONObject body = new JSONObject();
+        body.put("model", glmModel);
+        body.put("input", Collections.singletonList(text));
+
+        Request request = new Request.Builder()
+                .url(glmEmbeddingUrl)
+                .addHeader("Authorization", "Bearer " + glmApiKey)
+                .addHeader("Content-Type", "application/json")
+                .post(RequestBody.create(body.toJSONString(), MediaType.parse("application/json")))
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            String respBody = response.body() != null ? response.body().string() : "";
+            if (!response.isSuccessful()) {
+                throw new IOException("GLM嵌入API错误[" + response.code() + "]: " + respBody);
+            }
+            JSONObject json = JSON.parseObject(respBody);
+            JSONArray data = json.getJSONArray("data");
+            if (data != null && !data.isEmpty()) {
+                JSONArray embeddingArr = data.getJSONObject(0).getJSONArray("embedding");
+                float[] vector = new float[embeddingArr.size()];
+                for (int i = 0; i < embeddingArr.size(); i++) {
+                    vector[i] = embeddingArr.getFloatValue(i);
+                }
+                this.vectorDimension = vector.length; // 同步实际维度
+                return vector;
+            }
+            throw new IOException("GLM嵌入返回空数据");
         }
     }
 
-    /**
-     * 简单中文分词（回退方案）
-     */
-    private String[] tokenize(String text) {
-        List<String> tokens = new ArrayList<>();
-        String cleaned = text.toLowerCase().replaceAll("[^\\u4e00-\\u9fa5a-zA-Z0-9]", " ");
+    // ========== 讯飞星火嵌入 ==========
 
-        for (char c : cleaned.toCharArray()) {
-            if (c != ' ') tokens.add(String.valueOf(c));
-        }
-        for (int i = 0; i < cleaned.length() - 1; i++) {
-            String gram = cleaned.substring(i, i + 2);
-            if (!gram.contains(" ")) tokens.add(gram);
-        }
+    private float[] callSparkEmbedding(String text) throws IOException {
+        JSONObject body = new JSONObject();
+        body.put("model", sparkModel);
+        body.put("input", Collections.singletonList(text));
 
-        return tokens.toArray(new String[0]);
+        Request request = new Request.Builder()
+                .url(sparkEmbeddingUrl)
+                .addHeader("Authorization", "Bearer " + sparkApiKey)
+                .addHeader("Content-Type", "application/json")
+                .post(RequestBody.create(body.toJSONString(), MediaType.parse("application/json")))
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            String respBody = response.body() != null ? response.body().string() : "";
+            if (!response.isSuccessful()) {
+                throw new IOException("星火嵌入API错误[" + response.code() + "]: " + respBody);
+            }
+            JSONObject json = JSON.parseObject(respBody);
+            JSONArray data = json.getJSONArray("data");
+            if (data != null && !data.isEmpty()) {
+                JSONArray embeddingArr = data.getJSONObject(0).getJSONArray("embedding");
+                float[] vector = new float[embeddingArr.size()];
+                for (int i = 0; i < embeddingArr.size(); i++) {
+                    vector[i] = embeddingArr.getFloatValue(i);
+                }
+                this.vectorDimension = vector.length;
+                return vector;
+            }
+            throw new IOException("星火嵌入返回空数据");
+        }
     }
 
-    public int getDimension() { return VECTOR_DIM; }
+    public int getDimension() { return vectorDimension; }
+    public String getProvider() { return provider; }
 }

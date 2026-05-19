@@ -56,12 +56,9 @@ public class DataInitializer implements CommandLineRunner {
         if (systemConfigRepository.count() > 0) return;
 
         List<SystemConfig> defaults = List.of(
-            createConfig("llm.apiUrl", "wss://spark-api.xf-yun.com/v4.0/chat", "讯飞星火 API 地址", "llm"),
-            createConfig("llm.apiKey", "14f0f6dd2dcd7ae6ca62aaed68035914", "讯飞星火 API Key", "llm"),
-            createConfig("llm.apiSecret", "ZTQ0M2Q3MzRhNDY4ZDdlZmYzMTJjOWMz", "讯飞星火 API Secret", "llm"),
-            createConfig("llm.appId", "9fc73775", "讯飞星火 APP ID", "llm"),
-            createConfig("llm.model", "spark-ultra", "默认模型：讯飞星火 Ultra 4.0", "llm"),
-            createConfig("llm.domain", "4.0Ultra", "星火模型域", "llm"),
+            createConfig("llm.apiUrl", "https://open.bigmodel.cn/api/paas/v4/chat/completions", "智谱 GLM API 地址", "llm"),
+            createConfig("llm.apiKey", "5b4e7463e78844619fcc8ca9250f533a.goUhPjIQJGK0tLD9", "智谱 GLM API Key", "llm"),
+            createConfig("llm.model", "glm-4-flash", "默认模型：智谱 GLM-4-Flash", "llm"),
             createConfig("llm.temperature", "0.5", "默认 Temperature", "llm"),
             createConfig("llm.maxTokens", "2048", "默认 Max Tokens", "llm"),
             createConfig("llm.topP", "0.9", "默认 Top-P", "llm"),
@@ -69,7 +66,7 @@ public class DataInitializer implements CommandLineRunner {
         );
 
         systemConfigRepository.saveAll(defaults);
-        System.out.println("⚙️  系统配置已初始化: 讯飞星火 Ultra 4.0 为默认模型");
+        System.out.println("⚙️  系统配置已初始化: 智谱 GLM-4-Flash 为默认模型");
     }
 
     private SystemConfig createConfig(String key, String value, String desc, String category) {
@@ -85,8 +82,7 @@ public class DataInitializer implements CommandLineRunner {
         List<DefaultUser> defaults = List.of(
             new DefaultUser("admin1", "123456", "系统管理员", "admin", "", "信息中心", "13800000001", null),
             new DefaultUser("student1", "123456", "张同学", "student", "计科2301", "", "13800000002", "2023010001"),
-            new DefaultUser("teacher1", "123456", "李老师", "teacher", "", "计算机系", "13800000003", null),
-            new DefaultUser("counselor1", "123456", "王辅导员", "counselor", "", "学生处", "13800000004", null)
+            new DefaultUser("teacher1", "123456", "李老师", "teacher", "", "计算机系", "13800000003", null)
         );
 
         for (DefaultUser d : defaults) {
@@ -124,11 +120,13 @@ public class DataInitializer implements CommandLineRunner {
                 jsonStr = sb.toString();
             }
 
-            JSONArray chapters = JSON.parseArray(jsonStr);
+            JSONObject root = JSON.parseObject(jsonStr);
+            JSONArray chapters = root.getJSONArray("chapters");
             if (chapters.isEmpty()) return;
 
             // 获取或创建课程
-            Course course = courseRepository.findByName("C语言程序设计");
+            List<Course> existingCourses = courseRepository.findAllByName("C语言程序设计");
+            Course course = existingCourses.isEmpty() ? null : existingCourses.get(0);
             if (course == null) {
                 course = new Course();
                 course.setName("C语言程序设计");
@@ -151,8 +149,24 @@ public class DataInitializer implements CommandLineRunner {
             int updatedCount = 0;
             for (int i = 0; i < chapters.size(); i++) {
                 JSONObject ch = chapters.getJSONObject(i);
-                String chapterName = ch.getString("name");
-                JSONArray questions = ch.getJSONArray("questions");
+                String chapterNameRaw = ch.getString("chapterName");
+                if (chapterNameRaw == null) chapterNameRaw = ch.getString("name"); // 兼容两种格式
+                final String chapterName = chapterNameRaw;
+                JSONArray sections = ch.getJSONArray("sections");
+                JSONArray questionsRaw = ch.getJSONArray("questions"); // 有些格式直接在章节级别
+                if (questionsRaw == null && sections != null) {
+                    // 从 sections 里汇总所有 questions
+                    questionsRaw = new JSONArray();
+                    for (int s = 0; s < sections.size(); s++) {
+                        JSONArray sq = sections.getJSONObject(s).getJSONArray("questions");
+                        if (sq != null) {
+                            for (int q = 0; q < sq.size(); q++) {
+                                questionsRaw.add(sq.get(q));
+                            }
+                        }
+                    }
+                }
+                final JSONArray questions = questionsRaw != null ? questionsRaw : new JSONArray();
 
                 // 查找是否已有同名章节
                 List<Chapter> existing = chapterRepository.findByStatusOrderByOrderNum("published");
@@ -165,8 +179,10 @@ public class DataInitializer implements CommandLineRunner {
                     chapter.setCourseId(course.getId());
                     chapter.setTeacherId(teacherId);
                     chapter.setName(chapterName);
-                    chapter.setDescription(ch.getString("description"));
-                    chapter.setOrderNum(ch.getInteger("orderNum"));
+                    chapter.setDescription(ch.getString("description") != null ? ch.getString("description") : chapterName);
+                    Integer orderNum = ch.getInteger("orderNum");
+                    if (orderNum == null) orderNum = ch.getInteger("chapterId"); // 兼容两种格式
+                    chapter.setOrderNum(orderNum != null ? orderNum : i + 1);
                     chapter.setStatus("published");
                     chapter.setPublishedAt(LocalDateTime.now());
                     chapter.setQuestions(questions.toJSONString());
@@ -186,19 +202,37 @@ public class DataInitializer implements CommandLineRunner {
             int importedQ = 0;
             for (int i = 0; i < chapters.size(); i++) {
                 JSONObject ch = chapters.getJSONObject(i);
-                String chapterName = ch.getString("name");
-                int chapterOrder = ch.getInteger("orderNum");
-                JSONArray questions = ch.getJSONArray("questions");
+                String chapterNameQ = ch.getString("chapterName") != null ? ch.getString("chapterName") : ch.getString("name");
+                Integer chapterOrderRaw = ch.getInteger("orderNum");
+                if (chapterOrderRaw == null) chapterOrderRaw = ch.getInteger("chapterId");
+                int chapterOrder = chapterOrderRaw != null ? chapterOrderRaw : i + 1;
 
-                for (int j = 0; j < questions.size(); j++) {
-                    JSONObject q = questions.getJSONObject(j);
+                // 汇总sections里的questions
+                JSONArray sectionsQ = ch.getJSONArray("sections");
+                JSONArray questionsQ = ch.getJSONArray("questions");
+                if (questionsQ == null && sectionsQ != null) {
+                    questionsQ = new JSONArray();
+                    for (int s = 0; s < sectionsQ.size(); s++) {
+                        JSONArray sq = sectionsQ.getJSONObject(s).getJSONArray("questions");
+                        if (sq != null) {
+                            for (int qi = 0; qi < sq.size(); qi++) {
+                                questionsQ.add(sq.get(qi));
+                            }
+                        }
+                    }
+                }
+                if (questionsQ == null) continue;
+
+                final String chName = chapterNameQ;
+                for (int j = 0; j < questionsQ.size(); j++) {
+                    JSONObject q = questionsQ.getJSONObject(j);
                     String type = q.getString("type");
-                    String content = q.getString("content");
+                    String content = q.getString("question") != null ? q.getString("question") : q.getString("content");
 
                     // 检查是否已存在（按内容去重）
                     boolean exists = questionRepository.findAll().stream()
                             .anyMatch(existing -> content.equals(existing.getContent())
-                                    && chapterName.equals(existing.getChapterName()));
+                                    && chName.equals(existing.getChapterName()));
                     if (exists) continue;
 
                     Question question = new Question();
@@ -209,9 +243,9 @@ public class DataInitializer implements CommandLineRunner {
                     }
                     question.setAnswer(q.getString("answer"));
                     question.setKnowledgePoint(q.getString("knowledgePoint"));
-                    question.setAnalysis(q.getString("analysis"));
-                    question.setDifficulty("medium");
-                    question.setChapterName(chapterName);
+                    question.setAnalysis(q.getString("explanation") != null ? q.getString("explanation") : q.getString("analysis"));
+                    question.setDifficulty(q.getString("difficulty") != null ? q.getString("difficulty") : "medium");
+                    question.setChapterName(chName);
                     question.setChapterOrder(chapterOrder);
                     question.setCourseId(course.getId());
                     question.setSource("imported");

@@ -35,7 +35,7 @@
       <div class="search-toolbar">
         <el-input
           v-model="searchKeyword"
-          placeholder="搜索用户名 / 昵称"
+          placeholder="搜索学号 / 昵称"
           clearable
           style="width: 240px"
           @input="filterUsers"
@@ -49,14 +49,9 @@
       <!-- 用户表格 -->
       <el-table :data="filteredUsers" stripe style="width:100%" v-loading="loading" :row-class-name="tableRowClass">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="username" label="用户名" width="120">
+        <el-table-column prop="username" :label="activeTab === 'student' ? '学号' : '用户名'" width="140">
           <template #default="{ row }">
-            <span class="username-cell">{{ row.username }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="studentId" label="学号" width="120">
-          <template #default="{ row }">
-            <span>{{ row.studentId || '-' }}</span>
+            <span class="username-cell">{{ activeTab === 'student' ? (row.studentId || row.username) : row.username }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="nickname" label="昵称" width="120">
@@ -101,7 +96,7 @@
               {{ row.status === 'disabled' ? '启用' : '禁用' }}
             </el-button>
             <el-popconfirm
-              :title="'确定删除用户「' + row.username + '」？此操作不可恢复'"
+              :title="'确定删除用户「' + (row.studentId || row.username) + '」？此操作不可恢复'"
               @confirm="delUser(row)"
               :disabled="row.id === 1"
             >
@@ -124,8 +119,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="手机号">
-              <el-input v-model="form.phone" placeholder="找回密码用" />
+            <el-form-item v-if="form.role !== 'student'" label="手机号">
+              <el-input v-model="form.phone" placeholder="请输入手机号" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -288,7 +283,9 @@ const filteredUsers = computed(() => {
   const kw = searchKeyword.value.toLowerCase()
   return users.value.filter(u => u.role === activeTab.value).filter(u => {
     if (!kw) return true
-    return (u.username || '').toLowerCase().includes(kw) || (u.nickname || '').toLowerCase().includes(kw)
+    return (u.studentId || '').toLowerCase().includes(kw)
+        || (u.username || '').toLowerCase().includes(kw)
+        || (u.nickname || '').toLowerCase().includes(kw)
   })
 })
 

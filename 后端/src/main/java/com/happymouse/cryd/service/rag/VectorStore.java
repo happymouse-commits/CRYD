@@ -11,13 +11,14 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 内存向量存储 — 支持余弦相似度检索 + 磁盘持久化
+ * 内存向量存储 - 支持余弦相似度检索 + 磁盘持久化
  */
 @Service
 public class VectorStore {
 
     private static final Logger log = LoggerFactory.getLogger(VectorStore.class);
     private static final String STORE_FILE = "data/vector_store.dat";
+    private int currentDimension = -1;
 
     private final Map<String, VectorEntry> store = new ConcurrentHashMap<>();
     private final EmbeddingService embeddingService;
@@ -28,8 +29,33 @@ public class VectorStore {
 
     @PostConstruct
     public void init() {
+        currentDimension = embeddingService.getDimension();
         loadFromDisk();
-        log.info("VectorStore初始化完成，当前条目数: {}", store.size());
+
+        // 清除维度不兼容的旧向量
+        // 以实际存储的第一条向量维度为基准（可能和配置值不同，因为API实际维度在运行时才确定）
+        int referenceDim = currentDimension;
+        if (!store.isEmpty()) {
+            // 取第一条实际向量的维度作为参考
+            referenceDim = store.values().iterator().next().vector.length;
+        }
+
+        List<String> toRemove = new ArrayList<>();
+        Map<Integer, Integer> dimStats = new HashMap<>();
+        for (Map.Entry<String, VectorEntry> entry : store.entrySet()) {
+            int dim = entry.getValue().vector.length;
+            dimStats.merge(dim, 1, Integer::sum);
+            if (dim != referenceDim) {
+                toRemove.add(entry.getKey());
+            }
+        }
+        if (!toRemove.isEmpty()) {
+            log.warn("清除{}条维度不兼容的旧向量（参考维度:{}, 配置维度:{}, 实际分布:{})", toRemove.size(), referenceDim, currentDimension, dimStats);
+            toRemove.forEach(store::remove);
+            // 立即持久化以避免下次启动又加载旧数据
+            saveToDisk();
+        }
+        log.info("VectorStore初始化完成，当前条目数: {}，参考维度:{}", store.size(), referenceDim);
     }
 
     @PreDestroy
@@ -39,14 +65,28 @@ public class VectorStore {
     }
 
     /**
-     * 添加向量
+     * 添加向量（不做持久化，批量导入后由 KnowledgeImporter 统一保存）
      */
     public void add(String id, float[] vector, Map<String, String> metadata) {
         store.put(id, new VectorEntry(vector, metadata));
     }
 
     /**
-     * 添加文本（自动向量化）
+     * 立即持久化到磁盘（批量导入完成后调用）
+     */
+    public void flush() {
+        saveToDisk();
+    }
+
+    /**
+     * 检查ID是否已存在
+     */
+    public boolean contains(String id) {
+        return store.containsKey(id);
+    }
+
+    /**
+     * 添加文本(自动向量化)
      */
     public String addText(String text, Map<String, String> metadata) {
         String id = UUID.randomUUID().toString().substring(0, 12);
@@ -77,7 +117,7 @@ public class VectorStore {
     }
 
     /**
-     * 文本检索（自动向量化查询）
+     * 文本检索(自动向量化查询)
      */
     public List<SearchResult> search(String query, int topK, double minSimilarity) {
         float[] queryVec = embeddingService.embed(query);
@@ -89,7 +129,7 @@ public class VectorStore {
     public void clear() { store.clear(); }
 
     // --- 持久化 ---
-    private synchronized void saveToDisk() {
+    public synchronized void saveToDisk() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(STORE_FILE))) {
             oos.writeObject(new HashMap<>(store));
             log.info("VectorStore已保存: {}条", store.size());
@@ -130,7 +170,7 @@ public class VectorStore {
     }
 
     /**
-     * 向量条目（支持序列化）
+     * 向量条目(支持序列化)
      */
     private static class VectorEntry implements Serializable {
         private static final long serialVersionUID = 1L;

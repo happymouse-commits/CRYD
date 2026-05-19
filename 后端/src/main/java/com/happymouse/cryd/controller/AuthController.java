@@ -7,10 +7,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 认证API - 登录/注册/忘记密码
+ * 认证API - 登录/注册
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -18,7 +17,6 @@ public class AuthController {
 
     private final SysUserRepository sysUserRepository;
     private final PasswordEncoder passwordEncoder;
-    private final ConcurrentHashMap<String, String> captchaStore = new ConcurrentHashMap<>();
 
     public AuthController(SysUserRepository sysUserRepository, PasswordEncoder passwordEncoder) {
         this.sysUserRepository = sysUserRepository;
@@ -54,7 +52,7 @@ public class AuthController {
         return Result.success(data);
     }
 
-    /** 注册 - 手机号即用户名，学生需学号 */
+    /** 注册 - 学生用学号登录，教师用手机号登录 */
     @PostMapping("/register")
     public Result<Map<String, Object>> register(@RequestBody Map<String, String> body) {
         String phone = body.get("phone");
@@ -62,15 +60,15 @@ public class AuthController {
         String studentId = body.get("studentId");
         String role = body.getOrDefault("role", "student");
 
-        if (phone == null || phone.isEmpty()) return Result.error(400, "手机号不能为空");
-        if (!phone.matches("^1[3-9]\\d{9}$")) return Result.error(400, "手机号格式不正确");
         if (password == null || password.isEmpty()) return Result.error(400, "密码不能为空");
         if (password.length() < 6) return Result.error(400, "密码至少6位");
 
         // 角色校验
-        if ("counselor".equals(role)) return Result.error(400, "不支持辅导员注册");
-
-        if (sysUserRepository.findByPhone(phone).isPresent()) return Result.error(400, "该手机号已被注册");
+        if ("teacher".equals(role)) {
+            if (phone == null || phone.isEmpty()) return Result.error(400, "教师必须填写手机号");
+            if (!phone.matches("^1[3-9]\\d{9}$")) return Result.error(400, "手机号格式不正确");
+            if (sysUserRepository.findByPhone(phone).isPresent()) return Result.error(400, "该手机号已被注册");
+        }
 
         if ("student".equals(role)) {
             if (studentId == null || studentId.isEmpty()) return Result.error(400, "学生必须填写学号");
@@ -82,13 +80,12 @@ public class AuthController {
         }
 
         SysUser user = new SysUser();
-        // 学生用户名=学号，老师用户名=手机号
         user.setUsername("student".equals(role) ? studentId : phone);
         user.setPassword(passwordEncoder.encode(password));
         String nickname = body.get("nickname");
         user.setNickname((nickname != null && !nickname.isBlank()) ? nickname : "");
         user.setRole(role);
-        user.setPhone(phone);
+        user.setPhone("student".equals(role) ? "" : (phone != null ? phone : ""));
         user.setStudentId("student".equals(role) ? studentId : null);
         user.setClassName(body.getOrDefault("className", ""));
         user.setDepartment(body.getOrDefault("department", ""));
@@ -101,47 +98,6 @@ public class AuthController {
         data.put("phone", saved.getPhone());
         data.put("studentId", saved.getStudentId());
         return Result.success(data);
-    }
-
-    /** 发送验证码（模拟） */
-    @PostMapping("/send-captcha")
-    public Result<String> sendCaptcha(@RequestBody Map<String, String> body) {
-        String phone = body.get("phone");
-        if (phone == null || phone.isEmpty()) return Result.error(400, "手机号不能为空");
-        if (!phone.matches("^1[3-9]\\d{9}$")) return Result.error(400, "手机号格式不正确");
-
-        // 生成6位验证码
-        String code = String.format("%06d", new Random().nextInt(1000000));
-        captchaStore.put(phone, code);
-        // TODO: 接短信服务，现在先返回验证码方便测试
-        return Result.success(code);
-    }
-
-    /** 忘记密码 - 手机号+验证码+新密码 */
-    @PostMapping("/forgot-password")
-    public Result<String> forgotPassword(@RequestBody Map<String, String> body) {
-        String phone = body.get("phone");
-        String captcha = body.get("captcha");
-        String newPassword = body.get("newPassword");
-
-        if (phone == null || phone.isEmpty()) return Result.error(400, "手机号不能为空");
-        if (captcha == null || captcha.isEmpty()) return Result.error(400, "验证码不能为空");
-        if (newPassword == null || newPassword.isEmpty()) return Result.error(400, "新密码不能为空");
-        if (newPassword.length() < 6) return Result.error(400, "新密码至少6位");
-
-        // 验证码校验
-        String savedCode = captchaStore.get(phone);
-        if (savedCode == null || !savedCode.equals(captcha)) return Result.error(400, "验证码错误");
-
-        Optional<SysUser> opt = sysUserRepository.findByPhone(phone);
-        if (opt.isEmpty()) return Result.error(404, "该手机号未注册");
-
-        SysUser user = opt.get();
-        user.setPassword(passwordEncoder.encode(newPassword));
-        sysUserRepository.save(user);
-        captchaStore.remove(phone); // 用完即删
-
-        return Result.success("密码重置成功");
     }
 
     @GetMapping("/check-phone")

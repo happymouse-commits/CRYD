@@ -369,7 +369,7 @@ public class PracticeController {
                 + "\n\n请严格按照上述JSON格式生成题目。";
 
         try {
-            String aiReply = sparkClient.chat(prompt, "请为「" + chapterName + "」生成题目", 0.3f, 1200);
+            String aiReply = sparkClient.chat(prompt, "请为「" + chapterName + "」生成题目", 0.3f, 2048);
             if (aiReply == null || aiReply.trim().isEmpty()) {
                 log.warn("AI出题返回空内容: chapter={}", chapterName);
                 return null;
@@ -378,7 +378,7 @@ public class PracticeController {
             if (jsonStr == null) {
                 log.warn("AI出题首次解析失败，重试中: chapter={}", chapterName);
                 aiReply = sparkClient.chat(prompt + "\n\n【重要】上次格式错误，只输出纯JSON数组，不要任何解释。",
-                        "出题重试-" + chapterName, 0.3f, 1200);
+                        "出题重试-" + chapterName, 0.3f, 2048);
                 jsonStr = extractJsonArray(aiReply);
             }
             if (jsonStr == null) {
@@ -395,7 +395,7 @@ public class PracticeController {
     }
 
     /**
-     * 从AI回复中提取JSON数组（多策略容错）
+     * 从AI回复中提取JSON数组（多策略容错，适配 GLM/Spark 输出特性）
      */
     private String extractJsonArray(String raw) {
         if (raw == null) return null;
@@ -410,18 +410,37 @@ public class PracticeController {
             if (isValidJsonArray(candidate)) return candidate;
         }
 
-        // 策略2: 修复常见JSON格式问题
+        // 策略2: 修复常见JSON格式问题 + GLM常见输出修复
         start = text.indexOf('[');
         end = text.lastIndexOf(']');
         if (start >= 0 && end > start) {
             String candidate = text.substring(start, end + 1);
             candidate = candidate.replaceAll("```json\\s*", "").replaceAll("```\\s*", "");
+            // 尾逗号修复
+            candidate = candidate.replaceAll(",\\s*]", "]");
+            candidate = candidate.replaceAll(",\\s*}", "}");
+            // GLM 常见: 字符串值中含未转义换行
+            candidate = candidate.replace("\r\n", "\\n").replace("\r", "\\n").replace("\n", "\\n");
+            if (isValidJsonArray(candidate)) return candidate;
+            // GLM 常见: 中文引号混入
+            candidate = candidate.replace('“', '"').replace('”', '"');
+            candidate = candidate.replace('‘', '\'').replace('’', '\'');
+            if (isValidJsonArray(candidate)) return candidate;
+        }
+
+        // 策略3: 修复缺失的逗号（GLM有时在数组元素间漏掉逗号）
+        start = text.indexOf('[');
+        end = text.lastIndexOf(']');
+        if (start >= 0 && end > start) {
+            String candidate = text.substring(start, end + 1);
+            candidate = candidate.replaceAll("```json\\s*", "").replaceAll("```\\s*", "");
+            candidate = candidate.replaceAll("}\\s*\\{", "},{");
             candidate = candidate.replaceAll(",\\s*]", "]");
             candidate = candidate.replaceAll(",\\s*}", "}");
             if (isValidJsonArray(candidate)) return candidate;
         }
 
-        // 策略3: 逐个提取JSON对象组装
+        // 策略4: 逐个提取JSON对象组装
         try {
             List<String> objects = new ArrayList<>();
             int depth = 0;
@@ -536,7 +555,7 @@ public class PracticeController {
 
             String prompt = promptTemplate + "\n\n" + context;
             try {
-                String content = sparkClient.chat(prompt, context, 0.5f, 1024);
+                String content = sparkClient.chat(prompt, context, 0.5f, 2048);
                 log.info("突破资源生成 [{}] 成功", resourceType);
 
                 // 保存到资源中心
@@ -802,7 +821,7 @@ public class PracticeController {
                         4. 练习题（1-2道）
                         """, kp, kpErrors.size(), errorSummary.toString());
 
-                    String kbContent = sparkClient.chat(kbPrompt, "学习资料-" + kp, 0.3f, 600);
+                    String kbContent = sparkClient.chat(kbPrompt, "学习资料-" + kp, 0.3f, 1500);
                     if (kbContent != null && !kbContent.trim().isEmpty() && courseId != null) {
                         // 保存到知识库
                         var kb = kbRepo.findByCourseId(courseId).stream().findFirst()

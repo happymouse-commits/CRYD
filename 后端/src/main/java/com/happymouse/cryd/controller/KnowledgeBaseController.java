@@ -165,7 +165,7 @@ public class KnowledgeBaseController {
                     输出格式：Markdown
                     """.formatted(topic, kpCount.get(topic));
 
-                String content = sparkClient.chat(prompt, "知识点-" + topic, 0.3f, 800);
+                String content = sparkClient.chat(prompt, "知识点-" + topic, 0.3f, 1500);
 
                 kbService.uploadTextDocument(kb.getId(), "【错题突破】" + topic + ".md", content);
                 generatedCount++;

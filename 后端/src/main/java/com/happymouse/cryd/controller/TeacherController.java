@@ -516,7 +516,7 @@ public class TeacherController {
             }
 
             if (questions == null || questions.isEmpty()) {
-                return Result.error(500, "AI生成题目失败，已重试仍无法解析有效题目。请检查关卡名称和描述是否清晰，或手动录入题目。");
+                return Result.<Map<String, Object>>error(500, "AI生成题目失败，已重试仍无法解析有效题目。请检查关卡名称和描述是否清晰，或手动录入题目。");
             }
 
             // 校验题目数量，补全不足的
@@ -552,7 +552,7 @@ public class TeacherController {
      */
     private JSONArray tryGenerateQuestions(String prompt, String chapterName) {
         try {
-            String aiReply = sparkClient.chat(prompt, "出题-" + chapterName, 0.3f, 1200);
+            String aiReply = sparkClient.chat(prompt, "出题-" + chapterName, 0.3f, 2048);
             log.info("AI生成题目原始回复(前200字符): {}",
                     aiReply != null ? aiReply.substring(0, Math.min(200, aiReply.length())) : "null");
 
@@ -576,7 +576,7 @@ public class TeacherController {
     }
 
     /**
-     * 从AI回复中提取JSON数组（多策略容错）
+     * 从AI回复中提取JSON数组（多策略容错，适配 GLM/Spark 输出特性）
      */
     private String extractJsonArray(String raw) {
         String text = raw.trim();
@@ -590,21 +590,37 @@ public class TeacherController {
             if (isValidJsonArray(candidate)) return candidate;
         }
 
-        // 策略2: 修复常见的JSON格式问题
-        // 修复未转义的换行符（在字符串值中）
+        // 策略2: 修复常见JSON格式问题 + GLM常见输出修复
         start = text.indexOf('[');
         end = text.lastIndexOf(']');
         if (start >= 0 && end > start) {
             String candidate = text.substring(start, end + 1);
-            // 移除markdown标记
             candidate = candidate.replaceAll("```json\\s*", "").replaceAll("```\\s*", "");
-            // 尝试修复尾逗号
+            // 尾逗号修复
+            candidate = candidate.replaceAll(",\\s*]", "]");
+            candidate = candidate.replaceAll(",\\s*}", "}");
+            // GLM 常见: 字符串值中含未转义换行
+            candidate = candidate.replace("\r\n", "\\n").replace("\r", "\\n").replace("\n", "\\n");
+            if (isValidJsonArray(candidate)) return candidate;
+            // GLM 常见: 中文引号混入
+            candidate = candidate.replace("“", "\"").replace("”", "\"");
+            candidate = candidate.replace('‘', '\'').replace('’', '\'');
+            if (isValidJsonArray(candidate)) return candidate;
+        }
+
+        // 策略3: 修复缺失的逗号（GLM有时在数组元素间漏掉逗号）
+        start = text.indexOf('[');
+        end = text.lastIndexOf(']');
+        if (start >= 0 && end > start) {
+            String candidate = text.substring(start, end + 1);
+            candidate = candidate.replaceAll("```json\\s*", "").replaceAll("```\\s*", "");
+            candidate = candidate.replaceAll("}\\s*\\{", "},{");
             candidate = candidate.replaceAll(",\\s*]", "]");
             candidate = candidate.replaceAll(",\\s*}", "}");
             if (isValidJsonArray(candidate)) return candidate;
         }
 
-        // 策略3: 如果以上都失败，尝试提取每个独立的JSON对象然后组装
+        // 策略4: 逐个提取JSON对象组装
         try {
             List<String> objects = new ArrayList<>();
             int depth = 0;
@@ -1174,5 +1190,9 @@ public class TeacherController {
     @GetMapping("/{teacherId}/assignments")
     public Result<List<Assignment>> getAssignments(@PathVariable Long teacherId) {
         return Result.success(Collections.emptyList());
+    }
+
+    private int getQuestionCount(String questionsJson) {
+        try { return JSON.parseArray(questionsJson).size(); } catch (Exception e) { return 0; }
     }
 }

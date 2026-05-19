@@ -147,7 +147,7 @@ public class ResourceController {
             // 3. 调用AI生成
             String prompt = String.format(RESOURCE_GEN_PROMPT, kpList,
                     weakAreas.isEmpty() ? "暂无数据" : weakAreas);
-            String aiReply = sparkClient.chat(prompt, "生成学习资源", 0.4f, 1500);
+            String aiReply = sparkClient.chat(prompt, "生成学习资源", 0.4f, 2048);
 
             if (aiReply == null || aiReply.trim().isEmpty()) {
                 return Result.error("AI生成失败，请重试");

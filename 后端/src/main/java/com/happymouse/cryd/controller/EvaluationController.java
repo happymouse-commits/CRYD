@@ -42,7 +42,7 @@ public class EvaluationController {
             "以JSON数组格式输出: [{\"type\":\"choice\",\"question\":\"...\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}]";
 
         try {
-            String questionsJson = sparkClient.chat(prompt, "", 0.3f, 1200);
+            String questionsJson = sparkClient.chat(prompt, "", 0.3f, 2048);
             String json = questionsJson.replaceAll("```json|```", "").trim();
 
             TestRecord test = new TestRecord();

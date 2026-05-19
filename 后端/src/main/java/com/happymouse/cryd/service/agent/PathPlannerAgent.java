@@ -79,7 +79,7 @@ public class PathPlannerAgent extends BaseAgent {
             return "AI服务暂不可用，请稍后再试";
         }
 
-        String content = sparkClient.chat(SYSTEM_PROMPT, userPrompt, 0.4f, 1024);
+        String content = sparkClient.chat(SYSTEM_PROMPT, userPrompt, 0.4f, 2048);
 
         LearningPath path = new LearningPath();
         path.setStudentId(context.getStudentId());

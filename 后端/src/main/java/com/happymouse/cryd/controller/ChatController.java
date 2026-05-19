@@ -6,6 +6,8 @@ import com.happymouse.cryd.model.dto.ChatResponse;
 import com.happymouse.cryd.model.entity.ChatMessage;
 import com.happymouse.cryd.repository.ChatMessageRepository;
 import com.happymouse.cryd.service.agent.AgentOrchestrator;
+import com.happymouse.cryd.service.rag.RagService;
+import com.happymouse.cryd.service.rag.VectorStore;
 import com.happymouse.cryd.service.spark.SparkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,14 +32,18 @@ public class ChatController {
     private final ChatMessageRepository chatMessageRepository;
 
     private final SparkClient sparkClient;
+    private final RagService ragService;
+    private final VectorStore vectorStore;
     
     @Value("${server.port:8080}")
     private String serverPort;
 
-    public ChatController(AgentOrchestrator orchestrator, ChatMessageRepository chatMessageRepository, SparkClient sparkClient) {
+    public ChatController(AgentOrchestrator orchestrator, ChatMessageRepository chatMessageRepository, SparkClient sparkClient, RagService ragService, VectorStore vectorStore) {
         this.orchestrator = orchestrator;
         this.chatMessageRepository = chatMessageRepository;
         this.sparkClient = sparkClient;
+        this.ragService = ragService;
+        this.vectorStore = vectorStore;
     }
 
     @PostMapping("/send")
@@ -68,6 +74,46 @@ public class ChatController {
             fallback.setMessage("抱歉，AI辅导暂时不可用，请稍后再试。错误：" + e.getMessage());
             return Result.success(fallback);
         }
+    }
+
+    /**
+     * RAG四道门测试接口
+     */
+    @GetMapping("/rag/test")
+    public Result<Map<String, Object>> testRag(@RequestParam String query, @RequestParam(defaultValue = "summary") String taskType) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("query", query);
+        result.put("taskType", taskType);
+        result.put("vectorStoreSize", vectorStore.size());
+        
+        // 第一道门：检索门控
+        RagService.RetrievalGateResult gate = ragService.gateByRetrieval(query);
+        result.put("gate1_passed", gate.passed);
+        result.put("gate1_rejectReason", gate.rejectReason);
+        result.put("gate1_hitCount", gate.fragments.size());
+        
+        if (!gate.passed) {
+            result.put("result", "被第一道门拦截：无相关知识");
+            return Result.success(result);
+        }
+        
+        // 记录检索到的内容摘要
+        for (int i = 0; i < Math.min(gate.fragments.size(), 3); i++) {
+            RagService.KnowledgeFragment f = gate.fragments.get(i);
+            result.put("fragment_" + i + "_similarity", String.format("%.3f", f.similarity));
+            result.put("fragment_" + i + "_preview", f.content != null && f.content.length() > 80 ? f.content.substring(0, 80) + "..." : f.content);
+        }
+        
+        // 完整流水线
+        RagService.RagPipelineResult pipelineResult = ragService.generateWithGuard(taskType, query);
+        result.put("pipeline_success", pipelineResult.success);
+        result.put("pipeline_confidence", pipelineResult.confidence);
+        result.put("pipeline_error", pipelineResult.errorMessage);
+        if (pipelineResult.content != null) {
+            result.put("generated_content", pipelineResult.content.length() > 500 ? pipelineResult.content.substring(0, 500) + "..." : pipelineResult.content);
+        }
+        
+        return Result.success(result);
     }
 
     @GetMapping("/history/{studentId}")

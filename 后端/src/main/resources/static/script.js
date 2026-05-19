@@ -277,7 +277,6 @@ loginForm.addEventListener("submit", async (event) => {
       const rolePath = {
         student: "/student/home",
         teacher: "/teacher/home",
-        counselor: "/counselor/warnings",
         admin: "/admin/dashboard"
       };
       const targetPath = rolePath[data.data.role] || "/student/home";
@@ -302,6 +301,7 @@ const successModal = document.getElementById("successModal");
 const modalOkBtn = document.getElementById("modalOk");
 const roleSelect = document.getElementById("role");
 const studentIdGroup = document.getElementById("studentIdGroup");
+const phoneGroup = document.getElementById("phoneGroup");
 const phoneInput = document.getElementById("phone");
 const studentIdInput = document.getElementById("studentId");
 const registerPasswordInput = document.getElementById("registerPassword");
@@ -310,16 +310,28 @@ const toggleRegisterPassword = document.getElementById("toggleRegisterPassword")
 
 let showRegisterPassword = false;
 
-// ===== 角色选择变化时显示/隐藏学号输入框 =====
+// ===== 角色选择变化时显示/隐藏对应字段 =====
 roleSelect.addEventListener("change", () => {
   const role = roleSelect.value;
   if (role === "student") {
     studentIdGroup.style.display = "block";
     studentIdInput.required = true;
+    phoneGroup.style.display = "none";
+    phoneInput.required = false;
+    phoneInput.value = "";
+  } else if (role === "teacher") {
+    studentIdGroup.style.display = "none";
+    studentIdInput.required = false;
+    studentIdInput.value = "";
+    phoneGroup.style.display = "block";
+    phoneInput.required = true;
   } else {
     studentIdGroup.style.display = "none";
     studentIdInput.required = false;
     studentIdInput.value = "";
+    phoneGroup.style.display = "none";
+    phoneInput.required = false;
+    phoneInput.value = "";
   }
 });
 
@@ -348,19 +360,22 @@ registerForm.addEventListener("submit", async (event) => {
   const studentId = studentIdInput.value.trim();
   const password = registerPasswordInput.value;
   const confirmPassword = confirmPasswordInput.value;
-  
+
   registerError.textContent = "";
-  
+
   if (!role) {
     registerError.textContent = "请选择用户身份";
     return;
   }
-  
-  if (!/^1[3-9]\d{9}$/.test(phone)) {
-    registerError.textContent = "请输入正确的手机号";
-    return;
+
+  // 教师需要手机号
+  if (role === "teacher") {
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      registerError.textContent = "请输入正确的手机号";
+      return;
+    }
   }
-  
+
   // 学生必须填写学号
   if (role === "student") {
     if (!studentId || studentId.length < 4) {
@@ -368,12 +383,12 @@ registerForm.addEventListener("submit", async (event) => {
       return;
     }
   }
-  
+
   if (password.length < 6) {
     registerError.textContent = "密码至少需要6位";
     return;
   }
-  
+
   if (password !== confirmPassword) {
     registerError.textContent = "两次输入的密码不一致";
     return;
@@ -391,9 +406,9 @@ registerForm.addEventListener("submit", async (event) => {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        phone, 
-        password, 
+      body: JSON.stringify({
+        phone: role === "teacher" ? phone : "",
+        password,
         studentId: role === "student" ? studentId : null,
         role,
         nickname
@@ -416,147 +431,14 @@ modalOkBtn.addEventListener("click", () => {
   successModal.style.display = "none";
   registerCard.style.display = "none";
   loginCard.style.display = "block";
-  // 注册成功后预填手机号到登录表单
-  const phone = phoneInput.value.trim();
-  if (phone) usernameInput.value = phone;
   registerForm.reset();
-  // 重置角色选择和学号显示状态
+  // 重置角色选择和字段显示状态
   roleSelect.value = "";
   studentIdGroup.style.display = "none";
   studentIdInput.required = false;
+  phoneGroup.style.display = "none";
+  phoneInput.required = false;
   registerError.textContent = "";
-});
-
-const forgotCard = document.getElementById("forgotCard");
-const goToForgotBtn = document.getElementById("goToForgot");
-const backToLoginFromForgotBtn = document.getElementById("backToLoginFromForgot");
-const forgotForm = document.getElementById("forgotForm");
-const forgotError = document.getElementById("forgotError");
-const forgotPhoneInput = document.getElementById("forgotPhone");
-const captchaInput = document.getElementById("captcha");
-const newPasswordInput = document.getElementById("newPassword");
-const getCaptchaBtn = document.getElementById("getCaptcha");
-const toggleNewPassword = document.getElementById("toggleNewPassword");
-
-let showNewPassword = false;
-let captchaTimer = null;
-
-goToForgotBtn.addEventListener("click", (event) => {
-  event.preventDefault();
-  loginCard.style.display = "none";
-  forgotCard.style.display = "block";
-});
-
-toggleNewPassword.addEventListener("click", () => {
-  showNewPassword = !showNewPassword;
-  newPasswordInput.type = showNewPassword ? "text" : "password";
-  toggleNewPassword.textContent = showNewPassword ? "🙈" : "👁️";
-});
-
-backToLoginFromForgotBtn.addEventListener("click", (event) => {
-  event.preventDefault();
-  forgotCard.style.display = "none";
-  loginCard.style.display = "block";
-  forgotError.textContent = "";
-});
-
-// ===== 获取验证码 - 调用后端API =====
-getCaptchaBtn.addEventListener("click", async () => {
-  const phone = forgotPhoneInput.value.trim();
-  
-  if (!/^1[3-9]\d{9}$/.test(phone)) {
-    forgotError.textContent = "请输入正确的手机号";
-    return;
-  }
-
-  getCaptchaBtn.classList.add("disabled");
-  getCaptchaBtn.style.transform = "scale(0.95)";
-  
-  setTimeout(() => {
-    getCaptchaBtn.style.transform = "scale(1)";
-  }, 150);
-
-  try {
-    const res = await fetch("/api/auth/send-captcha", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone })
-    });
-    const data = await res.json();
-
-    if (data.code === 200) {
-      forgotError.style.color = "#4ade80";
-      forgotError.textContent = "验证码已发送（测试模式：" + data.data + "）";
-      forgotError.style.color = "";
-    } else {
-      forgotError.textContent = data.message || "发送验证码失败";
-      getCaptchaBtn.classList.remove("disabled");
-      getCaptchaBtn.textContent = "获取验证码";
-      return;
-    }
-  } catch (e) {
-    forgotError.textContent = "网络错误，请稍后重试";
-    getCaptchaBtn.classList.remove("disabled");
-    getCaptchaBtn.textContent = "获取验证码";
-    return;
-  }
-
-  let count = 60;
-  getCaptchaBtn.textContent = `${count}s`;
-  
-  captchaTimer = setInterval(() => {
-    count--;
-    getCaptchaBtn.textContent = `${count}s`;
-    
-    if (count <= 0) {
-      clearInterval(captchaTimer);
-      getCaptchaBtn.textContent = "获取验证码";
-      getCaptchaBtn.classList.remove("disabled");
-    }
-  }, 1000);
-});
-
-// ===== 忘记密码 - 调用后端API =====
-forgotForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const phone = forgotPhoneInput.value.trim();
-  const captcha = captchaInput.value.trim();
-  const newPassword = newPasswordInput.value;
-  
-  forgotError.textContent = "";
-  
-  if (!/^1[3-9]\d{9}$/.test(phone)) {
-    forgotError.textContent = "请输入正确的手机号";
-    return;
-  }
-  
-  if (captcha.length !== 6) {
-    forgotError.textContent = "请输入6位验证码";
-    return;
-  }
-  
-  if (newPassword.length < 6) {
-    forgotError.textContent = "新密码至少需要6位";
-    return;
-  }
-
-  try {
-    const res = await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, captcha, newPassword })
-    });
-    const data = await res.json();
-
-    if (data.code === 200) {
-      successModal.style.display = "flex";
-      setReaction("success");
-    } else {
-      forgotError.textContent = data.message || "重置失败";
-    }
-  } catch (e) {
-    forgotError.textContent = "网络错误，请稍后重试";
-  }
 });
 
 window.addEventListener("load", () => {

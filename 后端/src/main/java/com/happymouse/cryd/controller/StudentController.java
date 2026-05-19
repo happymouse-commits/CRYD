@@ -410,7 +410,7 @@ public class StudentController {
         String aiPrompt = PROFILE_CHAT_PROMPT + "\n\n【当前画像状态】\n" + profileContext + "\n【学生说】\n" + message + "\n\n请回应并更新画像。";
 
         try {
-            String aiReply = sparkClient.chat(aiPrompt, message, 0.5f, 1024);
+            String aiReply = sparkClient.chat(aiPrompt, message, 0.5f, 2048);
             log.info("画像对话 AI 回复: {}", aiReply);
 
             // 尝试从回复中提取 JSON 更新画像
@@ -603,7 +603,7 @@ public class StudentController {
 
         String prompt = PROFILE_ANALYZE_PROMPT + "\n" + chatContext;
         try {
-            String aiReply = sparkClient.chat(prompt, chatContext.toString(), 0.3f, 800);
+            String aiReply = sparkClient.chat(prompt, chatContext.toString(), 0.3f, 1500);
             log.info("画像分析AI回复: {}", aiReply);
 
             // 解析JSON
@@ -720,7 +720,7 @@ public class StudentController {
 
         String prompt = promptTemplate + "\n\n" + context;
         try {
-            String content = sparkClient.chat(prompt, context, 0.5f, 1024);
+            String content = sparkClient.chat(prompt, context, 0.5f, 2048);
             log.info("疑难突破资源生成 [{}] 成功", resourceType);
 
             Map<String, Object> result = new LinkedHashMap<>();

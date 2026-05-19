@@ -16,10 +16,6 @@
           <el-input :value="store.studentId" disabled />
         </el-form-item>
 
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="form.phone" placeholder="请输入手机号" />
-        </el-form-item>
-
         <el-form-item label="班级" prop="className">
           <el-input v-model="form.className" placeholder="请输入班级，如：计算机2301" />
         </el-form-item>
@@ -56,7 +52,6 @@ const formRef = ref(null)
 const saving = ref(false)
 
 const form = reactive({
-  phone: store.phone || '',
   className: store.className || '',
   oldPassword: '',
   newPassword: '',
@@ -64,7 +59,6 @@ const form = reactive({
 })
 
 const rules = {
-  phone: [{ pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }],
   newPassword: [{ min: 6, message: '密码至少6位', trigger: 'blur' }],
   confirmPassword: [{
     validator: (rule, value, callback) => {
@@ -82,18 +76,14 @@ async function saveInfo() {
   try {
     const payload = {
       id: store.id,
-      phone: form.phone,
       className: form.className,
     }
-    // 修改密码
     if (form.oldPassword && form.newPassword) {
       payload.oldPassword = form.oldPassword
       payload.newPassword = form.newPassword
     }
     const res = await api.put('/student/info', payload)
     if (res.data) {
-      // 更新本地存储
-      if (form.phone) { localStorage.setItem('cryd_username', form.phone); store.username = form.phone }
       if (form.className) { localStorage.setItem('cryd_class', form.className); store.className = form.className }
       ElMessage.success('保存成功')
       form.oldPassword = ''
@@ -108,7 +98,6 @@ async function saveInfo() {
 }
 
 function resetForm() {
-  form.phone = store.phone || ''
   form.className = store.className || ''
   form.oldPassword = ''
   form.newPassword = ''

@@ -80,7 +80,7 @@ public class QuestionExpertAgent extends BaseAgent {
             return "AI服务暂不可用，请稍后再试";
         }
 
-        String content = sparkClient.chat(SYSTEM_PROMPT, userPrompt, 0.4f, 1200);
+        String content = sparkClient.chat(SYSTEM_PROMPT, userPrompt, 0.4f, 2048);
 
         LearningResource resource = new LearningResource();
         resource.setTitle("练习题：" + extractTopic(message));

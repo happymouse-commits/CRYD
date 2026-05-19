@@ -5,24 +5,31 @@ spring:
   application:
     name: CRYD
 
-  # ===== 数据库配置（开发阶段用H2，正式换MySQL） =====
+  # ===== 数据库配置 — openGauss 6.0 =====
   datasource:
-    url: jdbc:h2:file:f:/从容应对/后端/data/cryd;AUTO_SERVER=TRUE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:postgresql://localhost:5432/SGHR?ssl=false
+    driver-class-name: org.postgresql.Driver
+    username: omm
+    password: Enmo@123
+    # H2 开发数据库（回退调试用）
+    # url: jdbc:h2:file:f:/从容应对/后端/data/cryd;AUTO_SERVER=TRUE
+    # driver-class-name: org.h2.Driver
+    # username: sa
+    # password:
     # MySQL配置（正式环境切换）
     # url: jdbc:mysql://localhost:3306/cryd?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     # driver-class-name: com.mysql.cj.jdbc.Driver
     # username: root
     # password: your_password
 
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+  # H2 控制台（已切换 openGauss，暂时禁用）
+  # h2:
+  #   console:
+  #     enabled: true
+  #     path: /h2-console
 
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: true
@@ -36,17 +43,12 @@ spring:
       host: localhost
       port: 6379
 
-# ===== 讯飞星火大模型配置 =====
-spark:
+# ===== 智谱 GLM 大模型配置 =====
+llm:
   api:
-    # 星火大模型对话 API — Spark Ultra-32K
-    url: wss://spark-api.xf-yun.com/v4.0/chat
-    # 语音听写 API (自动拼接在 SparkClient 中)
-    # iat-url: ws://iat-api.xfyun.cn/v2/iat
-    app-id: 9fc73775
-    api-key: 14f0f6dd2dcd7ae6ca62aaed68035914
-    api-secret: ZTQ0M2Q3MzRhNDY4ZDdlZmYzMTJjOWMz
-    domain: 4.0Ultra
+    url: https://open.bigmodel.cn/api/paas/v4/chat/completions
+    key: 5b4e7463e78844619fcc8ca9250f533a.goUhPjIQJGK0tLD9
+    model: glm-4-flash
 
 # ===== 多智能体配置 =====
 agent:
@@ -90,9 +92,34 @@ rag:
   top-k: 5
   similarity-threshold: 0.65
   vector-store: in-memory  # in-memory / redis / milvus
+
+  # 嵌入模型配置（一键切换：glm ↔ spark）
   embedding:
-    provider: spark  # spark / tfidf
-    dimension: 1536
+    provider: glm  # glm（当前）/ spark（讯飞星火，未来切换）
+    dimension: 2048  # embedding-3 实际输出2048维（非文档写的1024）；星火 embedding-v1 输出2560维，切换时改
+
+    # 智谱 GLM 嵌入
+    glm:
+      url: https://open.bigmodel.cn/api/paas/v4/embeddings
+      key: 5b4e7463e78844619fcc8ca9250f533a.goUhPjIQJGK0tLD9
+      model: embedding-3  # 免费，1024维
+
+    # 讯飞星火嵌入（未来切换时填写）
+    spark:
+      url: https://emb.xf-yun.com/v1/embeddings
+      key: YOUR_SPARK_EMBEDDING_KEY  # TODO: 填写星火嵌入API Key
+      model: embedding-v1  # 2560维
+
+  # 防幻觉四道门配置
+  hallucination:
+    enabled: true
+    fact-check-enabled: true  # 第三道门：事实校验
+    max-retries: 2  # 校验失败最多重试次数
+
+  # 知识库导入（C语言谭浩强）
+  knowledge-import:
+    enabled: true
+    base-path: C:/Users/404NotFound/.qclaw/workspace/C语言知识库
 
 # ===== 系统功能配置 =====
 system:

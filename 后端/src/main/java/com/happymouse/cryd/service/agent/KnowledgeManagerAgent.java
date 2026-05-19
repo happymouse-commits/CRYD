@@ -65,7 +65,7 @@ public class KnowledgeManagerAgent extends BaseAgent {
             return "AI服务暂不可用，请稍后再试";
         }
 
-        return sparkClient.chat(SYSTEM_PROMPT, message, 0.3f, 1024);
+        return sparkClient.chat(SYSTEM_PROMPT, message, 0.3f, 1500);
     }
 
     /**
