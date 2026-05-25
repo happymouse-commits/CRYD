@@ -6,7 +6,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "resource_favorite", uniqueConstraints = @UniqueConstraint(columnNames = {"resourceId", "userId"}))
 public class ResourceFavorite {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @SequenceGenerator(name = "resourceFavorite_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "resourceFavorite_seq")
     private Long id;
 
     private Long resourceId;

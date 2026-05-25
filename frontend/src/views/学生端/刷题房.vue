@@ -49,19 +49,19 @@
     <!-- Tab 2: 错题回练 -->
     <div v-if="activeTab === 'errors'" class="tab-content">
       <div class="error-toolbar">
-        <el-select v-model="errorFilter.course" placeholder="按课程筛选" clearable size="small" style="width:180px" @change="loadErrors">
+        <el-select v-model="errorFilter.course" placeholder="按课程筛选" clearable size="small" style="width:180px">
           <el-option v-for="c in courses" :key="c" :label="c" :value="c" />
         </el-select>
-        <el-select v-model="errorFilter.chapter" placeholder="按章节筛选" clearable size="small" style="width:180px" @change="loadErrors">
+        <el-select v-model="errorFilter.chapter" placeholder="按章节/知识点筛选" clearable size="small" style="width:180px">
           <el-option v-for="ch in chapterNames" :key="ch" :label="ch" :value="ch" />
         </el-select>
-        <el-select v-model="errorFilter.minCount" placeholder="错题次数" clearable size="small" style="width:140px" @change="loadErrors">
+        <el-select v-model="errorFilter.minCount" placeholder="错题次数" clearable size="small" style="width:140px">
           <el-option label="≥1次" :value="1" /><el-option label="≥2次" :value="2" /><el-option label="≥3次" :value="3" />
         </el-select>
         <el-button type="warning" size="small" @click="redoAllErrors" :disabled="!errors.length">全部重做</el-button>
       </div>
-      <div v-if="errors.length" class="error-list">
-        <div v-for="err in errors" :key="err.id" class="error-item">
+      <div v-if="filteredErrors.length" class="error-list">
+        <div v-for="err in filteredErrors" :key="err.id" class="error-item">
           <div class="error-top">
             <el-tag size="small" :type="err.errorType === 'logic' ? 'danger' : err.errorType === 'calculation' ? 'warning' : err.errorType === 'misread' ? 'info' : 'primary'">{{ err.errorTag || mapErrorType(err.errorType) }}</el-tag>
             <el-tag size="small" type="success" v-if="err.knowledgePoint">{{ err.knowledgePoint }}</el-tag>
@@ -80,45 +80,48 @@
           </div>
         </div>
       </div>
-      <el-empty v-else description="暂无错题，继续保持！" :image-size="80" />
+      <el-empty v-if="!filteredErrors.length" description="暂无错题，继续保持！" :image-size="80" />
     </div>
 
     <!-- Tab 3: AI错题解析 -->
     <div v-if="activeTab === 'insights'" class="tab-content">
       <el-alert type="info" :closable="false" style="margin-bottom:16px">
-        AI根据你的错题自动生成学习资料。每次提交作业后立即生成，帮助针对性提升。
+        AI根据你的错题自动生成学习资料。刷完题后点击下方按钮，AI根据你的错题生成对应知识点总结，帮助针对性提升。
       </el-alert>
+
+      <div style="text-align:right; margin-bottom:20px">
+        <el-button type="primary" size="large" @click="generateInsights" :loading="generatingInsights" :disabled="!errors.length && !insights.length">
+          🤖 {{ insights.length ? '重新生成知识点总结' : '生成错题知识点总结' }}
+        </el-button>
+      </div>
+
+      <!-- 生成中的加载状态 -->
+      <div v-if="generatingInsights" style="text-align:center;padding:30px">
+        <el-icon class="is-loading" :size="36" color="#409EFF"><svg viewBox="0 0 1024 1024" width="1em" height="1em"><path d="M512 64a32 32 0 0132 32v192a32 32 0 01-64 0V96a32 32 0 0132-32zm0 640a32 32 0 0132 32v192a32 32 0 01-64 0V736a32 32 0 0132-32zm448-192a32 32 0 01-32 32H736a32 32 0 010-64h192a32 32 0 0132 32zm-640 0a32 32 0 01-32 32H96a32 32 0 010-64h192a32 32 0 0132 32z" fill="currentColor"/></svg></el-icon>
+        <p style="color:#606266;margin-top:10px">AI正在分析你的错题并生成知识点总结...</p>
+      </div>
+
+      <!-- 生成的知识点总结列表 -->
       <div v-if="insights.length" class="insights-list">
-        <div v-for="item in insights" :key="item.id" class="insight-card" @click="viewInsight(item)">
+        <div v-for="(item, idx) in insights" :key="idx" class="insight-card" @click="viewInsight(item)">
           <div class="insight-header">
             <span class="insight-icon">💡</span>
             <div class="insight-info">
-              <h4>{{ item.title || item.fileName || 'AI错题解析' }}</h4>
-              <span class="insight-date" v-if="item.createdAt || item.uploadTime">
-                {{ formatDate(item.createdAt || item.uploadTime) }}
-              </span>
+              <h4>{{ item.knowledgePoint }}</h4>
+              <span class="insight-meta">错题 {{ item.errorCount }} 次 · {{ formatDate(item.generatedAt) }}</span>
             </div>
             <el-tag size="small" type="warning">AI生成</el-tag>
           </div>
-          <p class="insight-preview" v-if="item.originalContent || item.content">
-            {{ truncate(item.originalContent || item.content, 120) }}
-          </p>
+          <p class="insight-preview">{{ truncate(item.content, 120) }}</p>
         </div>
       </div>
-      <div v-if="teacherResources.length" class="teacher-resources">
-        <h3 class="section-title">📎 教师辅助资料</h3>
-        <div v-for="item in teacherResources" :key="item.id" class="insight-card teacher" @click="viewInsight(item)">
-          <div class="insight-header">
-            <span class="insight-icon">📄</span>
-            <div class="insight-info">
-              <h4>{{ item.fileName || item.title || '教师资料' }}</h4>
-              <span class="insight-date" v-if="item.createdAt || item.uploadTime">{{ formatDate(item.createdAt || item.uploadTime) }}</span>
-            </div>
-            <el-tag size="small" type="primary">教师上传</el-tag>
-          </div>
-        </div>
-      </div>
-      <el-empty v-if="!insights.length && !teacherResources.length" description="暂无AI解析资料，完成刷题后AI将自动生成" :image-size="80" />
+
+      <el-empty v-if="!insights.length && !generatingInsights" description="暂无AI解析资料，刷完题后点击上方按钮自动生成" :image-size="80" />
+
+      <!-- 查看知识点总结弹窗 -->
+      <el-dialog v-model="showInsightDialog" :title="viewingInsight?.knowledgePoint || '知识点总结'" width="700px">
+        <div class="insight-detail" v-html="renderMarkdown(viewingInsight?.content || '')"></div>
+      </el-dialog>
     </div>
 
     <!-- 答题弹窗 -->
@@ -167,16 +170,21 @@
       </template>
     </el-dialog>
 
-    <!-- 资料查看弹窗 -->
-    <el-dialog v-model="showInsightDialog" :title="viewingInsight?.title || viewingInsight?.fileName || '资料详情'" width="700px">
-      <div class="insight-detail" v-html="renderMarkdown(viewingInsight?.originalContent || viewingInsight?.content || '暂无内容')"></div>
+    <!-- 错题AI解析弹窗 -->
+    <el-dialog v-model="showRedoDialog" title="AI错题解析" width="700px">
+      <div class="redo-analysis" v-html="renderMarkdown(redoAnalysis)"></div>
+      <template #footer>
+        <el-button type="primary" @click="showRedoDialog = false">关闭</el-button>
+      </template>
     </el-dialog>
+
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { marked } from 'marked'
 import { useUserStore } from '../../store/user'
 import api from '../../api'
 
@@ -186,20 +194,16 @@ const activeTab = ref('assignments')
 const summary = ref(null)
 const assignmentsByCourse = ref([])
 const errors = ref([])
-const insights = ref([])
-const teacherResources = ref([])
 const courses = ref([])
 const chapterNames = ref([])
 const errorFilter = reactive({ course: '', chapter: '', minCount: '' })
 const showAnswerDialog = ref(false)
 const showResultDialog = ref(false)
-const showInsightDialog = ref(false)
 const currentChapter = ref(null)
 const dialogQuestions = ref([])
 const dialogAnswers = reactive({})
 const submitting = ref(false)
 const lastResult = ref(null)
-const viewingInsight = ref(null)
 
 function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '...' : s || '' }
 function mapErrorType(type) {
@@ -224,14 +228,7 @@ function statusLabel(item) {
 
 function renderMarkdown(text) {
   if (!text) return ''
-  return text
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="$1">$2</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/\n/g, '<br>')
+  return marked.parse(text)
 }
 
 async function loadAssignments() {
@@ -253,44 +250,22 @@ async function loadAssignments() {
 
 async function loadErrors() {
   try {
-    const params = {}
-    if (errorFilter.course) params.course = errorFilter.course
-    if (errorFilter.chapter) params.chapter = errorFilter.chapter
-    if (errorFilter.minCount) params.minCount = errorFilter.minCount
-    const res = await api.get('/practice/errors/' + store.id, { params })
+    const res = await api.get('/practice/errors/' + store.id)
     const data = res.data || {}
     errors.value = data.errors || []
-    courses.value = Object.keys(data.knowledgePointDistribution || {}).length ? ['全部'] : []
-    chapterNames.value = []
+    courses.value = data.courses || []
+    chapterNames.value = data.chapters || []
   } catch (e) { console.error('加载错题失败', e) }
 }
 
-async function loadInsights() {
-  try {
-    // 获取AI生成的知识库资料
-    const assignmentsRes = await api.get('/practice/assignments/' + store.id)
-    const all = [...(assignmentsRes.data?.pending || []), ...(assignmentsRes.data?.completed || []), ...(assignmentsRes.data?.graded || [])]
-    // 从courseId获取知识库
-    const seen = new Set()
-    const allInsights = []
-    for (const item of all) {
-      if (item.courseId && !seen.has(item.courseId)) {
-        seen.add(item.courseId)
-        try {
-          const kbRes = await api.get('/knowledge/course/' + item.courseId)
-          if (kbRes.data && kbRes.data.documents) {
-            for (const doc of kbRes.data.documents) {
-              allInsights.push({ ...doc, courseName: item.courseName })
-            }
-          }
-        } catch {}
-      }
-    }
-    // 区分AI生成和教师上传
-    insights.value = allInsights.filter(d => d.source !== 'teacher' && !d.fileName?.endsWith('.pdf'))
-    teacherResources.value = allInsights.filter(d => d.source === 'teacher' || d.fileName?.endsWith('.pdf'))
-  } catch (e) { console.error('加载AI解析失败', e) }
-}
+// 前端筛选（不再调后端）
+const filteredErrors = computed(() => {
+  let list = errors.value
+  if (errorFilter.course) list = list.filter(e => e.courseName === errorFilter.course)
+  if (errorFilter.chapter) list = list.filter(e => e.chapterName === errorFilter.chapter || e.knowledgePoint === errorFilter.chapter)
+  if (errorFilter.minCount) list = list.filter(e => (e.wrongCount || 1) >= errorFilter.minCount)
+  return list
+})
 
 async function openAssignment(item) {
   currentChapter.value = item
@@ -322,28 +297,33 @@ async function submitAnswers() {
   finally { submitting.value = false }
 }
 
-function redoError(err) {
-  // 构造一个临时的chapter信息用于答题
-  currentChapter.value = { id: err.chapterId, name: err.knowledgePoint || '错题重做' }
-  dialogQuestions.value = [{
-    type: 'choice', content: err.question,
-    options: [], answer: err.correctAnswer, knowledgePoint: err.knowledgePoint
-  }]
-  Object.keys(dialogAnswers).forEach(k => delete dialogAnswers[k])
-  dialogAnswers[1] = ''
-  showAnswerDialog.value = true
+const redoAnalysis = ref('')
+const showRedoDialog = ref(false)
+const insights = ref([])
+const generatingInsights = ref(false)
+const showInsightDialog = ref(false)
+const viewingInsight = ref(null)
+
+function loadInsights() {
+  // 已生成的知识总结保留在本地，切换到Tab时直接展示
 }
 
-async function resolveError(err) {
+async function generateInsights() {
+  generatingInsights.value = true
   try {
-    await api.post('/practice/errors/' + err.id + '/resolve')
-    err.status = 'resolved'
-    ElMessage.success('已标记为掌握')
-  } catch { ElMessage.error('操作失败') }
-}
-
-async function redoAllErrors() {
-  ElMessage.info('请逐个点击错题的「重新做题」按钮进行练习')
+    const res = await api.post('/practice/errors/' + store.id + '/generate-insights')
+    const data = res.data || {}
+    insights.value = data.insights || []
+    if (insights.value.length) {
+      ElMessage.success(data.message || 'AI已生成知识点总结')
+    } else {
+      ElMessage.info(data.message || '暂无错题需要分析')
+    }
+  } catch (e) {
+    ElMessage.error('AI生成失败: ' + (e.response?.data?.message || '请重试'))
+  } finally {
+    generatingInsights.value = false
+  }
 }
 
 function viewInsight(item) {
@@ -351,8 +331,36 @@ function viewInsight(item) {
   showInsightDialog.value = true
 }
 
+function redoError(err) {
+  redoAnalysis.value = err.analysis || '暂无AI解析，请先提交作业触发自动分析'
+  showRedoDialog.value = true
+}
+
+async function resolveError(err) {
+  try {
+    await api.post('/practice/errors/' + err.id + '/resolve')
+    ElMessage.success('已标记为掌握')
+    errors.value = errors.value.filter(e => e.id !== err.id)
+  } catch { ElMessage.error('操作失败') }
+}
+
+async function redoAllErrors() {
+  const list = filteredErrors.value.length ? filteredErrors.value : errors.value
+  if (!list.length) return
+  let summary = ''
+  for (const err of list) {
+    summary += `### 【${err.knowledgePoint || '未知知识点'}】\n`
+    summary += `**题目：** ${err.question?.substring(0, 100) || '无'}\n\n`
+    summary += `**你的答案：** ${err.studentAnswer || '无'}\n\n`
+    summary += `**正确答案：** ${err.correctAnswer || '无'}\n\n`
+    summary += `**AI解析：** ${err.analysis || '暂无AI解析'}\n\n---\n\n`
+  }
+  redoAnalysis.value = summary
+  showRedoDialog.value = true
+}
+
 async function refreshAll() {
-  await loadAssignments()
+  await Promise.all([loadAssignments(), loadErrors()])
 }
 
 onMounted(() => { loadAssignments() })
@@ -427,23 +435,6 @@ onMounted(() => { loadAssignments() })
 .error-analysis { font-size: 12px; color: #606266; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px; line-height: 1.6; white-space: pre-wrap; }
 .error-actions { display: flex; gap: 8px; }
 
-/* AI解析列表 */
-.insights-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-.insight-card {
-  background: #fff; border-radius: 10px; padding: 16px; border: 1px solid #f0f0f0;
-  cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-}
-.insight-card:hover { border-color: #409EFF; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-.insight-card.teacher { border-left: 3px solid #67C23A; }
-.insight-header { display: flex; align-items: center; gap: 10px; }
-.insight-icon { font-size: 22px; flex-shrink: 0; }
-.insight-info { flex: 1; }
-.insight-info h4 { margin: 0 0 2px 0; font-size: 15px; color: #303133; }
-.insight-date { font-size: 12px; color: #909399; }
-.insight-preview { font-size: 13px; color: #606266; margin: 8px 0 0 0; line-height: 1.5; }
-
-.section-title { font-size: 16px; color: #303133; margin: 0 0 14px 0; padding-left: 8px; border-left: 3px solid #409EFF; }
-.teacher-resources { margin-top: 8px; }
 
 /* 答题弹窗 */
 .question-list { max-height: 500px; overflow-y: auto; }
@@ -452,8 +443,8 @@ onMounted(() => { loadAssignments() })
 .question-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 .question-num { font-weight: 600; color: #303133; }
 .question-text { font-size: 15px; margin-bottom: 12px; line-height: 1.6; white-space: pre-wrap; }
-.options-group { display: flex; flex-direction: column; gap: 8px; }
-.option-item { display: flex; align-items: center; margin-bottom: 4px; }
+.options-group { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.option-item { display: flex; align-items: center; margin-bottom: 4px; width: 100%; }
 .opt-key { font-weight: 600; color: #409EFF; margin-right: 2px; }
 .code-question { margin-top: 8px; }
 .code-editor :deep(textarea) { font-family: 'Consolas', 'Monaco', monospace !important; font-size: 14px !important; line-height: 1.6 !important; background: #f5f7fa !important; }
@@ -466,9 +457,35 @@ onMounted(() => { loadAssignments() })
 .correct-fb { color: #67C23A; }
 .wrong-fb { color: #F56C6C; }
 
+/* AI错题解析 */
+.insights-list { display: flex; flex-direction: column; gap: 10px; }
+.insight-card {
+  background: #fff; border-radius: 10px; padding: 16px;
+  border: 1px solid #f0f0f0; cursor: pointer;
+  transition: all 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.insight-card:hover { border-color: #409EFF; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.insight-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.insight-icon { font-size: 22px; flex-shrink: 0; }
+.insight-info { flex: 1; }
+.insight-info h4 { margin: 0 0 2px 0; font-size: 15px; color: #303133; }
+.insight-meta { font-size: 12px; color: #909399; }
+.insight-preview { font-size: 13px; color: #606266; margin: 0; line-height: 1.5; }
 .insight-detail { font-size: 14px; line-height: 1.8; max-height: 500px; overflow-y: auto; }
-.insight-detail :deep(pre) { background: #f4f4f5; padding: 10px; border-radius: 6px; overflow-x: auto; }
-.insight-detail :deep(code) { font-family: Consolas, monospace; font-size: 13px; }
+.insight-detail { line-height: 1.8; font-size: 14px; }
+.insight-detail :deep(h2) { font-size: 18px; margin: 14px 0 8px; }
 .insight-detail :deep(h3) { font-size: 16px; margin: 12px 0 6px; }
 .insight-detail :deep(h4) { font-size: 14px; margin: 10px 0 4px; }
+.insight-detail :deep(p) { margin: 0 0 8px; }
+.insight-detail :deep(ul), .insight-detail :deep(ol) { margin: 6px 0; padding-left: 20px; }
+.insight-detail :deep(li) { margin-bottom: 4px; }
+.insight-detail :deep(pre) { background: #f4f4f5; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+.insight-detail :deep(code) { font-family: Consolas, monospace; font-size: 13px; background: #f0f2f5; padding: 1px 4px; border-radius: 3px; }
+.insight-detail :deep(pre code) { background: none; padding: 0; }
+.insight-detail :deep(blockquote) { border-left: 3px solid #409EFF; padding: 4px 10px; margin: 8px 0; background: #ecf5ff; }
+.insight-detail :deep(strong) { color: #303133; }
+.insight-detail :deep(h2) { font-size: 18px; color: #303133; margin-top: 8px; }
+.insight-detail :deep(h3) { font-size: 16px; color: #409EFF; }
+.insight-detail :deep(li) { margin: 4px 0; }
+
 </style>

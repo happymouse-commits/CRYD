@@ -57,7 +57,22 @@ public class ChatController {
         chatMessageRepository.save(userMsg);
 
         try {
-            ChatResponse response = orchestrator.process(request);
+            String msg = request.getMessage();
+            // 短消息且非复杂问题 → 快速通道，跳过 PipelineOrchestrator
+            boolean isShort = msg != null && msg.length() < 30;
+            boolean isComplex = msg != null && (msg.contains("代码") || msg.contains("编程")
+                    || msg.contains("算法") || msg.contains("指针") || msg.contains("题目"));
+            ChatResponse response;
+            if (isShort && !isComplex) {
+                String aiReply = sparkClient.chat(
+                    "你是C语言辅导老师，回答简洁友好。学生水平：大一。",
+                    msg, 0.5f, 512);
+                response = new ChatResponse();
+                response.setAgentName("辅导老师");
+                response.setMessage(aiReply);
+            } else {
+                response = orchestrator.process(request);
+            }
 
             ChatMessage aiMsg = new ChatMessage();
             aiMsg.setStudentId(request.getStudentId());

@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 @Table(name = "learning_resource")
 public class LearningResource {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(name = "learningResource_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "learningResource_seq")
     private Long id;
 
     @Column(nullable = false, length = 200)
@@ -38,10 +39,6 @@ public class LearningResource {
 
     @Column(length = 500)
     private String tags;
-
-    private Integer favoriteCount;
-
-    private Integer commentCount;
 
     @Column(length = 10)
     private String isShared; // "0" or "1"
@@ -71,10 +68,6 @@ public class LearningResource {
     public void setCategory(String category) { this.category = category; }
     public String getTags() { return tags; }
     public void setTags(String tags) { this.tags = tags; }
-    public Integer getFavoriteCount() { return favoriteCount; }
-    public void setFavoriteCount(Integer favoriteCount) { this.favoriteCount = favoriteCount; }
-    public Integer getCommentCount() { return commentCount; }
-    public void setCommentCount(Integer commentCount) { this.commentCount = commentCount; }
     public String getIsShared() { return isShared; }
     public void setIsShared(String isShared) { this.isShared = isShared; }
     public LocalDateTime getCreatedAt() { return createdAt; }

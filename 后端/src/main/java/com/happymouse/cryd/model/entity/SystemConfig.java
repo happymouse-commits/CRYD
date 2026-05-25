@@ -6,7 +6,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "system_config")
 public class SystemConfig {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @SequenceGenerator(name = "systemConfig_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "systemConfig_seq")
     private Long id;
 
     @Column(nullable = false, unique = true, length = 100)

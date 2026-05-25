@@ -4,32 +4,37 @@ server:
 spring:
   application:
     name: CRYD
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
   # ===== 数据库配置 — openGauss 6.0 =====
   datasource:
-    url: jdbc:postgresql://localhost:5432/SGHR?ssl=false
-    driver-class-name: org.postgresql.Driver
-    username: omm
-    password: Enmo@123
-    # H2 开发数据库（回退调试用）
+    # H2 开发数据库（已切换 openGauss）
     # url: jdbc:h2:file:f:/从容应对/后端/data/cryd;AUTO_SERVER=TRUE
     # driver-class-name: org.h2.Driver
     # username: sa
     # password:
+    # openGauss 6.0 配置
+    url: jdbc:postgresql://localhost:5432/sghr?ssl=false
+    driver-class-name: org.postgresql.Driver
+    username: sghr_admin
+    password: Sghr@2026
     # MySQL配置（正式环境切换）
     # url: jdbc:mysql://localhost:3306/cryd?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     # driver-class-name: com.mysql.cj.jdbc.Driver
     # username: root
     # password: your_password
 
-  # H2 控制台（已切换 openGauss，暂时禁用）
-  # h2:
-  #   console:
-  #     enabled: true
-  #     path: /h2-console
+  # H2 控制台
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: com.happymouse.cryd.config.OpenGaussDialect
     hibernate:
       ddl-auto: update
     show-sql: true
@@ -43,12 +48,13 @@ spring:
       host: localhost
       port: 6379
 
-# ===== 智谱 GLM 大模型配置 =====
+# ===== 大模型配置（通过环境变量注入，参考 .env.example）=====
+# DeepSeek V4 Pro — OpenAI 兼容接口
 llm:
   api:
-    url: https://open.bigmodel.cn/api/paas/v4/chat/completions
-    key: 5b4e7463e78844619fcc8ca9250f533a.goUhPjIQJGK0tLD9
-    model: glm-4-flash
+    url: ${LLM_API_URL:https://api.deepseek.com/v1/chat/completions}
+    key: sk-37eab57deb084a09b4a3d8bb44fe7c6c
+    model: ${LLM_API_MODEL:deepseek-chat}
 
 # ===== 多智能体配置 =====
 agent:
@@ -93,18 +99,11 @@ rag:
   similarity-threshold: 0.65
   vector-store: in-memory  # in-memory / redis / milvus
 
-  # 嵌入模型配置（一键切换：glm ↔ spark）
+  # 嵌入模型配置（本地 n-gram 哈希，无需外部 API）
   embedding:
-    provider: glm  # glm（当前）/ spark（讯飞星火，未来切换）
-    dimension: 2048  # embedding-3 实际输出2048维（非文档写的1024）；星火 embedding-v1 输出2560维，切换时改
+    dimension: 1024  # 本地哈希向量维度
 
-    # 智谱 GLM 嵌入
-    glm:
-      url: https://open.bigmodel.cn/api/paas/v4/embeddings
-      key: 5b4e7463e78844619fcc8ca9250f533a.goUhPjIQJGK0tLD9
-      model: embedding-3  # 免费，1024维
-
-    # 讯飞星火嵌入（未来切换时填写）
+    # 讯飞星火嵌入（未来替换时填写）
     spark:
       url: https://emb.xf-yun.com/v1/embeddings
       key: YOUR_SPARK_EMBEDDING_KEY  # TODO: 填写星火嵌入API Key
@@ -119,7 +118,7 @@ rag:
   # 知识库导入（C语言谭浩强）
   knowledge-import:
     enabled: true
-    base-path: C:/Users/404NotFound/.qclaw/workspace/C语言知识库
+    base-path: ${KNOWLEDGE_BASE_PATH:./data/knowledge-base}
 
 # ===== 系统功能配置 =====
 system:

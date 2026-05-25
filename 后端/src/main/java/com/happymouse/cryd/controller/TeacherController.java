@@ -18,7 +18,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 教师端API
+ * 教师端控制器 —— 课程管理、题库选题、AI出题、布置作业、AI批改、学情分析。
+ *
+ * <p>双模式出题：<ul>
+ *   <li>从题库选题 — JSON题库(97题)自动导入数据库，按章节/难度/题型筛选</li>
+ *   <li>AI智能出题 — 严格按设置的章节、题型、难度、数量调用大模型生成</li>
+ * </ul></p>
  */
 @RestController
 @RequestMapping("/api/teacher")
@@ -492,7 +497,7 @@ public class TeacherController {
         """;
 
     /**
-     * AI生成题目 - 使用星火大模型为章节生成题目（增强版：JSON容错+重试机制）
+     * AI生成题目 — 最多重试2次，JSON多策略容错
      */
     @PostMapping("/chapter/{chapterId}/ai-generate-questions")
     public Result<Map<String, Object>> aiGenerateQuestions(@PathVariable Long chapterId,
@@ -506,17 +511,19 @@ public class TeacherController {
                     + "\n章节描述：" + chapterDesc
                     + "\n\n请严格按照上述JSON格式生成题目。";
 
-            JSONArray questions = tryGenerateQuestions(prompt, chapterName);
-
-            if (questions == null || questions.isEmpty()) {
-                // 重试一次
-                log.warn("AI出题首次失败，正在重试...");
-                String retryPrompt = prompt + "\n\n【重要提醒】上次输出格式不符合JSON规范，请这次一定只输出纯JSON数组。";
-                questions = tryGenerateQuestions(retryPrompt, chapterName);
+            JSONArray questions = null;
+            int maxRetries = 2;
+            for (int attempt = 0; attempt <= maxRetries && (questions == null || questions.isEmpty()); attempt++) {
+                if (attempt > 0) {
+                    log.warn("AI出题第{}次重试: chapter={}", attempt, chapterName);
+                    prompt = prompt + "\n\n【重要提醒】第" + attempt + "次重试，上次输出格式不符合JSON规范，请这次一定只输出纯JSON数组。";
+                }
+                questions = tryGenerateQuestions(prompt, chapterName);
             }
 
             if (questions == null || questions.isEmpty()) {
-                return Result.<Map<String, Object>>error(500, "AI生成题目失败，已重试仍无法解析有效题目。请检查关卡名称和描述是否清晰，或手动录入题目。");
+                log.error("AI出题全部{}次尝试均失败: chapter={}", maxRetries + 1, chapterName);
+                return Result.<Map<String, Object>>error(500, "AI生成题目失败，已重试" + maxRetries + "次仍无法解析有效题目。请检查关卡名称和描述是否清晰，或手动录入题目。");
             }
 
             // 校验题目数量，补全不足的
@@ -576,7 +583,7 @@ public class TeacherController {
     }
 
     /**
-     * 从AI回复中提取JSON数组（多策略容错，适配 GLM/Spark 输出特性）
+     * 从AI回复中提取JSON数组（多策略容错，适配 LLM 输出特性）
      */
     private String extractJsonArray(String raw) {
         String text = raw.trim();
@@ -590,7 +597,7 @@ public class TeacherController {
             if (isValidJsonArray(candidate)) return candidate;
         }
 
-        // 策略2: 修复常见JSON格式问题 + GLM常见输出修复
+        // 策略2: 修复常见JSON格式问题 + LLM常见输出修复
         start = text.indexOf('[');
         end = text.lastIndexOf(']');
         if (start >= 0 && end > start) {
@@ -599,16 +606,16 @@ public class TeacherController {
             // 尾逗号修复
             candidate = candidate.replaceAll(",\\s*]", "]");
             candidate = candidate.replaceAll(",\\s*}", "}");
-            // GLM 常见: 字符串值中含未转义换行
+            // LLM 常见: 字符串值中含未转义换行
             candidate = candidate.replace("\r\n", "\\n").replace("\r", "\\n").replace("\n", "\\n");
             if (isValidJsonArray(candidate)) return candidate;
-            // GLM 常见: 中文引号混入
+            // LLM 常见: 中文引号混入
             candidate = candidate.replace("“", "\"").replace("”", "\"");
             candidate = candidate.replace('‘', '\'').replace('’', '\'');
             if (isValidJsonArray(candidate)) return candidate;
         }
 
-        // 策略3: 修复缺失的逗号（GLM有时在数组元素间漏掉逗号）
+        // 策略3: 修复缺失的逗号（LLM有时在数组元素间漏掉逗号）
         start = text.indexOf('[');
         end = text.lastIndexOf(']');
         if (start >= 0 && end > start) {
@@ -943,27 +950,39 @@ public class TeacherController {
             @RequestParam(required = false) String chapterName,
             @RequestParam(required = false) String difficulty,
             @RequestParam(required = false) String type) {
-        List<Question> all = questionRepository.findAll();
-        List<Question> filtered = new ArrayList<>(all);
+        // 优先从数据库加载题目
+        List<Question> filtered = courseId != null
+                ? new ArrayList<>(questionRepository.findByCourseIdOrderByChapterOrderAsc(courseId))
+                : new ArrayList<>(questionRepository.findAll());
 
-        if (courseId != null) filtered = questionRepository.findByCourseIdOrderByChapterOrderAsc(courseId);
+        // 过滤条件
         if (chapterName != null && !chapterName.isEmpty())
-            filtered = filtered.stream().filter(q -> chapterName.equals(q.getChapterName())).toList();
+            filtered = new ArrayList<>(filtered.stream().filter(q -> chapterName.equals(q.getChapterName())).toList());
         if (difficulty != null && !difficulty.isEmpty())
-            filtered = filtered.stream().filter(q -> difficulty.equals(q.getDifficulty())).toList();
+            filtered = new ArrayList<>(filtered.stream().filter(q -> difficulty.equals(q.getDifficulty())).toList());
         if (type != null && !type.isEmpty())
-            filtered = filtered.stream().filter(q -> type.equals(q.getType())).toList();
+            filtered = new ArrayList<>(filtered.stream().filter(q -> type.equals(q.getType())).toList());
 
-        List<String> chapterNames = courseId != null ?
-                questionRepository.findDistinctChapterNames(courseId) :
-                all.stream().map(Question::getChapterName).distinct().sorted().toList();
+        // 如果数据库无题，从JSON题库导入
+        if (filtered.isEmpty() && courseId != null) {
+            List<Question> imported = importQuestionsFromJson(courseId);
+            filtered = imported;
+            if (chapterName != null && !chapterName.isEmpty())
+                filtered = filtered.stream().filter(q -> chapterName.equals(q.getChapterName())).toList();
+            if (difficulty != null && !difficulty.isEmpty())
+                filtered = filtered.stream().filter(q -> difficulty.equals(q.getDifficulty())).toList();
+            if (type != null && !type.isEmpty())
+                filtered = filtered.stream().filter(q -> type.equals(q.getType())).toList();
+        }
 
-        // 兜底: 如果数据库中没有该课程章节，从 c-programming.json 读取
-        if (chapterNames.isEmpty()) {
-            chapterNames = getChapterNamesFromJson();
+        List<String> chapterNames = getChapterNamesFromJson();
+        if (chapterNames.isEmpty() && courseId != null) {
+            chapterNames = questionRepository.findDistinctChapterNames(courseId);
         }
 
         List<String> difficulties = questionRepository.findDistinctDifficulties();
+        if (difficulties.isEmpty()) difficulties = List.of("easy", "medium", "hard");
+
         int choiceCount = (int) filtered.stream().filter(q -> "choice".equals(q.getType())).count();
         int codeCount = (int) filtered.stream().filter(q -> "code".equals(q.getType())).count();
 
@@ -984,6 +1003,72 @@ public class TeacherController {
     @GetMapping("/questions/chapters")
     public Result<List<Map<String, Object>>> getQuestionChapters() {
         return Result.success(getChapterListFromJson());
+    }
+
+    private List<Question> importQuestionsFromJson(Long courseId) {
+        List<Question> allQuestions = new ArrayList<>();
+        try {
+            org.springframework.core.io.Resource jsonResource =
+                    new org.springframework.core.io.ClassPathResource("question-bank/c-programming.json");
+            if (!jsonResource.exists()) return allQuestions;
+
+            String jsonStr = new String(jsonResource.getInputStream().readAllBytes(),
+                    java.nio.charset.StandardCharsets.UTF_8);
+            JSONObject root = JSON.parseObject(jsonStr);
+            JSONArray chapters = root.getJSONArray("chapters");
+            for (int i = 0; i < chapters.size(); i++) {
+                JSONObject chJson = chapters.getJSONObject(i);
+                String chapterName = chJson.getString("chapterName");
+                JSONArray sections = chJson.getJSONArray("sections");
+                if (sections == null) continue;
+                for (int j = 0; j < sections.size(); j++) {
+                    JSONObject sec = sections.getJSONObject(j);
+                    JSONArray questions = sec.getJSONArray("questions");
+                    if (questions == null) continue;
+                    for (int k = 0; k < questions.size(); k++) {
+                        JSONObject q = questions.getJSONObject(k);
+                        Question question = new Question();
+                        // 归一化题型: code_output/program → code
+                        String rawType = q.getString("type");
+                        String normalizedType = switch (rawType) {
+                            case "code_output", "program" -> "code";
+                            case "choice", "fill" -> rawType;
+                            default -> rawType != null ? rawType : "choice";
+                        };
+                        question.setType(normalizedType);
+                        // JSON字段名: "question" → 实体字段: content
+                        question.setContent(q.getString("question"));
+                        // JSON字段名: "explanation" → 实体字段: analysis
+                        question.setAnalysis(q.getString("explanation"));
+                        // JSON options 是 ["A选项","B选项",...] → 转换为 [{key:"A",value:"..."}]
+                        if (q.containsKey("options")) {
+                            JSONArray rawOptions = q.getJSONArray("options");
+                            JSONArray dbOptions = new JSONArray();
+                            String[] keys = {"A", "B", "C", "D", "E", "F"};
+                            for (int oi = 0; oi < rawOptions.size(); oi++) {
+                                JSONObject opt = new JSONObject();
+                                opt.put("key", keys[oi]);
+                                opt.put("value", rawOptions.getString(oi));
+                                dbOptions.add(opt);
+                            }
+                            question.setOptions(dbOptions.toJSONString());
+                        }
+                        question.setAnswer(q.getString("answer"));
+                        question.setKnowledgePoint(q.getString("knowledgePoint"));
+                        question.setDifficulty(q.getString("difficulty") != null
+                                ? q.getString("difficulty") : "medium");
+                        question.setChapterName(chapterName);
+                        question.setChapterOrder(i + 1);
+                        question.setCourseId(courseId);
+                        question.setSource("json-bank");
+                        allQuestions.add(questionRepository.save(question));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("从JSON题库导入题目失败: {}", e.getMessage());
+        }
+        return allQuestions;
     }
 
     private List<String> getChapterNamesFromJson() {
@@ -1062,12 +1147,15 @@ public class TeacherController {
                 typeInstruction = "混合生成选择题和编程题。选择题格式：{\"type\":\"choice\",\"content\":\"题目\",\"options\":[{\"key\":\"A\",\"value\":\"选项A\"}...],\"answer\":\"A\",\"knowledgePoint\":\"知识点\",\"analysis\":\"解析\"}。编程题格式：{\"type\":\"code\",\"content\":\"题目描述\",\"answer\":\"参考答案C代码\",\"knowledgePoint\":\"知识点\",\"analysis\":\"解析\"}";
         }
 
-        String prompt = "你是C语言程序设计出题专家。请根据章节和难度生成题目。\n"
-                + typeInstruction + "\n"
-                + "章节：" + chapterName + "\n"
-                + "难度：" + difficulty + "\n"
-                + "生成" + count + "道题。\n"
-                + "必须输出纯JSON数组格式（不要```json标记）。只输出JSON数组，不要任何其他文字。";
+        String prompt = "你是C语言程序设计出题专家。请严格按照以下要求生成题目。\n\n"
+                + "【必须遵守的铁律】\n"
+                + "1. 题型：" + typeInstruction + "\n"
+                + "2. 难度：" + difficulty + "（所有题目必须严格是此难度）\n"
+                + "3. 数量：恰好生成" + count + "道题，不多不少\n"
+                + "4. 章节范围：" + chapterName + "\n\n"
+                + "【输出格式】纯JSON数组（不要```json标记，不要任何其他文字）：\n"
+                + "[{\"type\":\"...\",\"content\":\"题目内容\",\"options\":[...],\"answer\":\"正确答案\",\"knowledgePoint\":\"知识点\",\"analysis\":\"解析\",\"difficulty\":\"" + difficulty + "\"}]\n\n"
+                + "再次强调：必须恰好" + count + "道题，全部是" + difficulty + "难度。";
 
         JSONArray generated = tryGenerateQuestions(prompt, chapterName);
         if (generated == null || generated.isEmpty()) {

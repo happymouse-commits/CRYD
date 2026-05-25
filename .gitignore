@@ -6,8 +6,6 @@
 
 # Maven
 target/
-!target/classes
-!target/test-classes
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
@@ -58,6 +56,12 @@ AI驱动成果描述.md
 ClaudeCode_BUG修复清单.md
 ClaudeCode_资源与学习路径.md
 重构设计文档_v2.md
+
+# Environment secrets
+.env
+
+# Static assets (auto-generated from frontend build)
+后端/src/main/resources/static/assets/
 
 # Temporary files
 *.swp

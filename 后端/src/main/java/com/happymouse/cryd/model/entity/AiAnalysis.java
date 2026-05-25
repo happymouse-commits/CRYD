@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 @Table(name = "ai_analysis")
 public class AiAnalysis {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(name = "aiAnalysis_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "aiAnalysis_seq")
     private Long id;
 
     private Long studentId;

@@ -44,25 +44,67 @@ public class AnalyticsController {
     // 班级整体学情概览
     @GetMapping("/class/{className}/overview")
     public Result<Map<String, Object>> getClassOverview(@PathVariable String className) {
-        var students = sysUserRepo.findByClassName(className).stream()
+        var users = sysUserRepo.findByClassName(className).stream()
             .filter(u -> "student".equals(u.getRole()))
             .toList();
 
         List<Student> profiles = new ArrayList<>();
-        for (var user : students) {
+        for (var user : users) {
             studentRepo.findByUsername("student_" + user.getId()).ifPresent(profiles::add);
+        }
+
+        // 统计真实答题数据
+        int totalQuestionsAnswered = 0;
+        int totalCorrectAnswers = 0;
+        int activeStudents = 0;
+        for (var user : users) {
+            List<com.happymouse.cryd.model.entity.ChapterProgress> userProgress =
+                    progressRepo.findByStudentId(user.getId());
+            if (!userProgress.isEmpty()) activeStudents++;
+            for (var cp : userProgress) {
+                if (cp.getScore() != null) {
+                    totalQuestionsAnswered += 5; // 每章约5题
+                    totalCorrectAnswers += Math.round(cp.getScore() * 5f / 100f);
+                }
+            }
+        }
+
+        double avgAccuracy = totalQuestionsAnswered > 0
+                ? Math.round((double) totalCorrectAnswers / totalQuestionsAnswered * 100.0)
+                : 0;
+
+        // 汇总错题知识点分布
+        List<String> topErrors = getTopErrors(className, 10);
+        int weakPointCount = topErrors.size();
+
+        // 从错题中提取知识点掌握度统计
+        List<Map<String, Object>> knowledgeStats = new ArrayList<>();
+        Map<String, Long> kpErrorCount = new java.util.LinkedHashMap<>();
+        for (var user : users) {
+            List<com.happymouse.cryd.model.entity.ErrorNotebook> errors =
+                    errorRepo.findByStudentIdAndStatus(user.getId(), "active");
+            for (var e : errors) {
+                if (e.getKnowledgePoint() != null) {
+                    kpErrorCount.merge(e.getKnowledgePoint(), 1L, Long::sum);
+                }
+            }
+        }
+        // 将错题知识点转为掌握度（错误越多，掌握度越低）
+        for (var entry : kpErrorCount.entrySet()) {
+            Map<String, Object> stat = new LinkedHashMap<>();
+            stat.put("name", entry.getKey());
+            stat.put("mastery", Math.max(0, 100 - entry.getValue().intValue() * 10));
+            knowledgeStats.add(stat);
         }
 
         Map<String, Object> overview = new LinkedHashMap<>();
         overview.put("className", className);
-        overview.put("totalStudents", students.size());
-
-        if (profiles.isEmpty()) {
-            overview.put("avgKnowledgeLevel", 0);
-            overview.put("avgProgress", 0);
-            overview.put("errorTop10", List.of());
-            return Result.success(overview);
-        }
+        overview.put("totalStudents", users.size());
+        overview.put("activeStudents", activeStudents);
+        overview.put("averageAccuracy", (int) avgAccuracy);
+        overview.put("avgQuestions", users.isEmpty() ? 0 : Math.round((float) totalQuestionsAnswered / users.size()));
+        overview.put("weakPointCount", weakPointCount);
+        overview.put("knowledgeStats", knowledgeStats);
 
         double avgLevel = profiles.stream()
             .mapToInt(s -> s.getKnowledgeLevel() != null ? s.getKnowledgeLevel() : 0)
@@ -70,52 +112,11 @@ public class AnalyticsController {
         double avgProgress = profiles.stream()
             .mapToInt(s -> s.getProgress() != null ? s.getProgress() : 0)
             .average().orElse(0);
-
-        // 认知风格分布
-        Map<String, Long> styleDist = profiles.stream()
-            .collect(Collectors.groupingBy(
-                s -> s.getCognitiveStyle() != null ? s.getCognitiveStyle() : "unknown",
-                Collectors.counting()));
-
-        // 资源使用统计
-        long totalResources = 0;
-        for (var user : students) {
-            totalResources += resourceRepo.findByStudentId(user.getId()).size();
-        }
-
         overview.put("avgKnowledgeLevel", Math.round(avgLevel * 10) / 10.0);
         overview.put("avgProgress", Math.round(avgProgress * 10) / 10.0);
-        overview.put("cognitiveStyleDistribution", styleDist);
-        overview.put("totalResourcesGenerated", totalResources);
-        overview.put("errorTop10", getTopErrors(className, 10));
+        overview.put("errorTop10", topErrors);
 
         return Result.success(overview);
-    }
-
-    // 老师查看学生个体画像
-    @GetMapping("/student/{studentId}/profile")
-    public Result<Map<String, Object>> getStudentProfile(@PathVariable Long studentId) {
-        var user = sysUserRepo.findById(studentId).orElse(null);
-        var student = studentRepo.findByUsername("student_" + studentId).orElse(null);
-
-        Map<String, Object> profile = new LinkedHashMap<>();
-        if (user != null) {
-            profile.put("username", user.getUsername());
-            profile.put("nickname", user.getNickname());
-            profile.put("className", user.getClassName());
-            profile.put("studentId", user.getStudentId());
-        }
-        if (student != null) {
-            profile.put("knowledgeLevel", student.getKnowledgeLevel());
-            profile.put("cognitiveStyle", student.getCognitiveStyle());
-            profile.put("learningPreference", student.getLearningPreference());
-            profile.put("learningPace", student.getLearningPace());
-            profile.put("weakAreas", student.getWeakAreas());
-            profile.put("progress", student.getProgress());
-            profile.put("totalStudyMinutes", student.getTotalStudyMinutes());
-            profile.put("streakDays", student.getStreakDays());
-        }
-        return Result.success(profile);
     }
 
     // 对比分析

@@ -5,13 +5,14 @@ import com.happymouse.cryd.model.entity.LearningCheckin;
 import com.happymouse.cryd.model.entity.LearningPath;
 import com.happymouse.cryd.repository.LearningCheckinRepository;
 import com.happymouse.cryd.repository.LearningPathRepository;
-import com.happymouse.cryd.repository.StudentRepository;
 import com.happymouse.cryd.service.agent.PathPlannerAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,18 +26,15 @@ public class LearningPathController {
     private static final Logger log = LoggerFactory.getLogger(LearningPathController.class);
 
     private final LearningPathRepository pathRepo;
-    private final LearningCheckinRepository checkinRepo;
-    private final StudentRepository studentRepo;
     private final PathPlannerAgent pathPlannerAgent;
+    private final LearningCheckinRepository checkinRepo;
 
     public LearningPathController(LearningPathRepository pathRepo,
-                                   LearningCheckinRepository checkinRepo,
-                                   StudentRepository studentRepo,
-                                   PathPlannerAgent pathPlannerAgent) {
+                                   PathPlannerAgent pathPlannerAgent,
+                                   LearningCheckinRepository checkinRepo) {
         this.pathRepo = pathRepo;
-        this.checkinRepo = checkinRepo;
-        this.studentRepo = studentRepo;
         this.pathPlannerAgent = pathPlannerAgent;
+        this.checkinRepo = checkinRepo;
     }
 
     // 获取学生活跃路径
@@ -66,70 +64,6 @@ public class LearningPathController {
 
         pathRepo.save(path);
         return Result.success(path);
-    }
-
-    // 学习打卡
-    @PostMapping("/checkin")
-    public Result<LearningCheckin> checkin(@RequestBody Map<String, Object> body) {
-        Long studentId = toLong(body.get("studentId"));
-        Long stepId = toLong(body.get("pathStepId"));
-        String desc = (String) body.get("description");
-
-        LearningCheckin checkin = new LearningCheckin();
-        checkin.setStudentId(studentId);
-        checkin.setPathStepId(stepId);
-        checkin.setDescription(desc);
-        checkin.setCheckinDate(LocalDate.now());
-        checkinRepo.save(checkin);
-
-        // 更新学生连续打卡天数 (studentId 是 SysUser.id，需通过 username 查找 Student 实体)
-        com.happymouse.cryd.model.entity.Student student = resolveStudent(studentId);
-        if (student != null) {
-            LocalDate today = LocalDate.now();
-            LocalDate lastCheckin = student.getLastCheckinDate();
-            if (lastCheckin != null && lastCheckin.equals(today.minusDays(1))) {
-                student.setStreakDays((student.getStreakDays() != null ? student.getStreakDays() : 0) + 1);
-            } else if (lastCheckin == null || !lastCheckin.equals(today)) {
-                student.setStreakDays(1);
-            }
-            student.setLastCheckinDate(today);
-            studentRepo.save(student);
-        }
-
-        return Result.success(checkin);
-    }
-
-    // 获取打卡日历（当月）
-    @GetMapping("/checkin/calendar/{studentId}")
-    public Result<?> getCalendar(@PathVariable Long studentId,
-                                  @RequestParam(required = false) String month) {
-        LocalDate today = LocalDate.now();
-        LocalDate start = today.withDayOfMonth(1);
-        LocalDate end = today.withDayOfMonth(today.lengthOfMonth());
-        if (month != null) {
-            String[] parts = month.split("-");
-            if (parts.length == 2) {
-                start = LocalDate.of(today.getYear(), Integer.parseInt(parts[0]), 1);
-                end = start.withDayOfMonth(start.lengthOfMonth());
-            }
-        }
-
-        List<LearningCheckin> checkins = checkinRepo.findByStudentIdAndCheckinDateBetween(studentId, start, end);
-        com.happymouse.cryd.model.entity.Student student = resolveStudent(studentId);
-
-        return Result.success(Map.of(
-            "checkins", checkins,
-            "streakDays", student != null ? student.getStreakDays() : 0,
-            "month", start.getMonthValue(),
-            "year", start.getYear()
-        ));
-    }
-
-    // 今日是否已打卡
-    @GetMapping("/checkin/today/{studentId}")
-    public Result<?> todayCheckin(@PathVariable Long studentId) {
-        boolean checked = checkinRepo.existsByStudentIdAndCheckinDate(studentId, LocalDate.now());
-        return Result.success(Map.of("checkedIn", checked));
     }
 
     // AI生成个性化学习路径
@@ -179,11 +113,73 @@ public class LearningPathController {
         return null;
     }
 
-    /**
-     * 通过 SysUser ID 查找对应的 Student 实体
-     * Student 实体的 username 格式为 "student_{sysUserId}"
-     */
-    private com.happymouse.cryd.model.entity.Student resolveStudent(Long sysUserId) {
-        return studentRepo.findByUsername("student_" + sysUserId).orElse(null);
+    @PostMapping("/checkin")
+    public Result<Void> checkin(@RequestBody Map<String, Object> body) {
+        Long studentId = toLong(body.get("studentId"));
+        if (studentId == null) return Result.error("学生ID不能为空");
+
+        LocalDate today = LocalDate.now();
+        if (checkinRepo.existsByStudentIdAndCheckinDate(studentId, today)) {
+            return Result.error("今日已打卡");
+        }
+
+        LearningCheckin checkin = new LearningCheckin();
+        checkin.setStudentId(studentId);
+        checkin.setCheckinDate(today);
+        checkin.setStatus("completed");
+        checkinRepo.save(checkin);
+        log.info("学生打卡成功: studentId={}, date={}", studentId, today);
+        return Result.success(null);
+    }
+
+    @GetMapping("/checkin/today/{studentId}")
+    public Result<Map<String, Object>> todayCheckin(@PathVariable Long studentId) {
+        LocalDate today = LocalDate.now();
+        boolean checkedIn = checkinRepo.existsByStudentIdAndCheckinDate(studentId, today);
+        Map<String, Object> result = new HashMap<>();
+        result.put("checkedIn", checkedIn);
+        return Result.success(result);
+    }
+
+    @GetMapping("/checkin/calendar/{studentId}")
+    public Result<Map<String, Object>> checkinCalendar(@PathVariable Long studentId, @RequestParam String month) {
+        YearMonth yearMonth = YearMonth.parse(month);
+        LocalDate start = yearMonth.atDay(1);
+        LocalDate end = yearMonth.atEndOfMonth();
+
+        List<LearningCheckin> checkins = checkinRepo.findByStudentIdAndCheckinDateBetween(studentId, start, end);
+        List<String> checkinDates = checkins.stream()
+            .map(c -> c.getCheckinDate().toString())
+            .toList();
+
+        int streakDays = calculateStreakDays(studentId);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("checkinDates", checkinDates);
+        result.put("streakDays", streakDays);
+        return Result.success(result);
+    }
+
+    private int calculateStreakDays(Long studentId) {
+        List<LearningCheckin> checkins = checkinRepo.findByStudentIdOrderByCheckinDateDesc(studentId);
+        if (checkins.isEmpty()) return 0;
+
+        int streak = 0;
+        LocalDate currentDate = LocalDate.now();
+        LocalDate yesterday = currentDate.minusDays(1);
+
+        for (LearningCheckin checkin : checkins) {
+            if (checkin.getCheckinDate().equals(currentDate)) {
+                streak++;
+                currentDate = currentDate.minusDays(1);
+            } else if (checkin.getCheckinDate().equals(yesterday)) {
+                streak++;
+                currentDate = yesterday;
+                yesterday = currentDate.minusDays(1);
+            } else {
+                break;
+            }
+        }
+        return streak;
     }
 }

@@ -8,6 +8,7 @@ import java.util.List;
 
 @Repository
 public interface LearningResourceRepository extends JpaRepository<LearningResource, Long> {
-    List<LearningResource> findByStudentId(Long studentId);
-    List<LearningResource> findByStudentIdAndType(Long studentId, String type);
+    List<LearningResource> findByStudentIdOrderByCreatedAtDesc(Long studentId);
+    List<LearningResource> findByStudentIdAndTypeOrderByCreatedAtDesc(Long studentId, String type);
+    void deleteAllByStudentId(Long studentId);
 }

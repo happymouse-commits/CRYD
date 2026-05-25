@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 @Table(name = "chat_message")
 public class ChatMessage {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(name = "chatMessage_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "chatMessage_seq")
     private Long id;
 
     private Long studentId;

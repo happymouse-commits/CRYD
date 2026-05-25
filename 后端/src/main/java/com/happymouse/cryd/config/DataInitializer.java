@@ -5,8 +5,11 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.happymouse.cryd.model.entity.*;
 import com.happymouse.cryd.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -21,25 +24,30 @@ import java.util.List;
 @Component
 public class DataInitializer implements CommandLineRunner {
 
+    private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
+
     private final SysUserRepository sysUserRepository;
     private final CourseRepository courseRepository;
     private final ChapterRepository chapterRepository;
     private final QuestionRepository questionRepository;
     private final PasswordEncoder passwordEncoder;
     private final SystemConfigRepository systemConfigRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public DataInitializer(SysUserRepository sysUserRepository,
                            CourseRepository courseRepository,
                            ChapterRepository chapterRepository,
                            QuestionRepository questionRepository,
                            PasswordEncoder passwordEncoder,
-                           SystemConfigRepository systemConfigRepository) {
+                           SystemConfigRepository systemConfigRepository,
+                           JdbcTemplate jdbcTemplate) {
         this.sysUserRepository = sysUserRepository;
         this.courseRepository = courseRepository;
         this.chapterRepository = chapterRepository;
         this.questionRepository = questionRepository;
         this.passwordEncoder = passwordEncoder;
         this.systemConfigRepository = systemConfigRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -47,6 +55,32 @@ public class DataInitializer implements CommandLineRunner {
         initDefaultUsers();
         initCProgrammingBank();
         initSystemConfig();
+        syncSequences();
+    }
+
+    /**
+     * IDENTITY → SEQUENCE 迁移后，修正所有序列起点到当前最大ID之后
+     */
+    private void syncSequences() {
+        try {
+            List<String> sequences = jdbcTemplate.queryForList(
+                "SELECT sequence_name FROM information_schema.sequences WHERE sequence_name LIKE '%_seq'", String.class);
+            for (String seq : sequences) {
+                String tbl = seq.replace("_seq", "");
+                try {
+                    Integer maxId = jdbcTemplate.queryForObject(
+                        "SELECT COALESCE(MAX(id), 0) FROM " + tbl, Integer.class);
+                    if (maxId != null && maxId > 0) {
+                        jdbcTemplate.execute("SELECT setval('" + seq + "', " + maxId + ")");
+                        log.info("序列同步: {}({})", seq, maxId);
+                    }
+                } catch (Exception ignored) {
+                    // 序列名和表名不对应，跳过
+                }
+            }
+        } catch (Exception e) {
+            log.warn("序列同步失败: {}", e.getMessage());
+        }
     }
 
     /**
@@ -56,17 +90,17 @@ public class DataInitializer implements CommandLineRunner {
         if (systemConfigRepository.count() > 0) return;
 
         List<SystemConfig> defaults = List.of(
-            createConfig("llm.apiUrl", "https://open.bigmodel.cn/api/paas/v4/chat/completions", "智谱 GLM API 地址", "llm"),
-            createConfig("llm.apiKey", "5b4e7463e78844619fcc8ca9250f533a.goUhPjIQJGK0tLD9", "智谱 GLM API Key", "llm"),
-            createConfig("llm.model", "glm-4-flash", "默认模型：智谱 GLM-4-Flash", "llm"),
+            createConfig("llm.apiUrl", "https://api.deepseek.com/v1/chat/completions", "DeepSeek API 地址", "llm"),
+            createConfig("llm.apiKey", "sk-37eab57deb084a09b4a3d8bb44fe7c6c", "DeepSeek API Key", "llm"),
+            createConfig("llm.model", "deepseek-chat", "默认模型：DeepSeek-V4-Pro", "llm"),
             createConfig("llm.temperature", "0.5", "默认 Temperature", "llm"),
-            createConfig("llm.maxTokens", "2048", "默认 Max Tokens", "llm"),
+            createConfig("llm.maxTokens", "4096", "默认 Max Tokens", "llm"),
             createConfig("llm.topP", "0.9", "默认 Top-P", "llm"),
             createConfig("llm.timeout", "60", "请求超时（秒）", "llm")
         );
 
         systemConfigRepository.saveAll(defaults);
-        System.out.println("⚙️  系统配置已初始化: 智谱 GLM-4-Flash 为默认模型");
+        System.out.println("⚙️  系统配置已初始化: DeepSeek-V4-Pro 为默认模型");
     }
 
     private SystemConfig createConfig(String key, String value, String desc, String category) {

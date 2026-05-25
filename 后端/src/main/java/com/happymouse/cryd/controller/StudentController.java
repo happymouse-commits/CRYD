@@ -247,66 +247,6 @@ public class StudentController {
         }
     }
 
-    /**
-     * 学生闯关进度（学习进展/刷题房页面用）
-     * 只返回已布置给学生（有ChapterProgress记录）的章节
-     */
-    @GetMapping("/progress/{studentId}")
-    public Result<List<Map<String, Object>>> getProgress(@PathVariable Long studentId) {
-        // 获取该学生所有的进度记录
-        List<ChapterProgress> myProgress = progressRepository.findByStudentId(studentId);
-        Set<Long> assignedChapterIds = new LinkedHashSet<>();
-        Map<Long, ChapterProgress> progressMap = new LinkedHashMap<>();
-        for (ChapterProgress cp : myProgress) {
-            assignedChapterIds.add(cp.getChapterId());
-            progressMap.put(cp.getChapterId(), cp);
-        }
-
-        // 按课程分组
-        Map<Long, List<Map<String, Object>>> courseMap = new LinkedHashMap<>();
-        for (Long chapterId : assignedChapterIds) {
-            Chapter ch = chapterRepository.findById(chapterId).orElse(null);
-            if (ch == null) continue;
-
-            Map<String, Object> chapterItem = new LinkedHashMap<>();
-            chapterItem.put("id", ch.getId());
-            chapterItem.put("name", ch.getName());
-            chapterItem.put("description", ch.getDescription());
-            chapterItem.put("orderNum", ch.getOrderNum());
-            chapterItem.put("assigned", true);
-            chapterItem.put("status", "pending");
-            chapterItem.put("progress", 0);
-            chapterItem.put("score", null);
-            chapterItem.put("questionCount", ch.getQuestions() != null ? getQuestionCount(ch.getQuestions()) : 0);
-
-            ChapterProgress cp = progressMap.get(chapterId);
-            if (cp != null) {
-                chapterItem.put("status", cp.getStatus());
-                chapterItem.put("score", cp.getScore());
-                chapterItem.put("progress", "completed".equals(cp.getStatus()) ? 100
-                        : cp.getScore() != null ? cp.getScore() : 0);
-            }
-
-            courseMap.computeIfAbsent(ch.getCourseId(), k -> new ArrayList<>()).add(chapterItem);
-        }
-
-        // 获取课程名称
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Map.Entry<Long, List<Map<String, Object>>> entry : courseMap.entrySet()) {
-            Map<String, Object> courseItem = new LinkedHashMap<>();
-            courseItem.put("id", entry.getKey());
-            courseRepository.findById(entry.getKey()).ifPresent(c -> {
-                courseItem.put("name", c.getName());
-            });
-            if (!courseItem.containsKey("name")) courseItem.put("name", "课程" + entry.getKey());
-            // 对章节排序
-            entry.getValue().sort(Comparator.comparingInt(m -> (Integer) m.getOrDefault("orderNum", 0)));
-            courseItem.put("chapters", entry.getValue());
-            result.add(courseItem);
-        }
-        return Result.success(result);
-    }
-
     private int getQuestionCount(String questionsJson) {
         try { return JSON.parseArray(questionsJson).size(); } catch (Exception e) { return 0; }
     }

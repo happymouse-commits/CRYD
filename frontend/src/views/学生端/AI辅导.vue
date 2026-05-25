@@ -23,29 +23,6 @@
     <!-- 输入区域 -->
     <div class="chat-input-wrapper">
       <div class="chat-input-container">
-        <!-- 模式切换 -->
-        <div class="mode-switch">
-          <el-dropdown @command="handleModeChange">
-            <span class="mode-label">
-              <component :is="currentMode.icon" class="mode-icon" />
-              <span>{{ currentMode.name }}</span>
-              <ArrowDown class="dropdown-icon" />
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="fast">
-                  <Promotion class="mode-icon" />
-                  <span>快速模式</span>
-                </el-dropdown-item>
-                <el-dropdown-item command="expert">
-                  <School class="mode-icon" />
-                  <span>专家模式</span>
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-        
         <!-- 输入框 -->
         <div class="input-wrapper">
           <el-input 
@@ -111,9 +88,10 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useUserStore } from '../../store/user'
+import { marked } from 'marked'
 import api from '../../api'
 import { ElMessage } from 'element-plus'
-import { ArrowDown, Promotion, School, Plus, Microphone, CircleClose, Picture } from '@element-plus/icons-vue'
+import { Plus, Microphone, CircleClose, Picture } from '@element-plus/icons-vue'
 
 const store = useUserStore()
 const messages = ref([])
@@ -128,28 +106,9 @@ const hasPermission = ref(false)
 const imageInput = ref(null)
 let mediaRecorder = null
 let audioChunks = []
-const currentMode = ref({
-  name: '快速',
-  icon: Promotion,
-  mode: 'fast'
-})
 
 // 是否有消息正在打字中
 const hasTyping = computed(() => messages.value.some(m => m.typing))
-
-// 模式列表
-const modes = [
-  { name: '快速', icon: Promotion, mode: 'fast' },
-  { name: '专家', icon: School, mode: 'expert' }
-]
-
-// 切换模式
-function handleModeChange(command) {
-  const mode = modes.find(m => m.mode === command)
-  if (mode) {
-    currentMode.value = mode
-  }
-}
 
 // 检查麦克风权限
 async function checkPermission() {
@@ -288,9 +247,9 @@ async function sendImageToAI(base64Image) {
       typing: false
     }
     messages.value.push(aiMsg)
-    typewriterEffect(aiMsg, res.data.message, 30)
+    typewriterEffect(aiMsg, res.data.message, 20)
   } catch (e) {
-    console.error('AI处理图片失败:', e)
+    ElMessage.error('图片处理失败，请重试')
   } finally {
     loading.value = false
     scrollToBottom()
@@ -308,11 +267,7 @@ onMounted(async () => {
 
 function renderMd(text) {
   if (!text) return ''
-  return text
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="$1">$2</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>')
+  return marked.parse(text)
 }
 
 function formatTime(t) {
@@ -332,7 +287,7 @@ function scrollToBottom() {
  * @param {string} fullText - 完整回复内容
  * @param {number} speed - 每个字间隔(ms)
  */
-function typewriterEffect(msg, fullText, speed = 30) {
+function typewriterEffect(msg, fullText, speed = 20) {
   let i = 0
   msg.displayContent = ''
   msg.typing = true
@@ -361,10 +316,9 @@ async function send() {
   scrollToBottom()
 
   try {
-    const res = await api.post('/chat/send', { 
-      studentId: store.id, 
-      message: text,
-      mode: currentMode.value.mode
+    const res = await api.post('/chat/send', {
+      studentId: store.id,
+      message: text
     })
     const aiMsg = {
       id: Date.now() + 1,
@@ -377,8 +331,10 @@ async function send() {
     }
     messages.value.push(aiMsg)
     // 启动打字机效果
-    typewriterEffect(aiMsg, res.data.message, 30)
+    typewriterEffect(aiMsg, res.data.message, 20)
   } catch (e) {
+    ElMessage.error('发送失败，请重试')
+    messages.value.pop() // 移除刚添加的AI占位消息
   } finally {
     loading.value = false
     scrollToBottom()
@@ -423,7 +379,7 @@ async function send() {
 
 /* 输入区域 */
 .chat-input-wrapper {
-  padding: 12px 24px 20px; /* 往上调整，减少底部空间 */
+  padding: 12px 24px 20px; 
   background: transparent;
 }
 
@@ -436,39 +392,6 @@ async function send() {
   padding: 6px 6px 6px 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   border: 1px solid #e8e8e8;
-}
-
-/* 模式切换 */
-.mode-switch {
-  display: flex;
-  align-items: center;
-}
-
-.mode-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  color: #409EFF;
-  font-size: 14px;
-  cursor: pointer;
-  border-radius: 20px;
-  background: rgba(64, 158, 255, 0.1);
-  transition: all 0.3s ease;
-}
-
-.mode-label:hover {
-  background: rgba(64, 158, 255, 0.2);
-}
-
-.mode-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.dropdown-icon {
-  width: 14px;
-  height: 14px;
 }
 
 /* 输入框 */
@@ -640,25 +563,16 @@ async function send() {
   display: block;
 }
 
-/* 下拉菜单样式 */
-.mode-switch :deep(.el-dropdown-menu) {
-  border-radius: 12px;
-  padding: 8px 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-}
-
-.mode-switch :deep(.el-dropdown-menu__item) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  font-size: 14px;
-}
-
-.mode-switch :deep(.el-dropdown-menu__item:hover) {
-  background: #f5f7fa;
-}
-
+.msg-text :deep(p) { margin: 0 0 6px; }
+.msg-text :deep(ul), .msg-text :deep(ol) { margin: 4px 0; padding-left: 18px; }
+.msg-text :deep(li) { margin-bottom: 2px; }
+.msg-text :deep(h2) { font-size: 17px; margin: 12px 0 6px; }
+.msg-text :deep(h3) { font-size: 15px; margin: 10px 0 4px; }
+.msg-text :deep(h4) { font-size: 14px; margin: 8px 0 4px; }
+.msg-text :deep(blockquote) { border-left: 3px solid #409EFF; padding: 4px 10px; margin: 6px 0; background: #ecf5ff; border-radius: 0 4px 4px 0; }
+.msg-text :deep(table) { border-collapse: collapse; margin: 6px 0; }
+.msg-text :deep(th), .msg-text :deep(td) { border: 1px solid #dcdfe6; padding: 4px 8px; }
 .msg-bubble :deep(pre) { background: #f4f4f5; padding: 8px; border-radius: 4px; overflow-x: auto; }
 .msg-bubble :deep(code) { font-family: 'Consolas', monospace; font-size: 13px; }
+.msg-bubble :deep(pre code) { background: none; padding: 0; }
 </style>

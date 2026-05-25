@@ -14,22 +14,22 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 智谱 GLM 大模型 HTTP 客户端（OpenAI 兼容接口）
- * 替换原讯飞星火 WebSocket 客户端
- * 支持同步调用和多轮对话
+ * 大模型 HTTP 客户端（OpenAI 兼容接口）
+ * OpenAI 兼容接口，支持 DeepSeek 等后端切换
+ * 同步调用和多轮对话
  */
 @Service
 public class SparkClient {
 
     private static final Logger log = LoggerFactory.getLogger(SparkClient.class);
 
-    @Value("${llm.api.url:https://open.bigmodel.cn/api/paas/v4/chat/completions}")
+    @Value("${llm.api.url:https://api.deepseek.com/v1/chat/completions}")
     private String apiUrl;
 
-    @Value("${llm.api.key}")
+    @Value("${llm.api.key:}")
     private String apiKey;
 
-    @Value("${llm.api.model:glm-4-flash}")
+    @Value("${llm.api.model:deepseek-chat}")
     private String model;
 
     private final OkHttpClient httpClient = new OkHttpClient.Builder()
@@ -101,7 +101,7 @@ public class SparkClient {
     }
 
     /**
-     * 带图片的聊天调用（GLM-4V 系列）
+     * 带图片的聊天调用（多模态模型）
      * 如果当前模型不支持图片，回退到纯文本
      */
     public String chatWithImage(String systemPrompt, String imageBase64) {
@@ -142,8 +142,8 @@ public class SparkClient {
             userMsg.put("content", content);
             messages.add(userMsg);
 
-            // 使用 glm-4v-flash 模型处理图片
-            return callApi(messages, temperature, maxTokens, "glm-4v-flash");
+            // 使用当前配置的模型处理图片（需模型支持多模态）
+            return callApi(messages, temperature, maxTokens);
         } catch (Exception e) {
             log.error("LLM图片分析失败", e);
             return "抱歉，图片分析服务暂时不可用：" + e.getMessage();
@@ -152,7 +152,6 @@ public class SparkClient {
 
     /**
      * 语音转文字 — 保留接口，暂不支持
-     * 如需语音功能，可接入讯飞语音听写或阿里云语音识别
      */
     public String voiceToText(byte[] audioBytes) {
         log.warn("语音转文字功能暂未接入，请配置语音识别服务");
@@ -220,12 +219,12 @@ public class SparkClient {
                 throw new IOException("API错误[" + response.code() + "]: " + respBody);
             }
             JSONObject json = JSON.parseObject(respBody);
-            // 检查 GLM API 业务错误
+            // 检查 API 业务错误
             if (json.containsKey("error")) {
                 JSONObject err = json.getJSONObject("error");
                 String errMsg = err != null ? err.getString("message") : respBody;
                 log.error("LLM API业务错误: {}", errMsg);
-                throw new IOException("GLM API错误: " + (errMsg != null ? errMsg : respBody));
+                throw new IOException("LLM API错误: " + (errMsg != null ? errMsg : respBody));
             }
             JSONArray choices = json.getJSONArray("choices");
             if (choices != null && !choices.isEmpty()) {

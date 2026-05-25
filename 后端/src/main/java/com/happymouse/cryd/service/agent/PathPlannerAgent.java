@@ -11,6 +11,8 @@ import com.happymouse.cryd.model.entity.Student;
 import com.happymouse.cryd.repository.ErrorNotebookRepository;
 import com.happymouse.cryd.repository.LearningPathRepository;
 import com.happymouse.cryd.repository.StudentRepository;
+import com.happymouse.cryd.service.spark.SparkClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -55,6 +57,11 @@ public class PathPlannerAgent extends BaseAgent {
         this.errorRepo = errorRepo;
     }
 
+    @Autowired
+    public void setSparkClient(SparkClient sparkClient) {
+        this.sparkClient = sparkClient;
+    }
+
     @Override
     public String getName() { return "路径规划师"; }
 
@@ -73,7 +80,7 @@ public class PathPlannerAgent extends BaseAgent {
     protected String doExecute(AgentContext context) {
         Student student = studentRepository.findByUsername("student_" + context.getStudentId()).orElse(null);
         String message = context.getOriginalMessage();
-        String userPrompt = buildUserPrompt(message, student);
+        String userPrompt = buildUserPrompt(message, student, context.getStudentId());
 
         if (sparkClient == null) {
             return "AI服务暂不可用，请稍后再试";
@@ -82,6 +89,7 @@ public class PathPlannerAgent extends BaseAgent {
         String content = sparkClient.chat(SYSTEM_PROMPT, userPrompt, 0.4f, 2048);
 
         LearningPath path = new LearningPath();
+        path.setName("AI个性化学习路径");
         path.setStudentId(context.getStudentId());
         path.setCurrentStep(student != null ? inferStep(student) : 1);
         path.setSteps(content);
@@ -121,7 +129,7 @@ public class PathPlannerAgent extends BaseAgent {
         }
     }
 
-    private String buildUserPrompt(String message, Student student) {
+    private String buildUserPrompt(String message, Student student, Long sysUserId) {
         StringBuilder sb = new StringBuilder();
         if (student != null) {
             sb.append("学生画像：\n");
@@ -130,8 +138,8 @@ public class PathPlannerAgent extends BaseAgent {
             sb.append("- 学习节奏：").append(student.getLearningPace()).append("\n");
             sb.append("- 薄弱环节：").append(student.getWeakAreas() != null ? student.getWeakAreas() : "未知").append("\n");
 
-            // 加入错题数据
-            List<ErrorNotebook> errors = errorRepo.findByStudentIdAndStatus(student.getId(), "active");
+            // 加入错题数据 (studentId in ErrorNotebook is sysUserId)
+            List<ErrorNotebook> errors = errorRepo.findByStudentIdAndStatus(sysUserId, "active");
             if (!errors.isEmpty()) {
                 Map<String, Long> kpCount = errors.stream()
                         .filter(e -> e.getKnowledgePoint() != null)

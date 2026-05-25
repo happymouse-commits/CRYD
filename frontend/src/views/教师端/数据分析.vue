@@ -2,7 +2,8 @@
   <div class="analysis-page">
     <div class="page-header">
       <h2>班级学情总览</h2>
-      <p class="subtitle">自动汇总全班学生的学习数据，无需筛选</p>
+      <p class="subtitle">自动汇总全班学生的学习数据，每30秒自动刷新</p>
+      <el-button type="primary" size="small" @click="loadOverview" :loading="loading" style="margin-left:12px">🔄 刷新数据</el-button>
     </div>
 
     <div v-if="loading" class="loading-box"><el-skeleton :rows="5" animated /></div>
@@ -68,11 +69,6 @@
             </template>
           </el-table-column>
           <el-table-column prop="lastActive" label="最近活跃时间" width="160" />
-          <el-table-column label="操作" width="80">
-            <template #default="{ row }">
-              <el-button link type="primary" size="small" @click="viewStudentProfile(row)">查看</el-button>
-            </template>
-          </el-table-column>
         </el-table>
       </div>
     </template>
@@ -82,7 +78,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { useUserStore } from '../../store/user'
 import api from '../../api'
 import * as echarts from 'echarts'
@@ -135,11 +131,12 @@ async function loadOverview() {
       } catch {}
     }
 
+    let publishedChapters = []
     // 获取学生详情
     try {
       const submissions = []
       const publishedRes = await api.get('/teacher/' + store.id + '/chapters')
-      const publishedChapters = (publishedRes.data || []).filter(c => c.status === 'published')
+      publishedChapters = (publishedRes.data || []).filter(c => c.status === 'published')
 
       const studentMap = {}
       for (const ch of publishedChapters) {
@@ -171,11 +168,11 @@ async function loadOverview() {
       if (!overview.weakPointCount) overview.weakPointCount = anomalyStudents.value.length || 0
     } catch {}
 
-    // 知识点统计
-    if (!knowledgeStats.value.length) {
+    // 知识点统计（使用后端返回的真实数据）
+    if (!knowledgeStats.value.length && publishedChapters.length) {
       knowledgeStats.value = publishedChapters.map(ch => ({
         name: ch.name?.substring(0, 10) || '?',
-        mastery: Math.round(50 + Math.random() * 40) // fallback估算
+        mastery: 0
       }))
     }
 
@@ -189,12 +186,6 @@ async function loadOverview() {
     renderBarChart()
   } catch {} finally {
     loading.value = false
-  }
-}
-
-function viewStudentProfile(row) {
-  if (row.sysUserId) {
-    window.open('/#/teacher/student-profile?id=' + row.sysUserId, '_blank')
   }
 }
 
@@ -217,13 +208,20 @@ function renderBarChart() {
   })
 }
 
-onMounted(() => { loadOverview() })
+let refreshTimer = null
+onMounted(() => {
+  loadOverview()
+  refreshTimer = setInterval(loadOverview, 30000)
+})
+onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer)
+})
 </script>
 
 <style scoped>
 .analysis-page { }
-.page-header { margin-bottom: 20px; }
-.page-header h2 { margin: 0 0 4px 0; font-size: 22px; }
+.page-header { margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.page-header h2 { margin: 0; font-size: 22px; }
 .subtitle { color: #909399; font-size: 14px; margin: 0; }
 .loading-box { background: #fff; padding: 40px; border-radius: 12px; }
 

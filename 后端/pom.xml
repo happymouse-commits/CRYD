@@ -63,13 +63,12 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- H2 开发数据库（回退调试用，暂时注释）
+        <!-- H2 开发数据库 -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
-        -->
 
         <!-- OkHttp LLM HTTP通信 -->
         <dependency>
@@ -83,6 +82,13 @@
             <groupId>com.alibaba.fastjson2</groupId>
             <artifactId>fastjson2</artifactId>
             <version>2.0.47</version>
+        </dependency>
+
+        <!-- .env 环境变量加载 -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.0.0</version>
         </dependency>
 
         <!-- PDF导出 -->

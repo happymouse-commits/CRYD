@@ -3,7 +3,6 @@ package com.happymouse.cryd.controller;
 import com.happymouse.cryd.common.Result;
 import com.happymouse.cryd.model.entity.*;
 import com.happymouse.cryd.repository.*;
-import com.happymouse.cryd.service.knowledge.KnowledgeBaseService;
 import com.happymouse.cryd.service.spark.SparkClient;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
@@ -17,8 +16,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 学习闯关控制器 — 刷题房+疑难突破合并模块
- * 三区功能：核心区(作业接收与作答)、错题区(自动沉淀与管理)、突破区(多智能体资源生成)
+ * 刷题房控制器 —— 教师作业、错题回练、AI错题知识点总结。
+ *
+ * <p>三区功能：
+ * <ul>
+ *   <li>核心区 — 作业接收与作答，自动评分 + 错题沉淀</li>
+ *   <li>错题区 — 错题列表（按课程/章节/次数筛选），标记已掌握，AI解析</li>
+ *   <li>突破区 — 多智能体资源生成（讲解/思维导图/练习/代码）</li>
+ * </ul>
  */
 @RestController
 @RequestMapping("/api/practice")
@@ -33,8 +38,6 @@ public class PracticeController {
     private final CourseRepository courseRepository;
     private final ErrorNotebookRepository errorRepo;
     private final LearningResourceRepository resourceRepo;
-    private final KnowledgeBaseRepository kbRepo;
-    private final KnowledgeBaseService kbService;
     private final SparkClient sparkClient;
 
     public PracticeController(ChapterRepository chapterRepository,
@@ -44,8 +47,6 @@ public class PracticeController {
                               CourseRepository courseRepository,
                               ErrorNotebookRepository errorRepo,
                               LearningResourceRepository resourceRepo,
-                              KnowledgeBaseRepository kbRepo,
-                              KnowledgeBaseService kbService,
                               SparkClient sparkClient) {
         this.chapterRepository = chapterRepository;
         this.progressRepository = progressRepository;
@@ -54,8 +55,6 @@ public class PracticeController {
         this.courseRepository = courseRepository;
         this.errorRepo = errorRepo;
         this.resourceRepo = resourceRepo;
-        this.kbRepo = kbRepo;
-        this.kbService = kbService;
         this.sparkClient = sparkClient;
     }
 
@@ -281,20 +280,55 @@ public class PracticeController {
         } else {
             errors = errorRepo.findByStudentIdOrderByCreatedAtDesc(studentId);
         }
+        // 默认只返回活跃错题（未掌握的）
+        errors = errors.stream()
+                .filter(e -> "active".equals(e.getStatus()))
+                .collect(Collectors.toList());
 
-        // 统计知识点和错误类型分布
-        Map<String, Long> kpCount = errors.stream()
-                .filter(e -> e.getKnowledgePoint() != null)
-                .collect(Collectors.groupingBy(ErrorNotebook::getKnowledgePoint, LinkedHashMap::new, Collectors.counting()));
-        Map<String, Long> etCount = errors.stream()
-                .filter(e -> e.getErrorType() != null)
-                .collect(Collectors.groupingBy(ErrorNotebook::getErrorType, LinkedHashMap::new, Collectors.counting()));
+        // 为错题补充课程名和章节名，供前端筛选
+        List<Map<String, Object>> enrichedErrors = new ArrayList<>();
+        for (ErrorNotebook e : errors) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", e.getId());
+            item.put("studentId", e.getStudentId());
+            item.put("chapterId", e.getChapterId());
+            item.put("questionIndex", e.getQuestionIndex());
+            item.put("question", e.getQuestion());
+            item.put("studentAnswer", e.getStudentAnswer());
+            item.put("correctAnswer", e.getCorrectAnswer());
+            item.put("knowledgePoint", e.getKnowledgePoint());
+            item.put("errorType", e.getErrorType());
+            item.put("errorTag", e.getErrorTag());
+            item.put("analysis", e.getAnalysis());
+            item.put("wrongCount", e.getWrongCount());
+            item.put("status", e.getStatus());
+            item.put("createdAt", e.getCreatedAt());
+
+            // 补充课程和章节名称
+            if (e.getChapterId() != null) {
+                chapterRepository.findById(e.getChapterId()).ifPresent(ch -> {
+                    item.put("chapterName", ch.getName());
+                    courseRepository.findById(ch.getCourseId()).ifPresent(c ->
+                        item.put("courseName", c.getName()));
+                });
+            }
+            enrichedErrors.add(item);
+        }
+
+        // 提取筛选选项
+        Set<String> courseSet = new LinkedHashSet<>();
+        Set<String> chapterSet = new LinkedHashSet<>();
+        for (Map<String, Object> e : enrichedErrors) {
+            if (e.get("courseName") != null) courseSet.add((String) e.get("courseName"));
+            if (e.get("chapterName") != null) chapterSet.add((String) e.get("chapterName"));
+            if (e.get("knowledgePoint") != null) chapterSet.add((String) e.get("knowledgePoint"));
+        }
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("errors", errors);
-        result.put("total", errors.size());
-        result.put("knowledgePointDistribution", kpCount);
-        result.put("errorTypeDistribution", etCount);
+        result.put("errors", enrichedErrors);
+        result.put("total", enrichedErrors.size());
+        result.put("courses", new ArrayList<>(courseSet));
+        result.put("chapters", new ArrayList<>(chapterSet));
         return Result.success(result);
     }
 
@@ -338,6 +372,116 @@ public class PracticeController {
     public Result<?> deleteError(@PathVariable Long errorId) {
         errorRepo.deleteById(errorId);
         return Result.success("已移除");
+    }
+
+    /**
+     * 手动触发AI错题知识点总结生成
+     * 学生刷完题后点击按钮调用，AI分析所有活跃错题，按知识点聚合生成学习资料
+     */
+    @PostMapping("/errors/{studentId}/generate-insights")
+    public Result<Map<String, Object>> generateInsights(@PathVariable Long studentId) {
+        List<ErrorNotebook> errors = errorRepo.findByStudentIdAndStatus(studentId, "active");
+        if (errors.isEmpty()) {
+            return Result.success(Map.of("insights", List.of(), "message", "暂无错题，继续保持！"));
+        }
+
+        // 按知识点分组
+        Map<String, List<ErrorNotebook>> grouped = errors.stream()
+                .filter(e -> e.getKnowledgePoint() != null && !e.getKnowledgePoint().isEmpty())
+                .collect(Collectors.groupingBy(ErrorNotebook::getKnowledgePoint, LinkedHashMap::new, Collectors.toList()));
+
+        List<Map<String, Object>> insights = new ArrayList<>();
+        int totalGenerated = 0;
+
+        for (var entry : grouped.entrySet()) {
+            String kp = entry.getKey();
+            List<ErrorNotebook> kpErrors = entry.getValue();
+            int errorCount = kpErrors.size();
+
+            try {
+                // 先为每道没有分析的错题生成AI解析
+                for (ErrorNotebook e : kpErrors) {
+                    if (e.getAnalysis() == null || e.getAnalysis().isEmpty() || !e.getAnalysis().contains("AI解析")) {
+                        String analysisPrompt = String.format("""
+                            你是C语言教学专家。学生做错了以下题目，请分析错误原因并给出学习建议。
+
+                            【题目】%s
+                            【知识点】%s
+                            【学生答案】%s
+                            【正确答案】%s
+
+                            请按以下格式回复（200字以内）：
+                            错误原因：[分析学生为什么会错]
+                            正确思路：[讲解正确的解题思路]
+                            学习建议：[给出针对性的学习建议]
+                            """,
+                            e.getQuestion() != null ? e.getQuestion() : "",
+                            e.getKnowledgePoint() != null ? e.getKnowledgePoint() : "",
+                            e.getStudentAnswer() != null ? e.getStudentAnswer() : "",
+                            e.getCorrectAnswer() != null ? e.getCorrectAnswer() : "");
+
+                        String aiAnalysis = sparkClient.chat(analysisPrompt, "分析错题-" + e.getKnowledgePoint(), 0.3f, 200);
+                        if (aiAnalysis != null && !aiAnalysis.trim().isEmpty()) {
+                            e.setAnalysis("【AI解析】\n" + aiAnalysis.trim());
+                            errorRepo.save(e);
+                            totalGenerated++;
+                        }
+                    }
+                }
+
+                // 汇总同一知识点的所有错题，生成知识总结
+                StringBuilder errorSummary = new StringBuilder();
+                for (int i = 0; i < Math.min(kpErrors.size(), 5); i++) {
+                    ErrorNotebook e = kpErrors.get(i);
+                    errorSummary.append(i + 1).append(". 题目：").append(e.getQuestion() != null ? e.getQuestion() : "")
+                            .append(" | 学生答案：").append(e.getStudentAnswer() != null ? e.getStudentAnswer() : "")
+                            .append(" | 正确答案：").append(e.getCorrectAnswer() != null ? e.getCorrectAnswer() : "")
+                            .append("\n");
+                }
+
+                String summaryPrompt = String.format("""
+                    你是C语言教学专家。请针对学生的高频错误知识点，生成一份精炼的知识点总结。
+
+                    【知识点】%s
+                    【错误次数】%d次
+                    【错误详情】
+                    %s
+
+                    请按以下Markdown格式生成（300字以内）：
+                    ## %s
+                    ### 核心概念
+                    （讲解该知识点的核心概念）
+                    ### 常见错误
+                    （列举学生常犯的错误）
+                    ### 正确做法
+                    （给出正确的解题思路和方法）
+                    ### 练习建议
+                    （1-2条针对性的练习建议）
+                    """, kp, errorCount, errorSummary.toString(), kp);
+
+                String summaryContent = sparkClient.chat(summaryPrompt, "知识总结-" + kp, 0.4f, 800);
+                if (summaryContent != null && !summaryContent.trim().isEmpty()) {
+                    Map<String, Object> insight = new LinkedHashMap<>();
+                    insight.put("knowledgePoint", kp);
+                    insight.put("errorCount", errorCount);
+                    insight.put("content", summaryContent.trim());
+                    insight.put("generatedAt", java.time.LocalDateTime.now().toString());
+                    insights.add(insight);
+                    totalGenerated++;
+                }
+
+                log.info("知识点总结已生成: kp={}, errorCount={}", kp, errorCount);
+            } catch (Exception ex) {
+                log.warn("生成知识点总结失败 [{}]: {}", kp, ex.getMessage());
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("insights", insights);
+        result.put("totalKnowledgePoints", insights.size());
+        result.put("totalErrorsAnalyzed", totalGenerated);
+        result.put("message", "AI已为 " + insights.size() + " 个知识点生成总结，分析了 " + totalGenerated + " 道错题");
+        return Result.success(result);
     }
 
     // ==================== AI动态出题：题库不足时自动生成 ====================
@@ -395,7 +539,7 @@ public class PracticeController {
     }
 
     /**
-     * 从AI回复中提取JSON数组（多策略容错，适配 GLM/Spark 输出特性）
+     * 从AI回复中提取JSON数组（多策略容错，适配 LLM 输出特性）
      */
     private String extractJsonArray(String raw) {
         if (raw == null) return null;
@@ -410,7 +554,7 @@ public class PracticeController {
             if (isValidJsonArray(candidate)) return candidate;
         }
 
-        // 策略2: 修复常见JSON格式问题 + GLM常见输出修复
+        // 策略2: 修复常见JSON格式问题 + LLM常见输出修复
         start = text.indexOf('[');
         end = text.lastIndexOf(']');
         if (start >= 0 && end > start) {
@@ -419,16 +563,16 @@ public class PracticeController {
             // 尾逗号修复
             candidate = candidate.replaceAll(",\\s*]", "]");
             candidate = candidate.replaceAll(",\\s*}", "}");
-            // GLM 常见: 字符串值中含未转义换行
+            // LLM 常见: 字符串值中含未转义换行
             candidate = candidate.replace("\r\n", "\\n").replace("\r", "\\n").replace("\n", "\\n");
             if (isValidJsonArray(candidate)) return candidate;
-            // GLM 常见: 中文引号混入
+            // LLM 常见: 中文引号混入
             candidate = candidate.replace('“', '"').replace('”', '"');
             candidate = candidate.replace('‘', '\'').replace('’', '\'');
             if (isValidJsonArray(candidate)) return candidate;
         }
 
-        // 策略3: 修复缺失的逗号（GLM有时在数组元素间漏掉逗号）
+        // 策略3: 修复缺失的逗号（LLM有时在数组元素间漏掉逗号）
         start = text.indexOf('[');
         end = text.lastIndexOf(']');
         if (start >= 0 && end > start) {
@@ -569,8 +713,7 @@ public class PracticeController {
                 lr.setCategory("错题突破生成");
                 lr.setTags(knowledgePoint);
                 lr.setDifficulty("medium");
-                lr.setFavoriteCount(0);
-                lr.setCommentCount(0);
+
                 lr.setIsShared("0");
                 resourceRepo.save(lr);
 
@@ -788,58 +931,7 @@ public class PracticeController {
                 }
             }
 
-            // 汇总错题知识点，生成知识库学习资料
-            Map<String, List<ErrorNotebook>> byKnowledgePoint = unanalyzed.stream()
-                    .filter(e -> e.getKnowledgePoint() != null && !e.getKnowledgePoint().isEmpty())
-                    .collect(Collectors.groupingBy(ErrorNotebook::getKnowledgePoint));
-
-            for (var entry : byKnowledgePoint.entrySet()) {
-                try {
-                    String kp = entry.getKey();
-                    List<ErrorNotebook> kpErrors = entry.getValue();
-
-                    StringBuilder errorSummary = new StringBuilder();
-                    for (ErrorNotebook e : kpErrors) {
-                        errorSummary.append("- 题目：").append(e.getQuestion() != null ? e.getQuestion() : "")
-                                .append("\n  学生答案：").append(e.getStudentAnswer() != null ? e.getStudentAnswer() : "")
-                                .append("\n  正确答案：").append(e.getCorrectAnswer() != null ? e.getCorrectAnswer() : "")
-                                .append("\n");
-                    }
-
-                    String kbPrompt = String.format("""
-                        你是C语言教学专家。请针对学生的高频错误知识点，生成一份学习资料。
-
-                        【知识点】%s
-                        【错误次数】%d次
-                        【错误详情】
-                        %s
-
-                        请生成一份Markdown格式的学习资料，包括：
-                        1. 概念讲解
-                        2. 常见错误示例
-                        3. 正确做法
-                        4. 练习题（1-2道）
-                        """, kp, kpErrors.size(), errorSummary.toString());
-
-                    String kbContent = sparkClient.chat(kbPrompt, "学习资料-" + kp, 0.3f, 1500);
-                    if (kbContent != null && !kbContent.trim().isEmpty() && courseId != null) {
-                        // 保存到知识库
-                        var kb = kbRepo.findByCourseId(courseId).stream().findFirst()
-                                .orElseGet(() -> {
-                                    var newKb = new KnowledgeBase();
-                                    newKb.setCourseId(courseId);
-                                    newKb.setName("错题自动生成");
-                                    newKb.setDescription("学生错题驱动AI自动生成");
-                                    return kbRepo.save(newKb);
-                                });
-                        kbService.uploadTextDocument(kb.getId(),
-                                "【错题解析】" + kp + ".md", kbContent);
-                        log.info("知识库资料生成成功: {}", kp);
-                    }
-                } catch (Exception ex) {
-                    log.warn("知识库资料生成失败[{}]: {}", entry.getKey(), ex.getMessage());
-                }
-            }
+            // 错题AI解析已生成，不再自动创建知识库资料
         } catch (Exception ex) {
             log.warn("AI错题解析整体流程失败: {}", ex.getMessage());
         }

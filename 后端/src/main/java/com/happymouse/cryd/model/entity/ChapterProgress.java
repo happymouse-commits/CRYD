@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 @Table(name = "chapter_progress")
 public class ChapterProgress {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(name = "chapterProgress_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "chapterProgress_seq")
     private Long id;
 
     private Long chapterId;

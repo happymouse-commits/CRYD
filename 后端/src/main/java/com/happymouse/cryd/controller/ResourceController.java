@@ -2,8 +2,6 @@ package com.happymouse.cryd.controller;
 
 import com.happymouse.cryd.common.Result;
 import com.happymouse.cryd.model.entity.LearningResource;
-import com.happymouse.cryd.model.entity.ResourceComment;
-import com.happymouse.cryd.model.entity.ResourceFavorite;
 import com.happymouse.cryd.model.entity.ErrorNotebook;
 import com.happymouse.cryd.model.entity.Student;
 import com.happymouse.cryd.repository.*;
@@ -27,21 +25,15 @@ public class ResourceController {
     private static final Logger log = LoggerFactory.getLogger(ResourceController.class);
 
     private final LearningResourceRepository resourceRepo;
-    private final ResourceFavoriteRepository favRepo;
-    private final ResourceCommentRepository commentRepo;
     private final ErrorNotebookRepository errorRepo;
     private final StudentRepository studentRepo;
     private final SparkClient sparkClient;
 
     public ResourceController(LearningResourceRepository resourceRepo,
-                               ResourceFavoriteRepository favRepo,
-                               ResourceCommentRepository commentRepo,
                                ErrorNotebookRepository errorRepo,
                                StudentRepository studentRepo,
                                SparkClient sparkClient) {
         this.resourceRepo = resourceRepo;
-        this.favRepo = favRepo;
-        this.commentRepo = commentRepo;
         this.errorRepo = errorRepo;
         this.studentRepo = studentRepo;
         this.sparkClient = sparkClient;
@@ -49,51 +41,25 @@ public class ResourceController {
 
     @GetMapping("/student/{studentId}")
     public Result<List<LearningResource>> getByStudent(@PathVariable Long studentId) {
-        return Result.success(resourceRepo.findByStudentId(studentId));
+        return Result.success(resourceRepo.findByStudentIdOrderByCreatedAtDesc(studentId));
+    }
+
+    @DeleteMapping("/student/{studentId}/clear")
+    public Result<?> clearByStudent(@PathVariable Long studentId) {
+        long count = resourceRepo.findByStudentIdOrderByCreatedAtDesc(studentId).size();
+        resourceRepo.deleteAllByStudentId(studentId);
+        log.info("清空学生{}资源: {}条", studentId, count);
+        return Result.success("已清空 " + count + " 条资源");
     }
 
     @GetMapping("/student/{studentId}/type/{type}")
     public Result<List<LearningResource>> getByType(@PathVariable Long studentId, @PathVariable String type) {
-        return Result.success(resourceRepo.findByStudentIdAndType(studentId, type));
+        return Result.success(resourceRepo.findByStudentIdAndTypeOrderByCreatedAtDesc(studentId, type));
     }
 
     @GetMapping("/{id}")
     public Result<LearningResource> getById(@PathVariable Long id) {
         return Result.success(resourceRepo.findById(id).orElse(null));
-    }
-
-    @PostMapping("/{id}/favorite")
-    public Result<?> favorite(@PathVariable Long id, @RequestParam Long userId) {
-        var existing = favRepo.findByResourceIdAndUserId(id, userId);
-        if (existing.isPresent()) {
-            favRepo.delete(existing.get());
-            return Result.success(Map.of("favorited", false));
-        }
-        var fav = new ResourceFavorite();
-        fav.setResourceId(id);
-        fav.setUserId(userId);
-        favRepo.save(fav);
-        return Result.success(Map.of("favorited", true));
-    }
-
-    @GetMapping("/{id}/favorite/check")
-    public Result<?> checkFavorite(@PathVariable Long id, @RequestParam Long userId) {
-        return Result.success(Map.of("favorited", favRepo.findByResourceIdAndUserId(id, userId).isPresent()));
-    }
-
-    @GetMapping("/{id}/comments")
-    public Result<List<ResourceComment>> getComments(@PathVariable Long id) {
-        return Result.success(commentRepo.findByResourceIdOrderByCreatedAtDesc(id));
-    }
-
-    @PostMapping("/{id}/comments")
-    public Result<ResourceComment> addComment(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        ResourceComment comment = new ResourceComment();
-        comment.setResourceId(id);
-        comment.setUserId(toLong(body.get("userId")));
-        comment.setUserName((String) body.get("userName"));
-        comment.setContent((String) body.get("content"));
-        return Result.success(commentRepo.save(comment));
     }
 
     @GetMapping("/{id}/export")
@@ -111,10 +77,22 @@ public class ResourceController {
     // ==================== AI 生成资源 ====================
 
     private static final String RESOURCE_GEN_PROMPT = """
-        你是C语言辅导老师。根据学生错题涉及的知识点，生成3-5篇个性化辅导资料。
-        每个资料包含：title(String)、type(String: article/video/exercise)、
-        content(String/Markdown正文，100-300字即可)、knowledgePoint(String)、
-        difficulty(String: easy/medium/hard)。
+        你是C语言辅导老师。根据学生错题涉及的知识点，生成5篇个性化辅导资料。
+
+        每个资料包含：
+        - title(String): 标题
+        - type(String): article/exercise/explanation/mindmap/code 各1篇，共5篇
+        - content(String): Markdown正文。要求如下：
+          * article 类型：用 ## 分段标题，每段配文字说明，穿插代码示例(```c)，至少3个段落
+          * exercise 类型：出3道练习题，每题用 ### 编号，含题干、代码示例(```c)、答案和解析
+          * explanation 类型：用 ## 分知识点小节讲解，配对比表格、代码示例(```c)
+          * mindmap 类型：用 ## 分主题 + 无序列表(- ) 列出知识树
+          * code 类型：给出完整可运行示例，含注释，用 ```c 包裹
+          * 所有类型：多用 - 无序列表、1. 有序列表、> 引用块、**加粗** 来增强可读性
+          * 字数300-500字以上，禁止一大坨纯文本
+        - knowledgePoint(String)
+        - difficulty(String: easy/medium/hard)
+
         只输出纯JSON数组，不要```json标记，不要其他任何文字。
 
         学生错题知识点：%s
@@ -147,7 +125,7 @@ public class ResourceController {
             // 3. 调用AI生成
             String prompt = String.format(RESOURCE_GEN_PROMPT, kpList,
                     weakAreas.isEmpty() ? "暂无数据" : weakAreas);
-            String aiReply = sparkClient.chat(prompt, "生成学习资源", 0.4f, 2048);
+            String aiReply = sparkClient.chat(prompt, "生成学习资源", 0.4f, 8192);
 
             if (aiReply == null || aiReply.trim().isEmpty()) {
                 return Result.error("AI生成失败，请重试");
@@ -172,8 +150,6 @@ public class ResourceController {
                 lr.setGeneratedBy("ai-resource-center");
                 lr.setCategory("AI个性化生成");
                 lr.setTags(obj.getString("knowledgePoint"));
-                lr.setFavoriteCount(0);
-                lr.setCommentCount(0);
                 lr.setIsShared("0");
                 saved.add(resourceRepo.save(lr));
             }

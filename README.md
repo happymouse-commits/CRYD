@@ -1,68 +1,76 @@
 # CRYD — 智能体协同自适应学习平台
 
-基于多智能体协作的高校 C 语言课程自适应学习平台，通过 AI 辅导对话实时构建学生画像，动态生成个性化学习路径。
+基于多智能体协作的高校 C 语言课程自适应学习平台，通过 DeepSeek V4 Pro 驱动的 AI 辅导对话实时构建学生画像，动态生成个性化学习路径。
 
 ## 核心特性
 
-- **AI 辅导对话** — 基于讯飞星火大模型，学生与智能体自然语言交互，实时答疑
+- **AI 辅导对话** — 基于 DeepSeek V4 Pro 大模型，学生与智能体自然语言交互，实时答疑
 - **动态学生画像** — 8 维度学习画像自动生成（知识基础、认知风格、学习偏好、学习节奏、兴趣方向、薄弱环节、学习动机、专注力）
 - **个性化学习路径** — 画像分析师智能体检测薄弱点，路径规划师自动生成补强路径
-- **智能出题** — 4 档难度题库，支持章节练习与 AI 动态生成
-- **RAG 知识库 + 防幻觉** — 四道门架构（检索门控→Prompt约束→事实校验→格式锁），基于谭浩强《C程序设计》10章知识库，确保回答准确性
+- **智能出题** — AI 一键出题（按章节/题型/难度/数量），支持从题库选题
+- **错题回练** — 答题错题自动沉淀，按知识点/章节/错误次数筛选，AI 解析 + 知识点总结
+- **RAG 知识库 + 防幻觉** — 四道门架构（检索门控→Prompt约束→事实校验→格式锁），基于谭浩强《C程序设计》10章知识库
 - **多角色管理** — 学生端、教师端、管理员端，各角色独立界面与功能
 
 ## 技术栈
 
 | 层 | 技术 |
 |---|------|
-| 前端 | Vue 3 + Element Plus + Pinia + Vite |
+| 前端 | Vue 3 + Element Plus + Pinia + ECharts + Vite |
 | 后端 | Spring Boot 3.5.0 + Java 21 |
-| 数据库 | openGauss 6.0（国产数据库，PostgreSQL 兼容） |
-| AI 大模型 | 讯飞星火大模型（开发调试：智谱 GLM-4-Flash） |
-| 向量存储 | In-memory VectorStore + GLM Embedding（可扩展至 Milvus） |
+| 数据库 | openGauss 6.0（PostgreSQL 兼容） |
+| AI 大模型 | DeepSeek V4 Pro（OpenAI 兼容接口） |
+| 向量存储 | In-memory VectorStore + 本地 n-gram 哈希向量（后续可替换为星火 Embedding） |
 | 构建 | Maven + npm |
 
 ## 项目结构
 
 ```
 从容应对/
-├── 前端/                      # 旧版静态页面（登录入口）
-├── 后端/                      # Spring Boot 后端
+├── 后端/                          # Spring Boot 后端
+│   ├── pom.xml
 │   └── src/main/java/com/happymouse/cryd/
-│       ├── agent/             # 智能体核心框架
-│       │   ├── core/          # Pipeline/调度/审核/聚合
-│       │   └── memory/        # 智能体记忆管理
-│       ├── config/            # 安全配置/Web配置/数据初始化
-│       ├── controller/        # REST API（15+ 控制器）
-│       ├── model/entity/      # 数据实体（15+ 实体类）
-│       ├── repository/        # JPA 数据访问层
+│       ├── CrydApplication.java   # 应用入口
+│       ├── agent/core/            # 智能体核心框架（Pipeline/调度/审核/聚合）
+│       ├── config/                # 安全/Web/openGauss方言(OpenGaussDialect)/数据初始化
+│       ├── controller/            # REST API（15 个控制器）
+│       ├── model/
+│       │   ├── entity/            # 数据实体（20 个 JPA 实体）
+│       │   └── dto/               # 数据传输对象
+│       ├── repository/            # JPA 数据访问层（20 个 Repository）
 │       ├── service/
-│       │   ├── agent/         # 6 大专业智能体
-│       │   ├── knowledge/     # 知识库服务
-│       │   ├── rag/           # RAG 检索增强生成 + 防幻觉四道门
-│       │   └── spark/         # 大模型 API 客户端
+│       │   ├── agent/             # 6 大专业智能体
+│       │   ├── knowledge/         # 知识库管理服务
+│       │   ├── rag/               # RAG 检索增强生成 + 防幻觉四道门
+│       │   └── spark/             # LLM HTTP 客户端（OpenAI 兼容）
 │       └── resources/
-│           ├── data/          # C 语言知识库（10 章 JSON）
-│           └── static/        # 前端构建产物
-├── frontend/                  # Vue 3 前端源码
+│           ├── application.yml    # 应用配置
+│           ├── question-bank/     # C 语言题库（10 章 97 题）
+│           └── static/            # 前端构建产物（自动生成）
+├── frontend/                      # Vue 3 前端源码
+│   ├── package.json
+│   ├── vite.config.js
 │   └── src/
-│       ├── views/
-│       │   ├── 学生端/        # AI辅导/画像/刷题/疑难突破/学习进展/个人信息
-│       │   ├── 教师端/        # 布置作业/学生提交/数据分析/个人信息
-│       │   └── 管理员/        # 仪表盘/数据统计/用户管理/系统配置
-│       ├── store/             # Pinia 状态管理
-│       ├── api/               # Axios API 封装
-│       └── router/            # Vue Router 路由
-└── data/                      # 数据库文件（运行时生成，不入库）
+│       ├── 入口.js                # 应用入口
+│       ├── 根组件.vue             # 根组件
+│       ├── api/                   # Axios API 封装
+│       ├── router/                # Vue Router 路由配置
+│       ├── store/                 # Pinia 状态管理
+│       └── views/
+│           ├── 学生端/            # AI辅导/画像/刷题房/学习资源/学习路径/学习评估
+│           ├── 教师端/            # 布置作业/知识库管理/数据分析/学生画像
+│           └── 管理员/            # 仪表盘/数据统计/用户管理/系统配置
+├── .env                           # 环境变量（DeepSeek API Key）
+└── .env.example                   # 环境变量模板
 ```
 
 ## 智能体架构
 
 ```
 学生输入 → PipelineOrchestrator（管道模式调度）
-              ├── ProfileAnalystAgent   → 学习画像分析
+              ├── ProfileAnalystAgent   → 学习画像分析（8 维度）
               ├── TutorAgent            → 辅导答疑（兜底）
-              ├── QuestionExpertAgent   → 出题（4档难度）
+              ├── QuestionExpertAgent   → 智能出题
               ├── CourseDesignerAgent   → 课程设计（认知风格适配）
               ├── PathPlannerAgent      → 学习路径规划
               └── KnowledgeManagerAgent → 知识库管理
@@ -70,14 +78,18 @@
 
 核心流程：**感知 → 分析 → 规划 → 生成 → 反馈** 五阶段长链推理闭环。
 
+### Embedding 向量化
+
+采用本地 n-gram 哈希投影生成 1024 维语义向量，零外部 API 依赖。Text 经 2~5 元字符 n-gram → SHA-256 哈希 → 投影 → L2 归一化，余弦相似度反映字符级语义重叠。如需更高精度，可替换为星火 Embedding（配置已在 `application.yml` 中预留）。
+
 ### RAG 防幻觉四道门
 
 ```
 用户提问
-  → ① 检索门控：向量检索知识库，无结果则拒绝生成
-  → ② Prompt 约束：强制 AI 仅基于参考资料回答，禁止自由发挥
-  → ③ 事实校验：关键词覆盖 + 数值一致 + LLM 语义三重校验（置信度 ≥ 0.6）
-  → ④ 格式锁：5 种任务模板（summary/exercise/path/weakness/courseware）校验输出格式
+  → 1 检索门控：向量检索知识库，无结果则拒绝生成
+  → 2 Prompt 约束：强制 AI 仅基于参考资料回答，禁止自由发挥
+  → 3 事实校验：关键词覆盖 + 数值一致 + LLM 语义三重校验（置信度 >= 0.6）
+  → 4 格式锁：5 种任务模板（summary/exercise/path/weakness/courseware）校验输出格式
   → 输出
 ```
 
@@ -88,24 +100,26 @@
 - JDK 21+
 - Node.js 18+
 - Maven 3.8+
-- openGauss 6.0+
 
-### 数据库配置
+### 环境变量配置
 
-1. 安装 openGauss 6.0 并创建数据库：
-```sql
-CREATE DATABASE SGHR WITH ENCODING 'UTF8';
+项目启动时会自动加载 `.env` 文件（通过 dotenv-java），无需手动设置系统环境变量。
+
+```bash
+# 1. .env 文件已包含默认配置，如需修改：
+cp .env.example .env
+
+# 2. 填入 DeepSeek API 密钥
+# LLM_API_KEY=sk-xxx
 ```
 
-2. 修改 `后端/src/main/resources/application.yml` 中的数据源配置：
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/SGHR
-    username: omm
-    password: your_password
-    driver-class-name: org.postgresql.Driver
-```
+Embedding 默认使用本地 n-gram 哈希向量，无需额外 API Key。后续可替换为星火 Embedding（见 `.env.example` 注释部分）。
+
+### 数据库
+
+使用 openGauss 6.0（PostgreSQL 兼容）。通过自定义 `OpenGaussDialect` 方言解决 openGauss 不兼容 `GENERATED BY DEFAULT AS IDENTITY` 语法的问题，改用 `BIGSERIAL` 自增列。
+
+如需切换回 H2 开发数据库，在 `application.yml` 中注释 openGauss 配置并取消 H2 注释即可。
 
 ### 后端启动
 
@@ -119,15 +133,17 @@ mvn spring-boot:run
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev          # 开发服务器，默认 http://localhost:5173
 ```
 
 ### 生产构建
 
 ```bash
 cd frontend
-npm run build
-# 构建产物自动复制到 后端/src/main/resources/static/
+npm run build        # 构建产物输出到 dist/
+# 构建后手动复制到后端静态目录：
+# cp -r dist/assets 后端/src/main/resources/static/
+# cp dist/index.html 后端/src/main/resources/static/
 ```
 
 应用启动后访问 `http://localhost:8080`
@@ -146,13 +162,18 @@ npm run build
 |------|------|
 | `POST /api/auth/login` | 登录 |
 | `POST /api/auth/register` | 注册 |
-| `POST /api/chat` | AI 辅导对话 |
-| `GET /api/chat/rag/test` | RAG 防幻觉测试端点 |
-| `GET /api/student/profile` | 获取学习画像 |
-| `GET /api/student/chapter/{id}/questions` | 获取章节题目 |
-| `POST /api/student/chapter/{id}/submit` | 提交答案 |
-| `GET /api/teacher/info` | 教师信息 |
-| `GET /api/admin/statistics` | 管理员统计 |
+| `POST /api/chat/send` | AI 辅导对话（PipelineOrchestrator） |
+| `POST /api/learning-path/generate/{studentId}` | AI 生成个性化学习路径 |
+| `GET /api/practice/assignments/{studentId}` | 获取学生作业列表 |
+| `POST /api/practice/assignment/{id}/submit` | 提交作业答案（自动评分+错题沉淀） |
+| `GET /api/practice/errors/{studentId}` | 获取错题列表（支持筛选） |
+| `POST /api/practice/errors/{studentId}/generate-insights` | AI 生成错题知识点总结 |
+| `GET /api/teacher/questions` | 题库浏览（支持按章节/难度/题型筛选） |
+| `POST /api/teacher/questions/ai-generate` | AI 智能出题 |
+| `POST /api/teacher/questions/assign` | 从题库选题布置作业 |
+| `GET /api/analytics/class/{className}/overview` | 班级学情概览 |
+| `GET /api/resources/student/{studentId}` | 获取学习资源 |
+| `POST /api/resources/generate/{studentId}` | AI 生成学习资源 |
 
 ## License
 

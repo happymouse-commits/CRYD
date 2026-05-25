@@ -4,14 +4,23 @@ import com.happymouse.cryd.agent.memory.AgentMemory;
 import com.happymouse.cryd.service.spark.SparkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 智能体抽象基类 — 模板方法模式
- * 每个专业Agent继承此类，实现自己的业务逻辑
+ * 智能体抽象基类 —— 模板方法模式。
+ *
+ * <p>职责：封装 LLM 调用、记忆管理、重试机制的通用逻辑，
+ * 子类只需实现 {@link #doExecute} 核心业务。</p>
+ *
+ * <p>注入机制：子类为 Spring {@code @Component}，Spring 自动通过
+ * {@link #setSparkClient}（带 @Autowired）注入 LLM 客户端。</p>
+ *
+ * <p>生命周期：{@link #execute(AgentContext)} 模板方法保证
+ * 预处理→执行→后处理的标准流程和异常兜底。</p>
  */
 public abstract class BaseAgent {
 
@@ -125,6 +134,7 @@ public abstract class BaseAgent {
     }
 
     // --- Setter 注入 ---
+    @Autowired
     public void setSparkClient(SparkClient sparkClient) { this.sparkClient = sparkClient; }
     public void setMemory(AgentMemory memory) { this.memory = memory; }
     public void setConfig(String key, Object value) { config.put(key, value); }

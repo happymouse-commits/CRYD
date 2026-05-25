@@ -39,10 +39,6 @@
         <div class="card-bottom">
           <span class="card-time">{{ formatDate(r.createdAt) }}</span>
           <div class="card-actions">
-            <el-button link size="small" @click.stop="toggleFavorite(r)">
-              {{ favorited[r.id] ? '❤️' : '🤍' }} {{ r.favoriteCount || 0 }}
-            </el-button>
-            <el-button link size="small" @click.stop="viewComments(r)">💬 {{ r.commentCount || 0 }}</el-button>
             <el-button type="primary" size="small" @click.stop="exportResource(r)">导出</el-button>
           </div>
         </div>
@@ -55,28 +51,14 @@
       <div class="detail-body" v-html="renderMd(detailResource?.content || '')"></div>
     </el-dialog>
 
-    <!-- 评论弹窗 -->
-    <el-dialog v-model="showComments" title="评论" width="500px">
-      <div class="comment-list" v-if="comments.length">
-        <div v-for="c in comments" :key="c.id" class="comment-item">
-          <strong>{{ c.userName || '匿名' }}</strong>
-          <span class="comment-time">{{ formatDate(c.createdAt) }}</span>
-          <p>{{ c.content }}</p>
-        </div>
-      </div>
-      <el-empty v-else description="暂无评论" :image-size="60" />
-      <div class="comment-input">
-        <el-input v-model="newComment" placeholder="写评论..." size="small" />
-        <el-button size="small" type="primary" @click="sendComment">发送</el-button>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../../store/user'
+import { marked } from 'marked'
 import api from '../../api'
 
 const store = useUserStore()
@@ -86,13 +68,8 @@ const filterType = ref('')
 const filterDifficulty = ref('')
 const searchKey = ref('')
 const generating = ref(false)
-const favorited = reactive({})
 const showDetail = ref(false)
-const showComments = ref(false)
 const detailResource = ref(null)
-const comments = ref([])
-const commentResource = ref(null)
-const newComment = ref('')
 
 const filteredResources = computed(() => {
   let list = resources.value
@@ -115,26 +92,13 @@ function diffColor(d) { const m = { easy: 'success', medium: 'warning', hard: 'd
 
 function renderMd(text) {
   if (!text) return ''
-  return text
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="$1">$2</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-    .replace(/\n/g, '<br>')
+  return marked.parse(text)
 }
 
 async function loadResources() {
   try {
     const res = await api.get('/resources/student/' + store.id)
     resources.value = res.data || []
-    // 检查收藏状态
-    for (const r of resources.value) {
-      try {
-        const f = await api.get('/resources/' + r.id + '/favorite/check?userId=' + store.id)
-        favorited[r.id] = f.data?.favorited || false
-      } catch { favorited[r.id] = false }
-    }
   } catch (e) { console.error('加载资源失败', e) }
 }
 
@@ -155,39 +119,6 @@ async function aiGenerate() {
 }
 
 function viewResource(r) { detailResource.value = r; showDetail.value = true }
-
-async function toggleFavorite(r) {
-  try {
-    const res = await api.post('/resources/' + r.id + '/favorite?userId=' + store.id)
-    favorited[r.id] = res.data?.favorited || false
-    const countRes = await api.get('/resources/' + r.id + '/favorite/count')
-    r.favoriteCount = countRes.data?.count ?? (r.favoriteCount || 0)
-  } catch {}
-}
-
-async function viewComments(r) {
-  commentResource.value = r
-  try {
-    const res = await api.get('/resources/' + r.id + '/comments')
-    comments.value = res.data || []
-  } catch { comments.value = [] }
-  showComments.value = true
-}
-
-async function sendComment() {
-  if (!newComment.value.trim() || !commentResource.value) return
-  try {
-    await api.post('/resources/' + commentResource.value.id + '/comments', {
-      userId: store.id,
-      userName: store.nickname || store.username,
-      content: newComment.value
-    })
-    commentResource.value.commentCount = (commentResource.value.commentCount || 0) + 1
-    newComment.value = ''
-    ElMessage.success('评论已发送')
-    await viewComments(commentResource.value)
-  } catch { ElMessage.error('发送失败') }
-}
 
 async function exportResource(r) {
   try {
@@ -229,13 +160,21 @@ onMounted(() => { loadResources() })
 .card-time { font-size: 12px; color: #c0c4cc; }
 .card-actions { display: flex; gap: 4px; }
 
-.detail-body { font-size: 14px; line-height: 1.8; max-height: 500px; overflow-y: auto; }
-.detail-body :deep(pre) { background: #f4f4f5; padding: 10px; border-radius: 6px; overflow-x: auto; }
-.detail-body :deep(code) { font-family: Consolas, monospace; font-size: 13px; }
+.detail-body { font-size: 14px; line-height: 1.85; max-height: 560px; overflow-y: auto; color: #303133; }
+.detail-body :deep(h2) { font-size: 20px; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #ebeef5; color: #303133; }
+.detail-body :deep(h3) { font-size: 17px; margin: 16px 0 8px; color: #303133; }
+.detail-body :deep(h4) { font-size: 15px; margin: 12px 0 6px; color: #303133; }
+.detail-body :deep(p) { margin: 0 0 10px; }
+.detail-body :deep(ul), .detail-body :deep(ol) { margin: 8px 0; padding-left: 20px; }
+.detail-body :deep(li) { margin-bottom: 4px; }
+.detail-body :deep(pre) { background: #f4f4f5; padding: 12px 16px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
+.detail-body :deep(code) { font-family: Consolas, 'Courier New', monospace; font-size: 13px; background: #f0f2f5; padding: 1px 5px; border-radius: 3px; color: #e03968; }
+.detail-body :deep(pre code) { background: none; padding: 0; color: #303133; }
+.detail-body :deep(blockquote) { border-left: 4px solid #409EFF; padding: 6px 14px; margin: 10px 0; background: #ecf5ff; border-radius: 0 6px 6px 0; color: #606266; }
+.detail-body :deep(table) { border-collapse: collapse; width: 100%; margin: 10px 0; }
+.detail-body :deep(th), .detail-body :deep(td) { border: 1px solid #dcdfe6; padding: 8px 12px; text-align: left; }
+.detail-body :deep(th) { background: #f5f7fa; font-weight: 600; }
+.detail-body :deep(strong) { color: #303133; }
+.detail-body :deep(hr) { border: none; border-top: 1px solid #ebeef5; margin: 16px 0; }
 
-.comment-list { max-height: 300px; overflow-y: auto; margin-bottom: 12px; }
-.comment-item { padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
-.comment-item p { margin: 4px 0 0 0; font-size: 13px; color: #606266; }
-.comment-time { font-size: 11px; color: #c0c4cc; margin-left: 8px; }
-.comment-input { display: flex; gap: 8px; align-items: center; }
 </style>

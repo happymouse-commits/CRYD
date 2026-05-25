@@ -7,7 +7,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "learning_checkin")
 public class LearningCheckin {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @SequenceGenerator(name = "learningCheckin_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "learningCheckin_seq")
     private Long id;
 
     private Long studentId;

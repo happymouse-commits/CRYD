@@ -6,7 +6,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "knowledge_base")
 public class KnowledgeBase {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @SequenceGenerator(name = "knowledgeBase_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "knowledgeBase_seq")
     private Long id;
 
     @Column(nullable = false, length = 200)

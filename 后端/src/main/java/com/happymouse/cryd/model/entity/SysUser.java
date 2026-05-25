@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 @Table(name = "sys_user")
 public class SysUser {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(name = "sysUser_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sysUser_seq")
     private Long id;
 
     @Column(nullable = false, unique = true, length = 50)
@@ -23,7 +24,7 @@ public class SysUser {
     private String nickname;
 
     @Column(nullable = false, length = 20)
-    private String role; // student, teacher, counselor, admin
+    private String role; // student, teacher, admin
 
     @Column(length = 50)
     private String className;

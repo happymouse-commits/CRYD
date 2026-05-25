@@ -17,28 +17,6 @@
       <p class="hint">课程从「布置作业」自动同步，新建课程后此处自动出现</p>
     </div>
 
-    <!-- AI自动生成资料 -->
-    <div class="section" v-if="aiDocs.length">
-      <h3 class="section-title">🤖 AI自动生成（学生错题分析）</h3>
-      <div class="doc-list">
-        <div v-for="doc in aiDocs" :key="doc.id" class="doc-card ai">
-          <div class="doc-header">
-            <span class="doc-icon">💡</span>
-            <div class="doc-info">
-              <h4>{{ doc.fileName || 'AI错题解析' }}</h4>
-              <span class="doc-date" v-if="doc.createdAt">{{ formatDate(doc.createdAt) }} 自动生成</span>
-            </div>
-            <el-tag size="small" type="warning">AI生成</el-tag>
-          </div>
-          <p class="doc-preview" v-if="doc.originalContent">{{ truncate(doc.originalContent, 150) }}</p>
-          <div class="doc-actions">
-            <el-button size="small" type="primary" @click="viewDoc(doc)">查看</el-button>
-            <el-button size="small" type="danger" @click="deleteDoc(doc)">删除</el-button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- 教师上传资料 -->
     <div class="section">
       <div class="section-header">
@@ -95,6 +73,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { marked } from 'marked'
 import { useUserStore } from '../../store/user'
 import api from '../../api'
 
@@ -102,7 +81,6 @@ const store = useUserStore()
 
 const courses = ref([])
 const selectedCourseId = ref(null)
-const aiDocs = ref([])
 const teacherDocs = ref([])
 const showUpload = ref(false)
 const showViewDialog = ref(false)
@@ -119,13 +97,7 @@ function formatDate(d) {
 
 function renderMarkdown(text) {
   if (!text) return ''
-  return text
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="$1">$2</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-    .replace(/\n/g, '<br>')
+  return marked.parse(text)
 }
 
 async function loadCourses() {
@@ -136,7 +108,7 @@ async function loadCourses() {
       selectedCourseId.value = courses.value[0].id
       await loadDocs()
     }
-  } catch {}
+  } catch { ElMessage.error('操作失败，请重试') }
 }
 
 async function selectCourse(c) {
@@ -149,11 +121,8 @@ async function loadDocs() {
   try {
     const r = await api.get('/knowledge/course/' + selectedCourseId.value)
     const docs = r.data?.documents || r.data || []
-    // 区分AI生成和教师上传
-    aiDocs.value = docs.filter(d => !d.fileName?.endsWith('.pdf') && !d.fileName?.endsWith('.docx'))
-    teacherDocs.value = docs.filter(d => d.fileName?.endsWith('.pdf') || d.fileName?.endsWith('.docx') || d.source === 'teacher')
+    teacherDocs.value = Array.isArray(docs) ? docs : []
   } catch {
-    aiDocs.value = []
     teacherDocs.value = []
   }
 }
@@ -195,7 +164,7 @@ async function deleteDoc(doc) {
     await api.delete('/knowledge/' + selectedCourseId.value + '/documents/' + doc.id)
     ElMessage.success('已删除')
     await loadDocs()
-  } catch {}
+  } catch { ElMessage.error('操作失败，请重试') }
 }
 
 onMounted(() => { loadCourses() })
@@ -230,6 +199,16 @@ onMounted(() => { loadCourses() })
 .doc-actions { display: flex; gap: 8px; }
 
 .doc-detail { font-size: 14px; line-height: 1.8; max-height: 500px; overflow-y: auto; }
-.doc-detail :deep(pre) { background: #f4f4f5; padding: 10px; border-radius: 6px; overflow-x: auto; }
-.doc-detail :deep(code) { font-family: Consolas, monospace; font-size: 13px; }
+.doc-detail :deep(h2) { font-size: 18px; margin: 16px 0 8px; }
+.doc-detail :deep(h3) { font-size: 16px; margin: 12px 0 6px; }
+.doc-detail :deep(h4) { font-size: 14px; margin: 10px 0 4px; }
+.doc-detail :deep(p) { margin: 0 0 8px; }
+.doc-detail :deep(ul), .doc-detail :deep(ol) { margin: 6px 0; padding-left: 20px; }
+.doc-detail :deep(li) { margin-bottom: 4px; }
+.doc-detail :deep(pre) { background: #f4f4f5; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+.doc-detail :deep(code) { font-family: Consolas, monospace; font-size: 13px; background: #f0f2f5; padding: 1px 4px; border-radius: 3px; }
+.doc-detail :deep(pre code) { background: none; padding: 0; }
+.doc-detail :deep(blockquote) { border-left: 3px solid #409EFF; padding: 4px 10px; margin: 8px 0; background: #ecf5ff; }
+.doc-detail :deep(table) { border-collapse: collapse; margin: 8px 0; }
+.doc-detail :deep(th), .doc-detail :deep(td) { border: 1px solid #dcdfe6; padding: 6px 10px; }
 </style>

@@ -174,7 +174,7 @@ const allSelected = computed(() => questions.value.length > 0 && selectedIds.val
 function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '...' : s || '' }
 
 async function loadCourses() {
-  try { const r = await api.get('/teacher/' + store.id + '/courses'); courses.value = r.data || [] } catch {}
+  try { const r = await api.get('/teacher/' + store.id + '/courses'); courses.value = r.data || [] } catch { ElMessage.error('加载课程失败') }
 }
 
 async function onCourseChange() {
@@ -191,19 +191,19 @@ async function loadChapters() {
     const r = await api.get('/teacher/questions/chapters')
     const chapters = r.data || []
     if (chapters.length > 0) {
-      chapterNames.value = chapters.map(c => c.chapterName)
+      chapterNames.value = chapters.map(c => c.chapterName || c.name)
+    } else {
+      chapterNames.value = FALLBACK_CHAPTERS
     }
   } catch (e) {
-    console.error('加载章节列表失败', e)
-    if (chapterNames.value.length === 0) {
-      chapterNames.value = [
-        '一、程序设计基础', '二、顺序结构程序设计', '三、选择结构程序设计',
-        '四、循环结构程序设计', '五、数组', '六、函数',
-        '七、指针', '八、结构体与共用体', '九、预处理命令', '十、文件操作'
-      ]
-    }
+    chapterNames.value = FALLBACK_CHAPTERS
   }
 }
+const FALLBACK_CHAPTERS = [
+  '一、程序设计基础', '二、顺序结构程序设计', '三、选择结构程序设计',
+  '四、循环结构程序设计', '五、数组', '六、函数',
+  '七、指针', '八、结构体与共用体', '九、预处理命令', '十、文件操作'
+]
 
 async function loadQuestions() {
   if (!selectedCourseId.value) return
@@ -214,8 +214,8 @@ async function loadQuestions() {
     if (filterType.value) params.type = filterType.value
     const r = await api.get('/teacher/questions', { params })
     questions.value = r.data?.questions || []
-    chapterNames.value = r.data?.chapterNames || []
-    // 将已生成的AI题也合并显示
+    const chNames = r.data?.chapterNames || []
+    chapterNames.value = chNames.length > 0 ? chNames : FALLBACK_CHAPTERS
     if (aiGenerated.value.length && !filterChapter.value && !filterDifficulty.value && !filterType.value) {
       questions.value = [...aiGenerated.value, ...questions.value]
     }
@@ -302,7 +302,7 @@ async function deleteCourse() {
     questions.value = []
     aiGenerated.value = []
     await loadCourses()
-  } catch {}
+  } catch { ElMessage.error('删除失败，请重试') }
 }
 
 onMounted(async () => {

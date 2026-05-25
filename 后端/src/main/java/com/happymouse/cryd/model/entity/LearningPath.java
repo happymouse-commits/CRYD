@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 @Table(name = "learning_path")
 public class LearningPath {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(name = "learningPath_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "learningPath_seq")
     private Long id;
 
     @Column(nullable = false, length = 200)

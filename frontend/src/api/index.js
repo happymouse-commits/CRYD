@@ -69,10 +69,6 @@ export const resourceApi = {
   getByStudent: (studentId) => api.get(`/resources/student/${studentId}`),
   getByType: (studentId, type) => api.get(`/resources/student/${studentId}/type/${type}`),
   getById: (id) => api.get(`/resources/${id}`),
-  favorite: (id, userId) => api.post(`/resources/${id}/favorite`, null, { params: { userId } }),
-  checkFavorite: (id, userId) => api.get(`/resources/${id}/favorite/check`, { params: { userId } }),
-  getComments: (id) => api.get(`/resources/${id}/comments`),
-  addComment: (id, data) => api.post(`/resources/${id}/comments`, data),
   export: (id) => api.get(`/resources/${id}/export`),
 }
 

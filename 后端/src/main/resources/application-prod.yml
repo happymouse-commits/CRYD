@@ -1,0 +1,20 @@
+# 生产环境配置 — 阿里云ECS部署
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sghr?ssl=false
+    driver-class-name: org.postgresql.Driver
+    username: sghr_admin
+    password: Sghr@2026
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+rag:
+  embedding:
+    dimension: 2048
