@@ -3,8 +3,11 @@ package com.happymouse.cryd.config;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Web配置 - 允许前端跨域访问 + SPA路由支持
@@ -34,5 +37,12 @@ public class WebConfig implements WebMvcConfigurer {
         // Root path redirects to login page
         registry.addRedirectViewController("/", "/login.html");
         registry.setOrder(Ordered.HIGHEST_PRECEDENCE);
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/assets/**")
+                .addResourceLocations("classpath:/static/assets/")
+                .setCachePeriod(0);
     }
 }

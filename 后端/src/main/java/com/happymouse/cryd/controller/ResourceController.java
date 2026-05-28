@@ -154,6 +154,12 @@ public class ResourceController {
                 saved.add(resourceRepo.save(lr));
             }
 
+            // 5. 附带B站视频资源
+            resourceRepo.deleteByStudentIdAndGeneratedBy(studentId, "video-library");
+            List<LearningResource> videos = buildVideoResources(studentId);
+            videos.forEach(resourceRepo::save);
+            saved.addAll(videos);
+
             log.info("AI资源生成完成: studentId={}, count={}", studentId, saved.size());
             return Result.success(saved);
         } catch (Exception e) {
@@ -177,6 +183,33 @@ public class ResourceController {
         // 策略2: 整个文本
         try { return JSON.parseArray(text); } catch (Exception ignored) {}
         return null;
+    }
+
+    private List<LearningResource> buildVideoResources(Long studentId) {
+        String bvid = "BV1dr4y1n7vA";
+        Object[][] data = {
+            {"C语言变量定义与使用", "12", "变量", "easy"},
+            {"C语言表达式与运算符", "17", "运算符", "easy"},
+            {"C语言if判断语句", "25", "if语句", "easy"},
+            {"C语言switch多路分支", "32", "switch", "medium"},
+            {"C语言while循环", "34", "while循环", "medium"},
+            {"C语言for循环入门", "39", "for循环", "medium"},
+        };
+        List<LearningResource> list = new ArrayList<>();
+        for (Object[] v : data) {
+            LearningResource lr = new LearningResource();
+            lr.setTitle((String) v[0]);
+            lr.setType("video");
+            lr.setContent("https://player.bilibili.com/player.html?bvid=" + bvid + "&page=" + v[1]);
+            lr.setKnowledgePoint((String) v[2]);
+            lr.setDifficulty((String) v[3]);
+            lr.setStudentId(studentId);
+            lr.setCategory("B站视频教程");
+            lr.setGeneratedBy("video-library");
+            lr.setIsShared("1");
+            list.add(lr);
+        }
+        return list;
     }
 
     private Long toLong(Object val) {

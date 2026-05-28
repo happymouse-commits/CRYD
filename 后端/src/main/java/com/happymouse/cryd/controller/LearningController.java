@@ -23,13 +23,13 @@ public class LearningController {
 
     @GetMapping("/resources/{studentId}")
     public Result<List<LearningResource>> getResources(@PathVariable Long studentId) {
-        return Result.success(resourceRepository.findByStudentId(studentId));
+        return Result.success(resourceRepository.findByStudentIdOrderByCreatedAtDesc(studentId));
     }
 
     @GetMapping("/resources/{studentId}/{type}")
     public Result<List<LearningResource>> getResourcesByType(
             @PathVariable Long studentId, @PathVariable String type) {
-        return Result.success(resourceRepository.findByStudentIdAndType(studentId, type));
+        return Result.success(resourceRepository.findByStudentIdAndTypeOrderByCreatedAtDesc(studentId, type));
     }
 
     @GetMapping("/path/{studentId}")

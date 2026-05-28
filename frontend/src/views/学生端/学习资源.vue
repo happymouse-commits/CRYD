@@ -2,7 +2,7 @@
   <div class="resources-page">
     <div class="page-header">
       <h2>资源中心</h2>
-      <p class="subtitle">AI生成 + 错题突破资料，搜藏导出随你用</p>
+      <p class="subtitle">AI生成 + 错题突破资料 + B站视频教程，搜藏导出随你用</p>
     </div>
 
     <!-- 顶部操作栏 -->
@@ -15,6 +15,7 @@
           <el-option label="知识讲解" value="explanation" />
           <el-option label="思维导图" value="mindmap" />
           <el-option label="代码演示" value="code" />
+          <el-option label="视频教程" value="video" />
         </el-select>
         <el-select v-model="filterDifficulty" placeholder="难度" clearable size="small" style="width:110px">
           <el-option label="简单" value="easy" />
@@ -35,7 +36,8 @@
           <span class="card-kp" v-if="r.knowledgePoint">{{ r.knowledgePoint }}</span>
         </div>
         <h4 class="card-title">{{ r.title || '未命名资源' }}</h4>
-        <p class="card-preview">{{ truncate(r.content, 100) }}</p>
+        <p class="card-preview" v-if="r.type !== 'video'">{{ truncate(r.content, 100) }}</p>
+        <p class="card-preview video-preview" v-else>点击观看视频教程</p>
         <div class="card-bottom">
           <span class="card-time">{{ formatDate(r.createdAt) }}</span>
           <div class="card-actions">
@@ -47,8 +49,19 @@
     <el-empty v-else description="暂无资源，点「AI生成新资源」让星火大模型为你生成" :image-size="80" />
 
     <!-- 资源详情弹窗 -->
-    <el-dialog v-model="showDetail" :title="detailResource?.title || '资源详情'" width="700px">
-      <div class="detail-body" v-html="renderMd(detailResource?.content || '')"></div>
+    <el-dialog v-model="showDetail" :title="detailResource?.title || '资源详情'" :width="detailResource?.type === 'video' ? '900px' : '700px'">
+      <div v-if="detailResource?.type === 'video'" class="video-wrapper">
+        <iframe
+          :src="detailResource?.content"
+          scrolling="no"
+          border="0"
+          frameborder="no"
+          framespacing="0"
+          allowfullscreen="true"
+          class="bilibili-player"
+        ></iframe>
+      </div>
+      <div v-else class="detail-body" v-html="renderMd(detailResource?.content || '')"></div>
     </el-dialog>
 
   </div>
@@ -85,8 +98,8 @@ const filteredResources = computed(() => {
 
 function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '...' : s || '' }
 function formatDate(d) { if (!d) return ''; const t = new Date(d); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') }
-function typeLabel(t) { const m = { article: '文章', exercise: '练习题', explanation: '知识讲解', mindmap: '思维导图', code: '代码演示', plan: '学习计划' }; return m[t] || t || '其他' }
-function typeColor(t) { const m = { article: 'primary', exercise: 'warning', explanation: 'success', mindmap: '', code: 'danger', plan: 'info' }; return m[t] || 'info' }
+function typeLabel(t) { const m = { article: '文章', exercise: '练习题', explanation: '知识讲解', mindmap: '思维导图', code: '代码演示', video: '视频教程', plan: '学习计划' }; return m[t] || t || '其他' }
+function typeColor(t) { const m = { article: 'primary', exercise: 'warning', explanation: 'success', mindmap: '', code: 'danger', video: '', plan: 'info' }; return m[t] || 'info' }
 function diffLabel(d) { const m = { easy: '简单', medium: '中等', hard: '困难' }; return m[d] || d || '' }
 function diffColor(d) { const m = { easy: 'success', medium: 'warning', hard: 'danger' }; return m[d] || 'info' }
 
@@ -175,6 +188,11 @@ onMounted(() => { loadResources() })
 .detail-body :deep(th), .detail-body :deep(td) { border: 1px solid #dcdfe6; padding: 8px 12px; text-align: left; }
 .detail-body :deep(th) { background: #f5f7fa; font-weight: 600; }
 .detail-body :deep(strong) { color: #303133; }
+
+.video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; }
+.bilibili-player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 8px; }
+.video-preview { color: #409EFF; font-weight: 500; }
+.video-preview::before { content: '▶ '; }
 .detail-body :deep(hr) { border: none; border-top: 1px solid #ebeef5; margin: 16px 0; }
 
 </style>

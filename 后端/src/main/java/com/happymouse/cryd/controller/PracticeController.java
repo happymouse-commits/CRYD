@@ -746,7 +746,7 @@ public class PracticeController {
      */
     @GetMapping("/breakthrough/history/{studentId}")
     public Result<List<LearningResource>> getBreakthroughHistory(@PathVariable Long studentId) {
-        List<LearningResource> all = resourceRepo.findByStudentId(studentId);
+        List<LearningResource> all = resourceRepo.findByStudentIdOrderByCreatedAtDesc(studentId);
         List<LearningResource> history = all.stream()
                 .filter(r -> "breakthrough".equals(r.getGeneratedBy()))
                 .collect(Collectors.toList());

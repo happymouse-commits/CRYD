@@ -11,4 +11,5 @@ public interface LearningResourceRepository extends JpaRepository<LearningResour
     List<LearningResource> findByStudentIdOrderByCreatedAtDesc(Long studentId);
     List<LearningResource> findByStudentIdAndTypeOrderByCreatedAtDesc(Long studentId, String type);
     void deleteAllByStudentId(Long studentId);
+    void deleteByStudentIdAndGeneratedBy(Long studentId, String generatedBy);
 }
