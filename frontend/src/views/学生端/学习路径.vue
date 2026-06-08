@@ -34,6 +34,54 @@
       </div>
     </div>
 
+    <!-- 知识体系树状图 -->
+    <div class="tree-section">
+      <div class="section-header">
+        <h3>🌳 C语言知识体系</h3>
+        <span class="tree-hint">点击节点查看知识点介绍</span>
+      </div>
+      <div class="tree-container">
+        <div ref="treeChartRef" class="tree-chart"></div>
+      </div>
+      <!-- 节点详情弹窗 -->
+      <el-dialog v-model="nodeDialogVisible" :title="selectedNode?.name" width="520px" top="8vh">
+        <div class="node-detail" v-if="selectedNode">
+          <div class="node-detail-header">
+            <span class="node-detail-icon">{{ selectedNode.icon || '📖' }}</span>
+            <div>
+              <h3>{{ selectedNode.name }}</h3>
+              <el-tag v-if="selectedNode.difficulty" :type="diffTagType(selectedNode.difficulty)" size="small">
+                {{ selectedNode.difficulty }}
+              </el-tag>
+            </div>
+          </div>
+          <el-divider />
+          <div class="node-detail-body">
+            <div class="detail-section">
+              <h4>📋 内容概要</h4>
+              <p>{{ selectedNode.description }}</p>
+            </div>
+            <div class="detail-section" v-if="selectedNode.keywords">
+              <h4>🔑 关键词</h4>
+              <div class="keyword-tags">
+                <el-tag v-for="kw in selectedNode.keywords" :key="kw" size="small" effect="plain" round>
+                  {{ kw }}
+                </el-tag>
+              </div>
+            </div>
+            <div class="detail-section" v-if="selectedNode.estimatedHours">
+              <h4>⏱️ 建议学习时长</h4>
+              <p>{{ selectedNode.estimatedHours }}</p>
+            </div>
+            <div class="detail-section" v-if="selectedNode.prerequisites && selectedNode.prerequisites.length">
+              <h4>📌 前置知识</h4>
+              <p>{{ selectedNode.prerequisites.join('、') }}</p>
+            </div>
+          </div>
+        </div>
+      </el-dialog>
+    </div>
+
     <!-- AI学习路径 -->
     <div class="ai-path-section">
       <div class="section-header">
