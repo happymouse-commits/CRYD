@@ -1,0 +1,77 @@
+name: Deploy to Alibaba Cloud ECS
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Deploy frontend to ECS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ECS_HOST }}
+          username: root
+          password: ${{ secrets.ECS_PASSWORD }}
+          source: "frontend/dist/*"
+          target: "/opt/sghr/frontend/"
+          strip_components: 2
+          rm: true
+
+      - name: Deploy backend to ECS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ECS_HOST }}
+          username: root
+          password: ${{ secrets.ECS_PASSWORD }}
+          script: |
+            set -e
+            echo "[1/5] Pulling latest code..."
+            cd /root/SGHR
+            git reset --hard
+            git pull origin master
+
+            echo "[2/5] Building backend with Docker Maven..."
+            rm -rf 后端/target
+            docker run --rm \
+              -v /root/SGHR/后端:/app \
+              -v /root/.m2:/root/.m2 \
+              -w /app \
+              maven:3.9-eclipse-temurin-21 \
+              mvn package -DskipTests -B -q
+
+            echo "[3/5] Deploying backend jar..."
+            JAR=$(ls 后端/target/cryd-*.jar 2>/dev/null | head -1)
+            if [ -z "$JAR" ]; then
+              echo "ERROR: No JAR found in target/"
+              exit 1
+            fi
+            cp -f "$JAR" /opt/sghr/app/cryd-1.0.0.jar
+
+            echo "[4/5] Restarting Spring Boot..."
+            systemctl restart sghr
+            sleep 5
+
+            echo "[5/5] Health check..."
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/)
+            echo "Backend health check: HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" = "000" ]; then
+              echo "WARNING: Backend may not have started yet"
+            fi
+
+            echo "=== Deploy complete ==="
