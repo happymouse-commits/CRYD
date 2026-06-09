@@ -5,8 +5,9 @@ on:
     branches: [master]
 
 jobs:
-  build-and-deploy:
+  build-and-notify:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,11 +23,39 @@ jobs:
           npm install
           npm run build
 
-      - name: Trigger ECS deploy
-        env:
-          ECS_HOST: ${{ secrets.ECS_HOST }}
-          ECS_PASSWORD: ${{ secrets.ECS_PASSWORD }}
+      # ---- 邮件通知（ECS cron 会自动拉取部署） ----
+      - name: Check email config
+        id: mail-check
+        if: always()
         run: |
-          echo "GitHub runner cannot reach Alibaba Cloud ECS directly."
-          echo "ECS-side cron job handles auto-deploy."
-          exit 0
+          if [ -n "${{ secrets.MAIL_USERNAME }}" ]; then
+            echo "enabled=true" >> $GITHUB_OUTPUT
+          else
+            echo "enabled=false" >> $GITHUB_OUTPUT
+            echo "Email notification skipped (MAIL_USERNAME not set)"
+          fi
+
+      - name: Send email notification
+        if: always() && steps.mail-check.outputs.enabled == 'true'
+        uses: dawidd6/action-send-mail@v4
+        with:
+          server_address: smtp.qq.com
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: 📦 CRYD 代码已推送 - ${{ github.event.head_commit.message }}
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_USERNAME }}
+          body: |
+            <h2>📦 代码已推送到 master</h2>
+            <p>ECS 服务器将定时拉取并自动部署。</p>
+            <table border="0" cellpadding="4">
+              <tr><td><b>仓库</b></td><td>${{ github.repository }}</td></tr>
+              <tr><td><b>提交</b></td><td>${{ github.event.head_commit.message }}</td></tr>
+              <tr><td><b>操作人</b></td><td>${{ github.actor }}</td></tr>
+              <tr><td><b>分支</b></td><td>master</td></tr>
+            </table>
+            <br>
+            <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">🔗 查看构建详情</a>
+            <br><br>
+            <small>🤖 CRYD 智能体协同学习平台 · 自动部署</small>
