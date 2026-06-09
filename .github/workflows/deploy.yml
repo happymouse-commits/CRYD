@@ -7,6 +7,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,6 +23,21 @@ jobs:
           npm install
           npm run build
 
+      - name: Check ECS connectivity
+        run: |
+          echo "Checking if ECS secrets are configured..."
+          if [ -z "${{ secrets.ECS_HOST }}" ]; then
+            echo "::error::ECS_HOST secret is not set!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.ECS_PASSWORD }}" ]; then
+            echo "::error::ECS_PASSWORD secret is not set!"
+            exit 1
+          fi
+          echo "ECS_HOST is set: ${{ secrets.ECS_HOST }}"
+          echo "Testing TCP connectivity to ECS port 22 (timeout 10s)..."
+          timeout 10 bash -c "echo >/dev/tcp/${{ secrets.ECS_HOST }}/22" 2>/dev/null && echo "✓ ECS is reachable on port 22" || echo "::warning::Cannot reach ECS on port 22 - security group may need updating"
+
       - name: Deploy frontend to ECS
         id: deploy-frontend
         uses: appleboy/scp-action@v0.1.7
@@ -29,10 +45,13 @@ jobs:
           host: ${{ secrets.ECS_HOST }}
           username: root
           password: ${{ secrets.ECS_PASSWORD }}
+          port: 22
           source: "frontend/dist/*"
           target: "/opt/sghr/frontend/"
           strip_components: 2
           rm: true
+          timeout: 60s
+          command_timeout: 10m
 
       - name: Deploy backend to ECS
         id: deploy-backend
@@ -41,6 +60,9 @@ jobs:
           host: ${{ secrets.ECS_HOST }}
           username: root
           password: ${{ secrets.ECS_PASSWORD }}
+          port: 22
+          timeout: 60s
+          command_timeout: 15m
           script: |
             set -e
             DEPLOY_TIME=$(date +%Y%m%d_%H%M%S)
