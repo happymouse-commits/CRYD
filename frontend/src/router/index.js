@@ -2,7 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../store/user'
 
 const routes = [
-  { path: '/', redirect: '/login.html' },
+  { path: '/', redirect: '/login' },
+  { path: '/login.html', redirect: '/login' },  // 兼容旧版 login.html 跳转
   { path: '/login', component: () => import('../views/Login.vue') },
   // 学生端
   { path: '/student', component: () => import('../views/学生端/布局.vue'), meta: { role: 'student' },
@@ -50,7 +51,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const store = useUserStore()
   if (!store.isLoggedIn) {
-    window.location.href = '/login.html'
+    window.location.href = '/login'
     return
   }
   if (to.meta.role && to.meta.role !== store.role) return next(store.homePath)
