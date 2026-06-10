@@ -41,8 +41,10 @@
             <div class="digital-human-avatar" :class="dh.state.mode">
               <div class="dh-avatar-ring" :class="dh.state.mode"></div>
               <div class="dh-avatar-inner">
+                <!-- 3D 模型（渐进增强，加载成功后显示） -->
                 <model-viewer
-                  :src="'https://models.readyplayer.me/' + dh.state.avatarId + '.glb'"
+                  v-if="dh.state.modelViewerLoaded"
+                  :src="dh.state.avatar3dUrl"
                   camera-target="0m 1.5m 0m"
                   camera-orbit="0deg 75deg 2.5m"
                   field-of-view="30deg"
@@ -55,6 +57,18 @@
                   class="dh-3d-viewer"
                   loading="lazy"
                 ></model-viewer>
+                <!-- 2D 图片后备（国内可用） -->
+                <img
+                  v-else
+                  :src="dh.state.avatarUrl"
+                  class="dh-2d-img"
+                  alt="数字人"
+                  @error="dh.state.avatarUrl = ''"
+                />
+                <!-- 纯 Emoji 兜底 -->
+                <span v-if="!dh.state.avatarUrl && !dh.state.modelViewerLoaded" class="dh-emoji-fallback">
+                  {{ dh.state.avatarEmoji }}
+                </span>
               </div>
               <!-- 对话气泡 -->
               <div class="dh-speech-bubble" v-if="dh.state.mode === 'speaking' || dh.state.mode === 'thinking'">
@@ -733,6 +747,21 @@ window.addEventListener('resize', () => {
   width: 100%;
   height: 100%;
   --poster-color: transparent;
+}
+.dh-2d-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+}
+.dh-emoji-fallback {
+  font-size: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f8faff 0%, #eef3ff 100%);
 }
 .dh-speech-bubble {
   position: absolute;

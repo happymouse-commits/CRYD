@@ -24,7 +24,9 @@ export function useDigitalHuman() {
   const state = reactive({
     mode: 'idle',           // idle | listening | thinking | speaking | error
     avatarEmoji: '🤖',
-    avatarId: '64bfa15f0ba58daef97d7e9c', // ReadyPlayerMe 默认形象ID
+    avatarUrl: '',          // 2D 图片 URL（手动指定，国内可直接访问）
+    avatar3dUrl: '',        // 3D 模型 URL（.glb，渐进增强）
+    modelViewerLoaded: false, // model-viewer 组件是否加载成功
     statusText: '在线中',
     isOnline: true,
     isRecording: false,
@@ -34,6 +36,11 @@ export function useDigitalHuman() {
   const hasTyping = computed(() => messages.value.some(m => m.typing))
 
   // ----- 初始化 -----
+  // 检测 model-viewer 是否加载成功（渐进增强）
+  if (typeof window !== 'undefined' && window.__modelViewerReady) {
+    state.modelViewerLoaded = true
+  }
+
   async function loadHistory() {
     try {
       const res = await api.get('/chat/history/' + store.id)
@@ -259,7 +266,17 @@ export function useDigitalHuman() {
     stopRecording,
     clearMessages,
     initOnboarding,
-    /** 更换数字人形象 @param {string} id - ReadyPlayerMe avatar ID */
-    setAvatar(id) { state.avatarId = id; },
+    /**
+     * 更换数字人形象
+     * @param {string} urlOrId - 图片URL 或 ReadyPlayerMe avatar ID
+     * @param {'2d'|'3d'} type - 类型
+     */
+    setAvatar(urlOrId, type = '2d') {
+      if (type === '3d') {
+        state.avatar3dUrl = 'https://models.readyplayer.me/' + urlOrId + '.glb';
+      } else {
+        state.avatarUrl = urlOrId;
+      }
+    },
   }
 }
