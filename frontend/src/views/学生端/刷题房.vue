@@ -97,8 +97,8 @@
 
       <!-- 生成中的加载状态 -->
       <div v-if="generatingInsights" style="text-align:center;padding:30px">
-        <el-icon class="is-loading" :size="36" color="#409EFF"><svg viewBox="0 0 1024 1024" width="1em" height="1em"><path d="M512 64a32 32 0 0132 32v192a32 32 0 01-64 0V96a32 32 0 0132-32zm0 640a32 32 0 0132 32v192a32 32 0 01-64 0V736a32 32 0 0132-32zm448-192a32 32 0 01-32 32H736a32 32 0 010-64h192a32 32 0 0132 32zm-640 0a32 32 0 01-32 32H96a32 32 0 010-64h192a32 32 0 0132 32z" fill="currentColor"/></svg></el-icon>
-        <p style="color:#606266;margin-top:10px">AI正在分析你的错题并生成知识点总结...</p>
+        <el-icon class="is-loading" :size="36" color="#5b8def"><svg viewBox="0 0 1024 1024" width="1em" height="1em"><path d="M512 64a32 32 0 0132 32v192a32 32 0 01-64 0V96a32 32 0 0132-32zm0 640a32 32 0 0132 32v192a32 32 0 01-64 0V736a32 32 0 0132-32zm448-192a32 32 0 01-32 32H736a32 32 0 010-64h192a32 32 0 0132 32zm-640 0a32 32 0 01-32 32H96a32 32 0 010-64h192a32 32 0 0132 32z" fill="currentColor"/></svg></el-icon>
+        <p style="color:#374151;margin-top:10px">AI正在分析你的错题并生成知识点总结...</p>
       </div>
 
       <!-- 生成的知识点总结列表 -->
@@ -158,7 +158,7 @@
     <el-dialog v-model="showResultDialog" title="答题结果" width="500px">
       <div class="result-content" v-if="lastResult">
         <div class="result-score">
-          <el-progress type="circle" :percentage="lastResult.score" :width="120" :color="lastResult.score >= 60 ? '#67C23A' : '#F56C6C'" />
+          <el-progress type="circle" :percentage="lastResult.score" :width="120" :color="lastResult.score >= 60 ? '#34d399' : '#f87171'" />
         </div>
         <p class="result-text">正确 {{ lastResult.correctCount }}/{{ lastResult.totalCount }} 题</p>
         <div class="result-feedback" v-if="lastResult.feedback">
@@ -369,123 +369,108 @@ onMounted(() => { loadAssignments() })
 <style scoped>
 .practice-room { }
 
-.stats-row { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.stats-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 .stat-card {
-  flex: 1; min-width: 140px; background: #fff; border-radius: 12px;
-  padding: 16px 20px; display: flex; align-items: center; gap: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  flex: 1; min-width: 140px; background: #fff; border-radius: 14px;
+  padding: 14px 18px; display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4;
 }
-.stat-icon { font-size: 28px; }
-.stat-value { font-size: 24px; font-weight: 700; color: #303133; }
-.stat-label { font-size: 13px; color: #909399; }
+.stat-icon { font-size: 26px; }
+.stat-value { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+.stat-label { font-size: 12px; color: #9ca3af; }
 
 /* Tab栏 */
-.tab-bar { display: flex; gap: 0; margin-bottom: 20px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.tab-bar { display: flex; gap: 0; margin-bottom: 20px; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4; }
 .tab-btn {
-  flex: 1; padding: 14px 0; border: none; background: #fff;
-  font-size: 15px; font-weight: 600; color: #606266; cursor: pointer;
-  transition: all 0.2s; border-bottom: 3px solid transparent;
+  flex: 1; padding: 13px 0; border: none; background: #fff;
+  font-size: 14px; font-weight: 600; color: #6b7280; cursor: pointer;
+  transition: all 0.2s; border-bottom: 2px solid transparent;
 }
-.tab-btn:hover { color: #409EFF; background: #f8f9ff; }
-.tab-btn.active { color: #409EFF; border-bottom-color: #409EFF; background: #ecf5ff; }
+.tab-btn:hover { color: #5b8def; background: rgba(91,141,239,0.03); }
+.tab-btn.active { color: #5b8def; border-bottom-color: #5b8def; background: rgba(91,141,239,0.05); }
 
-.tab-content { }
-
-/* 课程分组 */
-.course-group { margin-bottom: 24px; }
-.course-name { font-size: 17px; color: #303133; margin: 0 0 14px 0; padding-left: 10px; border-left: 4px solid #409EFF; }
-.chapter-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.course-group { margin-bottom: 22px; }
+.course-name { font-size: 16px; color: #374151; margin: 0 0 12px 0; padding-left: 8px; border-left: 3px solid #5b8def; }
+.chapter-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
 .chapter-card {
-  background: #fff; border-radius: 12px; padding: 20px; border: 2px solid #e8e8f0;
-  cursor: pointer; transition: all 0.25s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  background: #fff; border-radius: 14px; padding: 18px;
+  border: 1px solid #eef0f4; cursor: pointer;
+  transition: all 0.25s; box-shadow: 0 1px 6px rgba(0,0,0,0.03);
 }
-.chapter-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-.card-pending { border-color: #E6A23C; }
-.card-completed { border-color: #67C23A; }
-.card-graded { border-color: #409EFF; }
-.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.chapter-order { font-size: 13px; color: #909399; font-weight: 600; }
-.status-tag {
-  font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 600;
-}
-.status-tag.pending { background: #fdf6ec; color: #E6A23C; }
-.status-tag.completed { background: #f0f9eb; color: #67C23A; }
-.chapter-name { margin: 0 0 4px 0; font-size: 16px; color: #303133; }
-.chapter-desc { font-size: 12px; color: #c0c4cc; margin: 0 0 12px 0; }
-.card-footer { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #606266; flex-wrap: wrap; }
-.score-text { color: #409EFF; }
-.score-text strong { font-size: 16px; }
+.chapter-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.06); border-color: #dbeafe; }
+.card-pending { border-color: #fde68a; }
+.card-completed { border-color: #a7f3d0; }
+.card-graded { border-color: #bfdbfe; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.chapter-order { font-size: 12px; color: #9ca3af; font-weight: 600; }
+.status-tag { font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 600; }
+.status-tag.pending { background: #fefce8; color: #d97706; }
+.status-tag.completed { background: #ecfdf5; color: #059669; }
+.chapter-name { margin: 0 0 4px 0; font-size: 15px; color: #1a1a2e; font-weight: 600; }
+.chapter-desc { font-size: 12px; color: #d1d5db; margin: 0 0 10px 0; }
+.card-footer { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6b7280; flex-wrap: wrap; }
+.score-text { color: #5b8def; }
+.score-text strong { font-size: 15px; }
 
-/* 错题工具栏 */
-.error-toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.error-toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
 
-/* 错题列表 */
-.error-list { display: flex; flex-direction: column; gap: 12px; }
+.error-list { display: flex; flex-direction: column; gap: 10px; }
 .error-item {
-  background: #fff; border-radius: 10px; padding: 16px;
-  border: 1px solid #f0f0f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  background: #fff; border-radius: 12px; padding: 14px;
+  border: 1px solid #eef0f4; box-shadow: 0 1px 4px rgba(0,0,0,0.03);
 }
-.error-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-.error-count { font-size: 12px; color: #F56C6C; font-weight: 600; }
-.error-date { font-size: 12px; color: #909399; margin-left: auto; }
-.error-question { font-size: 14px; color: #303133; margin: 0 0 8px 0; line-height: 1.5; }
-.error-answers { display: flex; gap: 16px; font-size: 13px; margin-bottom: 8px; }
-.wrong-ans { color: #F56C6C; }
-.correct-ans { color: #67C23A; font-weight: 500; }
-.error-analysis { font-size: 12px; color: #606266; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px; line-height: 1.6; white-space: pre-wrap; }
-.error-actions { display: flex; gap: 8px; }
+.error-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.error-count { font-size: 11px; color: #f87171; font-weight: 600; }
+.error-date { font-size: 11px; color: #9ca3af; margin-left: auto; }
+.error-question { font-size: 13px; color: #374151; margin: 0 0 8px 0; line-height: 1.5; }
+.error-answers { display: flex; gap: 14px; font-size: 12px; margin-bottom: 6px; }
+.wrong-ans { color: #f87171; }
+.correct-ans { color: #059669; font-weight: 500; }
+.error-analysis { font-size: 12px; color: #6b7280; padding: 8px 12px; background: #fafbfd; border-radius: 8px; margin-bottom: 8px; line-height: 1.6; white-space: pre-wrap; border: 1px solid #f0f2f5; }
+.error-actions { display: flex; gap: 6px; }
 
-
-/* 答题弹窗 */
 .question-list { max-height: 500px; overflow-y: auto; }
-.question-item { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #f0f0f0; }
+.question-item { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #eef0f4; }
 .question-item:last-child { border-bottom: none; }
 .question-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-.question-num { font-weight: 600; color: #303133; }
-.question-text { font-size: 15px; margin-bottom: 12px; line-height: 1.6; white-space: pre-wrap; }
-.options-group { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-.option-item { display: flex; align-items: center; margin-bottom: 4px; width: 100%; }
-.opt-key { font-weight: 600; color: #409EFF; margin-right: 2px; }
-.code-question { margin-top: 8px; }
-.code-editor :deep(textarea) { font-family: 'Consolas', 'Monaco', monospace !important; font-size: 14px !important; line-height: 1.6 !important; background: #f5f7fa !important; }
+.question-num { font-weight: 600; color: #374151; }
+.question-text { font-size: 14px; margin-bottom: 10px; line-height: 1.6; white-space: pre-wrap; }
+.options-group { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.option-item { display: flex; align-items: center; margin-bottom: 2px; width: 100%; }
+.opt-key { font-weight: 600; color: #5b8def; margin-right: 2px; }
+.code-editor :deep(textarea) { font-family: 'Consolas', monospace !important; font-size: 14px !important; line-height: 1.6 !important; background: #f5f7fa !important; }
 
 .result-content { text-align: center; }
-.result-score { display: flex; justify-content: center; margin-bottom: 16px; }
-.result-text { font-size: 16px; color: #303133; margin-bottom: 16px; }
+.result-score { display: flex; justify-content: center; margin-bottom: 14px; }
+.result-text { font-size: 15px; color: #374151; margin-bottom: 14px; }
 .result-feedback { text-align: left; max-height: 200px; overflow-y: auto; }
 .result-feedback p { margin: 4px 0; font-size: 13px; line-height: 1.6; }
-.correct-fb { color: #67C23A; }
-.wrong-fb { color: #F56C6C; }
+.correct-fb { color: #059669; }
+.wrong-fb { color: #f87171; }
 
-/* AI错题解析 */
 .insights-list { display: flex; flex-direction: column; gap: 10px; }
 .insight-card {
-  background: #fff; border-radius: 10px; padding: 16px;
-  border: 1px solid #f0f0f0; cursor: pointer;
-  transition: all 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  background: #fff; border-radius: 12px; padding: 14px;
+  border: 1px solid #eef0f4; cursor: pointer;
+  transition: all 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.03);
 }
-.insight-card:hover { border-color: #409EFF; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.insight-card:hover { border-color: #bfdbfe; box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
 .insight-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.insight-icon { font-size: 22px; flex-shrink: 0; }
-.insight-info { flex: 1; }
-.insight-info h4 { margin: 0 0 2px 0; font-size: 15px; color: #303133; }
-.insight-meta { font-size: 12px; color: #909399; }
-.insight-preview { font-size: 13px; color: #606266; margin: 0; line-height: 1.5; }
+.insight-icon { font-size: 22px; }
+.insight-info h4 { margin: 0 0 2px 0; font-size: 14px; color: #1a1a2e; }
+.insight-meta { font-size: 11px; color: #9ca3af; }
+.insight-preview { font-size: 13px; color: #6b7280; margin: 0; line-height: 1.5; }
 .insight-detail { font-size: 14px; line-height: 1.8; max-height: 500px; overflow-y: auto; }
-.insight-detail { line-height: 1.8; font-size: 14px; }
-.insight-detail :deep(h2) { font-size: 18px; margin: 14px 0 8px; }
-.insight-detail :deep(h3) { font-size: 16px; margin: 12px 0 6px; }
+.insight-detail :deep(h2) { font-size: 17px; margin: 14px 0 8px; color: #1a1a2e; }
+.insight-detail :deep(h3) { font-size: 15px; margin: 12px 0 6px; color: #5b8def; }
 .insight-detail :deep(h4) { font-size: 14px; margin: 10px 0 4px; }
 .insight-detail :deep(p) { margin: 0 0 8px; }
 .insight-detail :deep(ul), .insight-detail :deep(ol) { margin: 6px 0; padding-left: 20px; }
 .insight-detail :deep(li) { margin-bottom: 4px; }
-.insight-detail :deep(pre) { background: #f4f4f5; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
-.insight-detail :deep(code) { font-family: Consolas, monospace; font-size: 13px; background: #f0f2f5; padding: 1px 4px; border-radius: 3px; }
+.insight-detail :deep(pre) { background: #f5f7fa; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
+.insight-detail :deep(code) { font-family: Consolas, monospace; font-size: 13px; }
 .insight-detail :deep(pre code) { background: none; padding: 0; }
-.insight-detail :deep(blockquote) { border-left: 3px solid #409EFF; padding: 4px 10px; margin: 8px 0; background: #ecf5ff; }
-.insight-detail :deep(strong) { color: #303133; }
-.insight-detail :deep(h2) { font-size: 18px; color: #303133; margin-top: 8px; }
-.insight-detail :deep(h3) { font-size: 16px; color: #409EFF; }
-.insight-detail :deep(li) { margin: 4px 0; }
+.insight-detail :deep(blockquote) { border-left: 3px solid #5b8def; padding: 4px 10px; margin: 8px 0; background: rgba(91,141,239,0.04); border-radius: 0 6px 6px 0; }
+.insight-detail :deep(strong) { color: #374151; }
 
 </style>

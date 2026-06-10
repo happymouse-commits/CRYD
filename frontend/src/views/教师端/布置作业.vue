@@ -88,7 +88,7 @@
               <el-option label="简单" value="easy" /><el-option label="中等" value="medium" /><el-option label="困难" value="hard" />
             </el-select>
             <el-input-number v-model="aiCount" :min="1" :max="20" style="width:100px" />
-            <span style="color:#909399;font-size:13px">道题</span>
+            <span style="color:#9ca3af;font-size:13px">道题</span>
             <el-button type="warning" @click="aiGenerate" :loading="aiGenerating">
               🤖 生成题目
             </el-button>
@@ -315,7 +315,7 @@ onMounted(async () => {
 .assign-page { }
 .page-header { margin-bottom: 16px; }
 .page-header h2 { margin: 0 0 4px 0; font-size: 22px; }
-.subtitle { color: #909399; font-size: 14px; margin: 0; }
+.subtitle { color: #9ca3af; font-size: 14px; margin: 0; }
 .toolbar { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
 
 .mode-tabs { display: flex; gap: 0; margin-bottom: 20px; border-radius: 10px; overflow: hidden; }
@@ -325,13 +325,13 @@ onMounted(async () => {
 }
 .mode-btn:first-child { border-radius: 10px 0 0 10px; }
 .mode-btn:last-child { border-radius: 0 10px 10px 0; }
-.mode-btn:hover { border-color: #409EFF; }
-.mode-btn.active { background: #409EFF; color: #fff; border-color: #409EFF; }
+.mode-btn:hover { border-color: #5b8def; }
+.mode-btn.active { background: #5b8def; color: #fff; border-color: #5b8def; }
 
-.mode-panel { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.mode-panel { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.04); }
 
 .filter-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
-.filter-summary { font-size: 13px; color: #909399; }
+.filter-summary { font-size: 13px; color: #9ca3af; }
 
 .question-list { display: flex; flex-direction: column; gap: 4px; max-height: 480px; overflow-y: auto; margin-bottom: 16px; }
 .question-row {
@@ -339,16 +339,16 @@ onMounted(async () => {
   border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; transition: all 0.15s;
 }
 .question-row:hover { background: #f8f9ff; border-color: #c0c4ff; }
-.question-row.selected { background: #e8f4ff; border-color: #409EFF; }
-.ai-row { border-left: 3px solid #E6A23C; }
-.q-chapter { font-size: 12px; color: #909399; min-width: 100px; }
-.q-content { flex: 1; font-size: 13px; color: #303133; }
+.question-row.selected { background: rgba(91,141,239,0.06); border-color: #5b8def; }
+.ai-row { border-left: 3px solid #f59e0b; }
+.q-chapter { font-size: 12px; color: #9ca3af; min-width: 100px; }
+.q-content { flex: 1; font-size: 13px; color: #1a1a2e; }
 
 .assign-bar { display: flex; gap: 12px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
 
 .ai-form { }
 .ai-form-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.ai-hint { font-size: 12px; color: #909399; margin-top: 8px; }
+.ai-hint { font-size: 12px; color: #9ca3af; margin-top: 8px; }
 .ai-result { margin-top: 20px; border-top: 1px solid #f0f0f0; padding-top: 16px; }
 .ai-result h4 { margin: 0 0 10px 0; font-size: 15px; }
 </style>

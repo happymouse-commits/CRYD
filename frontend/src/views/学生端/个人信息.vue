@@ -109,5 +109,14 @@ onMounted(() => { resetForm() })
 
 <style scoped>
 .my-info-page { padding: 0; }
-.card-header { font-weight: 600; }
+.my-info-page :deep(.el-card) {
+  border-radius: 14px;
+  border: 1px solid #eef0f4;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+.my-info-page :deep(.el-card__header) {
+  background: #fafbfd;
+  border-bottom: 1px solid #eef0f4;
+}
+.card-header { font-weight: 600; color: #374151; font-size: 14px; display: flex; align-items: center; gap: 6px; }
 </style>

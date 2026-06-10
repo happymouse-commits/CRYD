@@ -293,22 +293,22 @@ function initTreeChart() {
       trigger: 'item',
       triggerOn: 'mousemove',
       backgroundColor: '#fff',
-      borderColor: '#409EFF',
+      borderColor: '#5b8def',
       borderWidth: 2,
       borderRadius: 8,
       padding: [12, 16],
-      textStyle: { color: '#303133', fontSize: 13 },
+      textStyle: { color: '#1a1a2e', fontSize: 13 },
       formatter: function (params) {
         if (params.dataType !== 'node') return ''
         const d = params.data
         if (!d || d.value === 'root') return `<b>${d.name}</b>`
         return `
           <div style="max-width:260px">
-            <b style="font-size:15px;color:#409EFF">${d.icon || ''} ${d.name}</b>
-            ${d.difficulty ? `<br/><span style="color:#909399">难度：</span>${d.difficulty}` : ''}
-            ${d.estimatedHours ? `<br/><span style="color:#909399">建议学时：</span>${d.estimatedHours}` : ''}
-            ${d.description ? `<br/><span style="color:#909399">简介：</span><span style="font-size:12px">${d.description.slice(0, 80)}...</span>` : ''}
-            <br/><span style="color:#409EFF;font-size:12px">💡 点击查看详情</span>
+            <b style="font-size:15px;color:#5b8def">${d.icon || ''} ${d.name}</b>
+            ${d.difficulty ? `<br/><span style="color:#9ca3af">难度：</span>${d.difficulty}` : ''}
+            ${d.estimatedHours ? `<br/><span style="color:#9ca3af">建议学时：</span>${d.estimatedHours}` : ''}
+            ${d.description ? `<br/><span style="color:#9ca3af">简介：</span><span style="font-size:12px">${d.description.slice(0, 80)}...</span>` : ''}
+            <br/><span style="color:#5b8def;font-size:12px">💡 点击查看详情</span>
           </div>
         `
       }
@@ -331,7 +331,7 @@ function initTreeChart() {
           verticalAlign: 'middle',
           align: 'left',
           fontSize: 12,
-          color: '#303133',
+          color: '#1a1a2e',
           formatter: function (params) {
             const d = params.data
             const icon = d.icon || ''
@@ -349,7 +349,7 @@ function initTreeChart() {
             verticalAlign: 'middle',
             align: 'left',
             fontSize: 11,
-            color: '#606266'
+            color: '#374151'
           }
         },
         lineStyle: {
@@ -358,19 +358,19 @@ function initTreeChart() {
           curveness: 0.5
         },
         itemStyle: {
-          color: '#409EFF',
-          borderColor: '#409EFF',
+          color: '#5b8def',
+          borderColor: '#5b8def',
           borderWidth: 2
         },
         emphasis: {
           focus: 'descendant',
-          lineStyle: { color: '#409EFF', width: 3 },
-          itemStyle: { shadowBlur: 12, shadowColor: 'rgba(64,158,255,0.5)' }
+          lineStyle: { color: '#5b8def', width: 3 },
+          itemStyle: { shadowBlur: 12, shadowColor: 'rgba(91,141,239,0.5)' }
         },
         // 叶子节点样式
         leavesStyle: {
           color: '#fff',
-          borderColor: '#67C23A',
+          borderColor: '#34d399',
           borderWidth: 1.5
         }
       }
@@ -479,67 +479,69 @@ onMounted(() => {
 <style scoped>
 .learning-path-page { }
 .page-header { margin-bottom: 20px; }
-.page-header h2 { margin: 0 0 4px 0; font-size: 22px; }
-.subtitle { color: #909399; font-size: 14px; margin: 0; }
+.page-header h2 { margin: 0 0 4px 0; font-size: 20px; font-weight: 700; color: #1a1a2e; }
+.subtitle { color: #9ca3af; font-size: 13px; margin: 0; }
 
-.stats-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.stats-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 
 .checkin-section { margin-bottom: 20px; }
-.checkin-section h3 { margin-bottom: 12px; font-size: 17px; }
-.checkin-bar { display: flex; align-items: center; gap: 16px; }
-.streak-info { font-size: 14px; font-weight: 600; color: #67C23A; }
+.checkin-section h3 { margin-bottom: 12px; font-size: 16px; color: #374151; }
+.checkin-bar { display: flex; align-items: center; gap: 12px; }
+.streak-info { font-size: 13px; font-weight: 600; color: #34d399; }
 
 .stat-card {
-  flex: 1; min-width: 140px; background: #fff; border-radius: 12px; padding: 16px 20px;
-  display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  flex: 1; min-width: 140px; background: #fff; border-radius: 14px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4;
 }
-.stat-icon { font-size: 28px; }
-.stat-value { font-size: 24px; font-weight: 700; color: #303133; }
-.stat-label { font-size: 13px; color: #909399; }
+.stat-icon { font-size: 26px; }
+.stat-value { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+.stat-label { font-size: 12px; color: #9ca3af; }
 
-.ai-path-section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.ai-path-section {
+  background: #fff; border-radius: 14px; padding: 20px;
+  margin-bottom: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4;
+}
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.section-header h3 { margin: 0; font-size: 17px; }
-.ai-path-content { }
+.section-header h3 { margin: 0; font-size: 16px; color: #374151; }
 .path-progress-bar { margin-bottom: 20px; padding: 16px 0; }
-.path-detail { padding: 16px; background: #f8f9fa; border-radius: 8px; max-height: 500px; overflow-y: auto; line-height: 1.8; font-size: 14px; }
-.path-detail :deep(h2) { font-size: 19px; margin: 18px 0 8px; color: #303133; }
-.path-detail :deep(h3) { font-size: 16px; margin: 14px 0 6px; color: #303133; }
-.path-detail :deep(h4) { font-size: 14px; margin: 10px 0 4px; color: #303133; }
+.path-detail {
+  padding: 16px; background: #fafbfd; border-radius: 10px;
+  max-height: 500px; overflow-y: auto; line-height: 1.8; font-size: 14px;
+  border: 1px solid #f0f2f5;
+}
+.path-detail :deep(h2) { font-size: 18px; margin: 16px 0 8px; color: #1a1a2e; }
+.path-detail :deep(h3) { font-size: 15px; margin: 12px 0 6px; color: #1a1a2e; }
+.path-detail :deep(h4) { font-size: 14px; margin: 10px 0 4px; color: #374151; }
 .path-detail :deep(p) { margin: 0 0 8px; }
 .path-detail :deep(ul), .path-detail :deep(ol) { margin: 6px 0; padding-left: 20px; }
 .path-detail :deep(li) { margin-bottom: 3px; }
-.path-detail :deep(pre) { background: #e8e8f0; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
-.path-detail :deep(code) { font-family: Consolas, monospace; font-size: 13px; }
+.path-detail :deep(pre) { background: #f5f7fa; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
+.path-detail :deep(code) { font-family: Consolas, 'Courier New', monospace; font-size: 13px; }
 .path-detail :deep(pre code) { background: none; padding: 0; }
-.path-detail :deep(blockquote) { border-left: 3px solid #409EFF; padding: 4px 12px; margin: 8px 0; background: #ecf5ff; border-radius: 0 4px 4px 0; }
+.path-detail :deep(blockquote) { border-left: 3px solid #5b8def; padding: 4px 12px; margin: 8px 0; background: rgba(91,141,239,0.04); border-radius: 0 6px 6px 0; }
 .path-detail :deep(table) { border-collapse: collapse; margin: 8px 0; }
-.path-detail :deep(th), .path-detail :deep(td) { border: 1px solid #dcdfe6; padding: 6px 10px; }
+.path-detail :deep(th), .path-detail :deep(td) { border: 1px solid #e5e7eb; padding: 6px 10px; }
 .no-path-hint { padding: 20px 0; }
 
 /* 知识体系树状图 */
 .tree-section {
-  background: #fff; border-radius: 12px; padding: 20px;
-  margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  background: #fff; border-radius: 14px; padding: 20px;
+  margin-bottom: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4;
 }
-.tree-section .section-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 8px;
-}
-.tree-section .section-header h3 { margin: 0; font-size: 17px; }
-.tree-hint { font-size: 12px; color: #909399; }
+.tree-section .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.tree-section .section-header h3 { margin: 0; font-size: 16px; color: #374151; }
+.tree-hint { font-size: 11px; color: #9ca3af; }
 .tree-container { width: 100%; }
-.tree-chart { width: 100%; height: 520px; }
+.tree-chart { width: 100%; height: 480px; }
 
 /* 节点详情弹窗 */
-.node-detail-header {
-  display: flex; align-items: center; gap: 12px;
-}
-.node-detail-header h3 { margin: 0; font-size: 18px; color: #303133; }
-.node-detail-icon { font-size: 32px; }
-.detail-section { margin-bottom: 16px; }
-.detail-section h4 { margin: 0 0 8px 0; font-size: 14px; color: #606266; }
-.detail-section p { margin: 0; font-size: 14px; color: #303133; line-height: 1.8; }
+.node-detail-header { display: flex; align-items: center; gap: 12px; }
+.node-detail-header h3 { margin: 0; font-size: 17px; color: #1a1a2e; }
+.node-detail-icon { font-size: 30px; }
+.detail-section { margin-bottom: 14px; }
+.detail-section h4 { margin: 0 0 6px 0; font-size: 13px; color: #6b7280; }
+.detail-section p { margin: 0; font-size: 13px; color: #374151; line-height: 1.8; }
 .keyword-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 
 </style>

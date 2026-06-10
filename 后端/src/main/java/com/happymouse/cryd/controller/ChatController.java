@@ -4,7 +4,10 @@ import com.happymouse.cryd.common.Result;
 import com.happymouse.cryd.model.dto.ChatRequest;
 import com.happymouse.cryd.model.dto.ChatResponse;
 import com.happymouse.cryd.model.entity.ChatMessage;
+import com.happymouse.cryd.model.entity.Student;
 import com.happymouse.cryd.repository.ChatMessageRepository;
+import com.happymouse.cryd.repository.StudentRepository;
+import com.happymouse.cryd.service.OnboardingService;
 import com.happymouse.cryd.service.agent.AgentOrchestrator;
 import com.happymouse.cryd.service.rag.RagService;
 import com.happymouse.cryd.service.rag.VectorStore;
@@ -30,17 +33,23 @@ public class ChatController {
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
     private final AgentOrchestrator orchestrator;
     private final ChatMessageRepository chatMessageRepository;
+    private final StudentRepository studentRepository;
+    private final OnboardingService onboardingService;
 
     private final SparkClient sparkClient;
     private final RagService ragService;
     private final VectorStore vectorStore;
-    
+
     @Value("${server.port:8080}")
     private String serverPort;
 
-    public ChatController(AgentOrchestrator orchestrator, ChatMessageRepository chatMessageRepository, SparkClient sparkClient, RagService ragService, VectorStore vectorStore) {
+    public ChatController(AgentOrchestrator orchestrator, ChatMessageRepository chatMessageRepository,
+                          StudentRepository studentRepository, OnboardingService onboardingService,
+                          SparkClient sparkClient, RagService ragService, VectorStore vectorStore) {
         this.orchestrator = orchestrator;
         this.chatMessageRepository = chatMessageRepository;
+        this.studentRepository = studentRepository;
+        this.onboardingService = onboardingService;
         this.sparkClient = sparkClient;
         this.ragService = ragService;
         this.vectorStore = vectorStore;
@@ -48,30 +57,104 @@ public class ChatController {
 
     @PostMapping("/send")
     public Result<ChatResponse> send(@RequestBody ChatRequest request) {
-        log.info("收到聊天请求: studentId={}", request.getStudentId());
+        log.info("收到聊天请求: studentId={}, msg={}", request.getStudentId(),
+            request.getMessage() != null ? request.getMessage().substring(0, Math.min(50, request.getMessage().length())) : "null");
+
+        // 查找学生
+        Student student = studentRepository.findByUsername("student_" + request.getStudentId())
+            .orElse(null);
+
+        // ★ 检测引导模式触发词
+        boolean isOnboarding = "__START_ONBOARDING__".equals(request.getMessage());
+        boolean isGreeting = "__GREETING__".equals(request.getMessage());
+        boolean isSpecialTrigger = isOnboarding || isGreeting;
+
+        // 如果是引导触发，把消息内容替换为更自然的提示
+        String displayMessage = isSpecialTrigger ? (isOnboarding ? "开始引导对话" : "打个招呼") : request.getMessage();
 
         ChatMessage userMsg = new ChatMessage();
         userMsg.setStudentId(request.getStudentId());
         userMsg.setRole("user");
-        userMsg.setContent(request.getMessage());
+        userMsg.setContent(displayMessage);
         chatMessageRepository.save(userMsg);
 
         try {
-            String msg = request.getMessage();
-            // 短消息且非复杂问题 → 快速通道，跳过 PipelineOrchestrator
-            boolean isShort = msg != null && msg.length() < 30;
-            boolean isComplex = msg != null && (msg.contains("代码") || msg.contains("编程")
-                    || msg.contains("算法") || msg.contains("指针") || msg.contains("题目"));
             ChatResponse response;
-            if (isShort && !isComplex) {
-                String aiReply = sparkClient.chat(
-                    "你是C语言辅导老师，回答简洁友好。学生水平：大一。",
-                    msg, 0.5f, 512);
+            String systemPrompt;
+            String userPrompt;
+
+            if (isOnboarding && student != null) {
+                // 引导模式：使用 OnboardingService 生成专属 System Prompt
+                systemPrompt = onboardingService.buildSystemPrompt(student);
+                userPrompt = "你好，请开始引导对话";
+            } else if (isGreeting && student != null) {
+                // 打招呼模式：友好的简短欢迎
+                systemPrompt = onboardingService.buildSystemPrompt(student);
+                userPrompt = "打个招呼";
+            } else {
+                // 正常聊天模式
+                String msg = request.getMessage();
+                boolean isShort = msg != null && msg.length() < 30;
+                boolean isComplex = msg != null && (msg.contains("代码") || msg.contains("编程")
+                        || msg.contains("算法") || msg.contains("指针") || msg.contains("题目"));
+                if (isShort && !isComplex) {
+                    systemPrompt = "你是C语言辅导老师，回答简洁友好。学生水平：大一。";
+                } else {
+                    systemPrompt = null; // 走 PipelineOrchestrator
+                }
+                userPrompt = msg;
+            }
+
+            // 调用 LLM
+            if (systemPrompt != null && !isOnboarding && !isGreeting) {
+                // 快速通道
+                String aiReply = sparkClient.chat(systemPrompt, userPrompt, 0.5f, 512);
                 response = new ChatResponse();
                 response.setAgentName("辅导老师");
                 response.setMessage(aiReply);
+            } else if (isOnboarding || isGreeting) {
+                // 引导/打招呼 → 使用带历史的多轮对话
+                String aiReply = sparkClient.chat(systemPrompt, userPrompt, 0.5f, 2048);
+                response = new ChatResponse();
+                response.setAgentName("小智老师");
+                response.setMessage(aiReply);
             } else {
+                // 完整 Pipeline
                 response = orchestrator.process(request);
+            }
+
+            // ★ 每次对话都实时提取画像
+            try {
+                if (student != null && !isSpecialTrigger) {
+                    onboardingService.extractAndUpdateProfile(student, request.getMessage());
+                }
+            } catch (Exception e) {
+                log.warn("画像提取跳过: {}", e.getMessage());
+            }
+
+            // ★ 如果画像完整度刚达标，异步触发路径和资源生成
+            if (student != null && onboardingService.calcCompleteness(student) >= 70) {
+                Thread.ofVirtual().start(() -> {
+                    try {
+                        log.info("画像完整度达标({}%)，异步生成学习路径和资源",
+                            onboardingService.calcCompleteness(student));
+                        // 路径规划师生成学习路径
+                        ChatRequest pathReq = new ChatRequest();
+                        pathReq.setStudentId(request.getStudentId());
+                        pathReq.setMessage("根据最新画像生成个性化学习路径");
+                        orchestrator.process(pathReq);
+
+                        // 课程设计师生成学习资源
+                        ChatRequest resReq = new ChatRequest();
+                        resReq.setStudentId(request.getStudentId());
+                        resReq.setMessage("根据画像和学习路径生成配套学习资料（PPT、习题、思维导图）");
+                        orchestrator.process(resReq);
+
+                        log.info("异步生成完成: studentId={}", request.getStudentId());
+                    } catch (Exception e) {
+                        log.warn("自动生成路径/资源失败: {}", e.getMessage());
+                    }
+                });
             }
 
             ChatMessage aiMsg = new ChatMessage();

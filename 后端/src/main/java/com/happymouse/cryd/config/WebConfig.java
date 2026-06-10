@@ -34,8 +34,10 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addViewController("/student").setViewName("forward:/index.html");
         registry.addViewController("/teacher").setViewName("forward:/index.html");
         registry.addViewController("/admin").setViewName("forward:/index.html");
-        // Root path redirects to login page
-        registry.addRedirectViewController("/", "/login.html");
+        // Vue Router handles /login route internally, so redirect root to index.html
+        registry.addRedirectViewController("/", "/index.html");
+        // Backward compat: /login.html also goes to index.html
+        registry.addRedirectViewController("/login.html", "/index.html");
         registry.setOrder(Ordered.HIGHEST_PRECEDENCE);
     }
 

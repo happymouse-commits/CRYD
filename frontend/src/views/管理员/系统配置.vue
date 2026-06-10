@@ -374,9 +374,9 @@ onMounted(loadConfig)
 }
 .card-header .el-tag { margin-left: auto; }
 
-.param-hint { color: #909399; font-size: 12px; margin-top: 2px; display: block; }
+.param-hint { color: #9ca3af; font-size: 12px; margin-top: 2px; display: block; }
 
-.section-label { font-size: 14px; color: #606266; margin: 0 0 12px 0; font-weight: 500; }
+.section-label { font-size: 14px; color: #374151; margin: 0 0 12px 0; font-weight: 500; }
 
 .agent-priority-section { padding: 4px 0; }
 
@@ -386,5 +386,5 @@ onMounted(loadConfig)
   padding: 10px 12px; background: #f6f8fa;
   border-radius: 8px; margin-bottom: 8px;
 }
-.toggle-label { font-size: 14px; color: #303133; flex: 1; }
+.toggle-label { font-size: 14px; color: #1a1a2e; flex: 1; }
 </style>

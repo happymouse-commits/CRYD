@@ -81,14 +81,14 @@ const radarChartRef = ref(null)
 let radarChart = null
 
 const dimensions = ref([
-  { key: 'knowledgeLevel',  name: '知识基础', icon: '📚', value: null, score: null, color: '#409EFF', desc: '已掌握知识的深度与广度' },
-  { key: 'cognitiveStyle',  name: '认知风格', icon: '🧠', value: null, score: null, color: '#67C23A', desc: '获取与处理信息的方式偏好' },
-  { key: 'learningPreference', name: '学习偏好', icon: '🎯', value: null, score: null, color: '#E6A23C', desc: '偏好的学习资源与活动类型' },
-  { key: 'learningPace',    name: '学习节奏', icon: '⏱️', value: null, score: null, color: '#F56C6C', desc: '学习速度与进度倾向' },
-  { key: 'interestDirection', name: '兴趣方向', icon: '⭐', value: null, score: null, color: '#909399', desc: '感兴趣的知识领域与方向' },
-  { key: 'weakAreas',       name: '薄弱环节', icon: '⚠️', value: null, score: null, color: '#E6A23C', desc: '需要加强的知识薄弱点' },
-  { key: 'studyMotivation', name: '学习动机', icon: '💪', value: null, score: null, color: '#409EFF', desc: '驱动学习的动力来源类型' },
-  { key: 'focusLevel',      name: '专注力',   icon: '🔥', value: null, score: null, color: '#67C23A', desc: '学习过程中的注意力水平' },
+  { key: 'knowledgeLevel',  name: '知识基础', icon: '📚', value: null, score: null, color: '#5b8def', desc: '已掌握知识的深度与广度' },
+  { key: 'cognitiveStyle',  name: '认知风格', icon: '🧠', value: null, score: null, color: '#34d399', desc: '获取与处理信息的方式偏好' },
+  { key: 'learningPreference', name: '学习偏好', icon: '🎯', value: null, score: null, color: '#f59e0b', desc: '偏好的学习资源与活动类型' },
+  { key: 'learningPace',    name: '学习节奏', icon: '⏱️', value: null, score: null, color: '#f87171', desc: '学习速度与进度倾向' },
+  { key: 'interestDirection', name: '兴趣方向', icon: '⭐', value: null, score: null, color: '#9ca3af', desc: '感兴趣的知识领域与方向' },
+  { key: 'weakAreas',       name: '薄弱环节', icon: '⚠️', value: null, score: null, color: '#f59e0b', desc: '需要加强的知识薄弱点' },
+  { key: 'studyMotivation', name: '学习动机', icon: '💪', value: null, score: null, color: '#5b8def', desc: '驱动学习的动力来源类型' },
+  { key: 'focusLevel',      name: '专注力',   icon: '🔥', value: null, score: null, color: '#34d399', desc: '学习过程中的注意力水平' },
 ])
 
 const dimensionKeys = [
@@ -158,7 +158,7 @@ function buildRadarOption() {
       center: ['50%', '52%'],
       radius: '65%',
       axisName: {
-        color: '#606266',
+        color: '#6b7280',
         fontSize: 11,
         borderRadius: 3,
         padding: [3, 5],
@@ -180,7 +180,7 @@ function buildRadarOption() {
           color: ['#fff', '#f5f7fa', '#fff', '#f5f7fa', '#fff']
         }
       },
-      axisLine: { lineStyle: { color: '#dcdfe6' } },
+      axisLine: { lineStyle: { color: '#e5e7eb' } },
       splitLine: { lineStyle: { color: '#e4e7ed' } }
     },
     series: [{
@@ -193,20 +193,20 @@ function buildRadarOption() {
             type: 'radial',
             x: 0.5, y: 0.5, r: 0.5,
             colorStops: [
-              { offset: 0, color: 'rgba(64,158,255,0.35)' },
-              { offset: 1, color: 'rgba(64,158,255,0.08)' }
+              { offset: 0, color: 'rgba(91,141,239,0.3)' },
+              { offset: 1, color: 'rgba(91,141,239,0.06)' }
             ]
           }
         },
-        lineStyle: { color: '#409EFF', width: 2 },
-        itemStyle: { color: '#409EFF', borderColor: '#409EFF', borderWidth: 2 },
+        lineStyle: { color: '#5b8def', width: 2 },
+        itemStyle: { color: '#5b8def', borderColor: '#5b8def', borderWidth: 2 },
         symbol: 'circle',
         symbolSize: 6,
-        label: { show: true, fontSize: 10, color: '#409EFF', fontWeight: 600 }
+        label: { show: true, fontSize: 10, color: '#5b8def', fontWeight: 600 }
       }],
       emphasis: {
         lineStyle: { width: 3 },
-        areaStyle: { color: 'rgba(64,158,255,0.5)' }
+        areaStyle: { color: 'rgba(91,141,239,0.4)' }
       }
     }]
   }
@@ -280,128 +280,79 @@ onMounted(() => {
   display: flex; justify-content: space-between; align-items: flex-start;
   margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
 }
-.page-header h2 { margin: 0 0 4px 0; font-size: 22px; }
-.subtitle { color: #909399; font-size: 14px; margin: 0; }
+.page-header h2 { margin: 0 0 4px 0; font-size: 20px; font-weight: 700; color: #1a1a2e; }
+.subtitle { color: #9ca3af; font-size: 13px; margin: 0; }
 .header-right { display: flex; align-items: center; gap: 12px; }
-.update-time { color: #909399; font-size: 12px; }
+.update-time { color: #9ca3af; font-size: 12px; }
 
-.card-header { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; }
+/* 主卡片 */
+.profile-card {
+  border-radius: 16px !important;
+  border: 1px solid #eef0f4 !important;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.04) !important;
+  overflow: hidden;
+}
+.profile-card :deep(.el-card__header) {
+  background: #fafbfd;
+  border-bottom: 1px solid #eef0f4;
+}
+.card-header { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: #374151; }
 
 /* 左右布局 */
-.profile-body {
-  display: flex;
-  gap: 0;
-}
+.profile-body { display: flex; gap: 0; }
 .radar-panel {
-  flex: 0 0 400px;
-  width: 400px;
+  flex: 0 0 360px; width: 360px;
   padding: 20px 10px 16px 10px;
-  border-right: 1px solid #ebeef5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  border-right: 1px solid #eef0f4;
+  display: flex; flex-direction: column; align-items: center;
 }
-.radar-chart {
-  width: 380px;
-  height: 380px;
-}
+.radar-chart { width: 340px; height: 360px; }
 .radar-legend {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px 14px;
-  margin-top: 4px;
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 6px 12px; margin-top: 4px;
 }
-.legend-item {
-  font-size: 12px;
-  color: #606266;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
+.legend-item { font-size: 11px; color: #6b7280; display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 
-.dim-panel {
-  flex: 1;
-  padding: 20px 20px 16px 20px;
-  min-width: 0;
-}
-.profile-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-}
+.dim-panel { flex: 1; padding: 16px 16px 12px 16px; min-width: 0; }
+.profile-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .dim-card {
-  background: #f5f7fa; border-radius: 12px;
-  padding: 16px 14px; text-align: center;
-  border: 1.5px solid transparent;
-  border-left: 4px solid #dcdfe6;
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
+  background: #fafbfd; border-radius: 12px;
+  padding: 14px 10px; text-align: center;
+  border: 1px solid #eef0f4;
+  border-left: 3px solid #e5e7eb;
+  transition: all 0.25s;
 }
-.dim-card.active { background: #f0f5ff; border-color: #d9ecff; }
-.dim-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.dim-card.active { background: rgba(91,141,239,0.04); border-color: #dbeafe; }
+.dim-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.06); border-color: #dbeafe; }
 
-.dim-top {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  margin-bottom: 8px;
-}
-.dim-icon { font-size: 26px; }
-.dim-name { font-size: 13px; color: #606266; font-weight: 500; }
+.dim-top { display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 6px; }
+.dim-icon { font-size: 22px; }
+.dim-name { font-size: 12px; color: #6b7280; font-weight: 500; }
 
 .dim-value { margin-bottom: 2px; }
-.dim-score {
-  display: block; font-size: 28px; color: #409EFF; font-weight: 700;
-  margin-bottom: 2px;
-}
-.dim-card:nth-child(2) .dim-score { color: #67C23A; }
-.dim-card:nth-child(3) .dim-score { color: #E6A23C; }
-.dim-card:nth-child(4) .dim-score { color: #F56C6C; }
-.dim-card:nth-child(5) .dim-score { color: #909399; }
-.dim-card:nth-child(6) .dim-score { color: #E6A23C; }
-.dim-card:nth-child(7) .dim-score { color: #409EFF; }
-.dim-card:nth-child(8) .dim-score { color: #67C23A; }
+.dim-score { display: block; font-size: 26px; color: #5b8def; font-weight: 700; margin-bottom: 2px; }
+.dim-card:nth-child(2) .dim-score { color: #34d399; }
+.dim-card:nth-child(3) .dim-score { color: #f59e0b; }
+.dim-card:nth-child(4) .dim-score { color: #f87171; }
+.dim-card:nth-child(5) .dim-score { color: #8b5cf6; }
+.dim-card:nth-child(6) .dim-score { color: #f59e0b; }
+.dim-card:nth-child(7) .dim-score { color: #5b8def; }
+.dim-card:nth-child(8) .dim-score { color: #34d399; }
 
-.dim-text { font-size: 14px; font-weight: 600; color: #303133; }
-.dim-empty {
-  font-size: 13px; color: #c0c4cc;
-  display: flex; align-items: center; justify-content: center; gap: 4px;
-  margin-bottom: 2px;
-}
+.dim-text { font-size: 13px; font-weight: 600; color: #374151; }
+.dim-empty { font-size: 12px; color: #d1d5db; display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 2px; }
 
 /* 进度条 */
-.dim-bar {
-  margin-top: 10px;
-  height: 4px;
-  background: #e4e7ed;
-  border-radius: 2px;
-  overflow: hidden;
-}
-.dim-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.6s ease;
-}
+.dim-bar { margin-top: 8px; height: 3px; background: #e5e7eb; border-radius: 2px; overflow: hidden; }
+.dim-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
 
 @media (max-width: 1200px) {
   .profile-body { flex-direction: column; }
-  .radar-panel {
-    flex: none; width: 100%; border-right: none;
-    border-bottom: 1px solid #ebeef5;
-  }
-  .radar-chart { width: 100%; max-width: 400px; height: 340px; }
+  .radar-panel { flex: none; width: 100%; border-right: none; border-bottom: 1px solid #eef0f4; }
+  .radar-chart { width: 100%; max-width: 360px; height: 320px; }
   .profile-grid { grid-template-columns: repeat(4, 1fr); }
 }
-@media (max-width: 900px) {
-  .profile-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 600px) {
-  .profile-grid { grid-template-columns: 1fr; }
-}
+@media (max-width: 900px) { .profile-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .profile-grid { grid-template-columns: 1fr; } }
 </style>

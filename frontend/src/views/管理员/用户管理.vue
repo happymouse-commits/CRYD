@@ -510,19 +510,19 @@ onMounted(loadUsers)
 .count-info { color: #86909c; font-size: 13px; }
 .username-cell { font-weight: 600; color: #1890ff; }
 .nickname-cell { color: #262626; }
-.time-cell { color: #909399; font-size: 12px; }
+.time-cell { color: #9ca3af; font-size: 12px; }
 :deep(.row-disabled) { opacity: 0.55; background-color: #fafafa; }
 
 .import-tip { margin-bottom: 16px; }
 .import-example { margin-top: 12px; }
-.import-example p { font-size: 13px; color: #606266; margin-bottom: 8px; }
+.import-example p { font-size: 13px; color: #374151; margin-bottom: 8px; }
 .example-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .example-table th, .example-table td {
-  border: 1px solid #dcdfe6; padding: 6px 8px; text-align: left;
+  border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left;
 }
-.example-table th { background: #f5f7fa; font-weight: 600; color: #606266; }
-.upload-tip { color: #909399; font-size: 12px; margin-top: 6px; }
+.example-table th { background: #fafbfd; font-weight: 600; color: #374151; }
+.upload-tip { color: #9ca3af; font-size: 12px; margin-top: 6px; }
 .import-preview { margin-top: 12px; }
-.preview-title { font-size: 13px; color: #606266; margin-bottom: 8px; }
-.preview-more { font-size: 12px; color: #909399; margin-top: 4px; }
+.preview-title { font-size: 13px; color: #374151; margin-bottom: 8px; }
+.preview-more { font-size: 12px; color: #9ca3af; margin-top: 4px; }
 </style>

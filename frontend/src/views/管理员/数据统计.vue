@@ -161,7 +161,7 @@ const featureUsage = ref([
   { name: '学习资源', count: 956, percent: 14, color: '#fa8c16' },
   { name: '疑难突破', count: 623, percent: 9, color: '#722ed1' },
   { name: '学习路径', count: 341, percent: 5, color: '#13c2c2' },
-  { name: '其他', count: 128, percent: 2, color: '#909399' },
+  { name: '其他', count: 128, percent: 2, color: '#9ca3af' },
 ])
 
 const anomalies = ref([])
@@ -334,7 +334,7 @@ onBeforeUnmount(() => {
   align-self: flex-start;
 }
 .metric-trend.up { color: #52c41a; background: #f0fdf4; }
-.metric-trend.down { color: #f5222d; background: #fef0f0; }
+.metric-trend.down { color: #f5222d; background: rgba(248,113,113,0.08); }
 
 .metric-blue .metric-value { color: #1890ff; }
 .metric-green .metric-value { color: #52c41a; }
@@ -356,11 +356,11 @@ onBeforeUnmount(() => {
   background: #f0f2f5; flex-shrink: 0;
 }
 .rank-num.top3 { color: #fff; background: #1890ff; }
-.rank-name { width: 72px; font-size: 13px; color: #303133; flex-shrink: 0; }
-.rank-bar-wrapper { flex: 1; height: 20px; background: #f0f2f5; border-radius: 10px; overflow: hidden; }
+.rank-name { width: 72px; font-size: 13px; color: #1a1a2e; flex-shrink: 0; }
+.rank-bar-wrapper { flex: 1; height: 20px; background: #f3f4f6; border-radius: 10px; overflow: hidden; }
 .rank-bar { height: 100%; border-radius: 10px; transition: width 0.6s; min-width: 4px; }
-.rank-val { font-size: 12px; color: #606266; width: 48px; text-align: right; }
-.rank-pct { font-size: 12px; color: #909399; width: 36px; text-align: right; }
+.rank-val { font-size: 12px; color: #374151; width: 48px; text-align: right; }
+.rank-pct { font-size: 12px; color: #9ca3af; width: 36px; text-align: right; }
 
 .anomaly-list {
   max-height: 300px; overflow-y: auto;
@@ -371,6 +371,6 @@ onBeforeUnmount(() => {
   border-left: 3px solid #e8e8e8;
 }
 .anomaly-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.anomaly-time { font-size: 12px; color: #909399; }
-.anomaly-msg { font-size: 13px; color: #606266; margin: 0; line-height: 1.5; }
+.anomaly-time { font-size: 12px; color: #9ca3af; }
+.anomaly-msg { font-size: 13px; color: #374151; margin: 0; line-height: 1.5; }
 </style>
