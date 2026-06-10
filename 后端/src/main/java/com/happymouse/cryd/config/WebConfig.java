@@ -43,8 +43,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/assets/**")
-                .addResourceLocations("classpath:/static/assets/")
-                .setCachePeriod(0);
+        // 静态资源由 spring.web.resources.static-locations 全局配置接管
+        // 这里不覆盖 /assets/** 映射，避免覆盖全局配置
     }
 }
