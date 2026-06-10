@@ -1,0 +1,16 @@
+[Unit]
+Description=CRYD Learning Platform v2
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/sghr-v2/app
+ExecStart=/usr/bin/java -jar /opt/sghr-v2/app/cryd-1.0.0.jar --server.port=8081
+Restart=on-failure
+RestartSec=5
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
