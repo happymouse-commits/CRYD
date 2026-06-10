@@ -50,7 +50,9 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const store = useUserStore()
-  if (!store.isLoggedIn) {
+  // 白名单：不需要登录就能访问的路径
+  const publicPaths = ['/login', '/login.html']
+  if (!store.isLoggedIn && !publicPaths.includes(to.path)) {
     window.location.href = '/login'
     return
   }
