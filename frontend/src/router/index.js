@@ -2,9 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../store/user'
 
 const routes = [
-  { path: '/', redirect: '/login' },
-  { path: '/login.html', redirect: '/login' },  // 兼容旧版 login.html 跳转
-  { path: '/login', component: () => import('../views/Login.vue') },
+  { path: '/', redirect: '/login.html' },
   // 学生端
   { path: '/student', component: () => import('../views/学生端/布局.vue'), meta: { role: 'student' },
     children: [
@@ -50,10 +48,9 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const store = useUserStore()
-  // 白名单：不需要登录就能访问的路径
-  const publicPaths = ['/login', '/login.html']
-  if (!store.isLoggedIn && !publicPaths.includes(to.path)) {
-    window.location.href = '/login'
+  // 白名单：不需要登录就能访问
+  if (!store.isLoggedIn && to.path !== '/login.html') {
+    window.location.href = '/login.html'
     return
   }
   if (to.meta.role && to.meta.role !== store.role) return next(store.homePath)

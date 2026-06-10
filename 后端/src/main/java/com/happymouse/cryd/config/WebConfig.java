@@ -30,8 +30,8 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addViewController("/student/**").setViewName("forward:/index.html");
         registry.addViewController("/teacher/**").setViewName("forward:/index.html");
         registry.addViewController("/admin/**").setViewName("forward:/index.html");
-        registry.addViewController("/login").setViewName("forward:/index.html");
-        registry.addViewController("/login.html").setViewName("forward:/index.html");
+        // /login.html → 品牌静态登录页（直接返回，不转发到Vue SPA）
+        // /login → Vue SPA 登录组件
         // Root → index.html (Vue Router handles /login internally)
         registry.addRedirectViewController("/", "/index.html");
         registry.setOrder(Ordered.HIGHEST_PRECEDENCE);
