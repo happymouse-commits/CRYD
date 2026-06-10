@@ -195,6 +195,48 @@ export function useDigitalHuman() {
     messages.value = []
   }
 
+  // ----- 数字人主动发起引导 -----
+  async function initOnboarding() {
+    if (messages.value.length > 0 || loading.value) return
+    loading.value = true
+    state.mode = 'thinking'
+    state.statusText = '思考中...'
+    try {
+      // 先查画像完整度
+      let needOnboarding = true
+      try {
+        const statusRes = await api.get('/onboarding/status/' + store.id)
+        needOnboarding = statusRes.data.needOnboarding !== false
+      } catch {}
+      // 发引导触发词给 AI
+      const res = await api.post('/chat/send', {
+        studentId: store.id,
+        message: needOnboarding ? '__START_ONBOARDING__' : '__GREETING__'
+      })
+      const data = res.data
+      const aiMsg = {
+        id: Date.now(),
+        role: 'ai',
+        content: data.message,
+        displayContent: '',
+        agentName: data.agentName || '小智老师',
+        createdAt: new Date().toISOString(),
+        typing: false,
+      }
+      messages.value.push(aiMsg)
+      typewriteEffect(aiMsg, data.message, 18)
+      state.mode = 'idle'
+      state.statusText = '在线中'
+    } catch (e) {
+      state.mode = 'idle'
+      state.statusText = '在线中'
+      console.warn('数字人首发失败:', e)
+    } finally {
+      loading.value = false
+      scrollToBottom()
+    }
+  }
+
   // ============================================================
   // 返回给组件使用的接口
   // ============================================================
@@ -211,5 +253,6 @@ export function useDigitalHuman() {
     startRecording,
     stopRecording,
     clearMessages,
+    initOnboarding,
   }
 }

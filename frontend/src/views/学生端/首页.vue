@@ -353,8 +353,12 @@ function formatTime(t) {
 }
 
 // ===== 初始化 =====
-onMounted(() => {
-  dh.loadHistory()
+onMounted(async () => {
+  await dh.loadHistory()
+  // ★ 首次访问无历史 → 数字人主动发起引导对话
+  if (dh.messages.value.length === 0) {
+    setTimeout(() => dh.initOnboarding(), 500)
+  }
   loadProfile()
   loadResources()
   loadPath()
