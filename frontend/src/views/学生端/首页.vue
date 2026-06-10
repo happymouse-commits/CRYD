@@ -41,13 +41,20 @@
             <div class="digital-human-avatar" :class="dh.state.mode">
               <div class="dh-avatar-ring" :class="dh.state.mode"></div>
               <div class="dh-avatar-inner">
-                <iframe
-                  :src="'https://models.readyplayer.me/' + dh.state.avatarId + '.glb?morphTargets=ARKit,Oculus+Visemes&frame=halfbody&mask=none&background=transparent'"
-                  class="dh-iframe"
-                  allow="autoplay"
+                <model-viewer
+                  :src="'https://models.readyplayer.me/' + dh.state.avatarId + '.glb'"
+                  camera-target="0m 1.5m 0m"
+                  camera-orbit="0deg 75deg 2.5m"
+                  field-of-view="30deg"
+                  exposure="1"
+                  shadow-intensity="0"
+                  environment-image="neutral"
+                  auto-rotate
+                  rotation-per-second="15deg"
+                  interaction-prompt="none"
+                  class="dh-3d-viewer"
                   loading="lazy"
-                  title="数字人形象"
-                ></iframe>
+                ></model-viewer>
               </div>
               <!-- 对话气泡 -->
               <div class="dh-speech-bubble" v-if="dh.state.mode === 'speaking' || dh.state.mode === 'thinking'">
@@ -708,17 +715,9 @@ window.addEventListener('resize', () => {
   height: 72px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, #f8faff 0%, #eef3ff 100%);
+  background: transparent;
   box-shadow: 0 2px 16px rgba(91,141,239,0.12), 0 0 0 3px rgba(91,141,239,0.06);
   animation: avatar-float 4s ease-in-out infinite;
-}
-.dh-avatar-inner::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  box-shadow: inset 0 0 20px rgba(91,141,239,0.08);
-  pointer-events: none;
 }
 @keyframes avatar-float {
   0%,100% { transform: translateY(0); }
@@ -730,15 +729,10 @@ window.addEventListener('resize', () => {
 .digital-human-avatar.speaking .dh-avatar-inner {
   animation: avatar-float 0.7s ease-in-out infinite;
 }
-.dh-iframe {
+.dh-3d-viewer {
   width: 100%;
   height: 100%;
-  border: none;
-  border-radius: 50%;
-  transform: scale(1.6);
-  transform-origin: center 30%;
-  opacity: 0.85;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
+  --poster-color: transparent;
 }
 .dh-speech-bubble {
   position: absolute;

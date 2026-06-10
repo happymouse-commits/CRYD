@@ -259,5 +259,7 @@ export function useDigitalHuman() {
     stopRecording,
     clearMessages,
     initOnboarding,
+    /** 更换数字人形象 @param {string} id - ReadyPlayerMe avatar ID */
+    setAvatar(id) { state.avatarId = id; },
   }
 }
