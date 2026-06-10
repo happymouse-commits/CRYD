@@ -84,12 +84,12 @@ public class ChatController {
             String userPrompt;
 
             if (isOnboarding && student != null) {
-                // 引导模式：使用 OnboardingService 生成专属 System Prompt
-                systemPrompt = onboardingService.buildSystemPrompt(student);
+                // 引导模式：使用 OnboardingService 生成专属 System Prompt（含专业、错题历史）
+                systemPrompt = onboardingService.buildSystemPrompt(request.getStudentId());
                 userPrompt = "你好，请开始引导对话";
             } else if (isGreeting && student != null) {
                 // 打招呼模式：友好的简短欢迎
-                systemPrompt = onboardingService.buildSystemPrompt(student);
+                systemPrompt = onboardingService.buildSystemPrompt(request.getStudentId());
                 userPrompt = "打个招呼";
             } else {
                 // 正常聊天模式
@@ -132,27 +132,22 @@ public class ChatController {
                 log.warn("画像提取跳过: {}", e.getMessage());
             }
 
-            // ★ 如果画像完整度刚达标，异步触发路径和资源生成
+            // ★ 如果画像完整度达标，异步触发生成（先查知识库再用 LLM）
             if (student != null && onboardingService.calcCompleteness(student) >= 70) {
                 Thread.ofVirtual().start(() -> {
                     try {
-                        log.info("画像完整度达标({}%)，异步生成学习路径和资源",
+                        log.info("画像完整度达标({}%)，开始知识库增强资源生成",
                             onboardingService.calcCompleteness(student));
-                        // 路径规划师生成学习路径
+                        // 1. 知识库增强生成学习资源（先查RAG再LLM）
+                        int count = onboardingService.generateResourcesFromKnowledgeBase(request.getStudentId());
+                        log.info("知识库资源生成完成: {} 个资源", count);
+                        // 2. 路径规划师生成学习路径
                         ChatRequest pathReq = new ChatRequest();
                         pathReq.setStudentId(request.getStudentId());
-                        pathReq.setMessage("根据最新画像生成个性化学习路径");
+                        pathReq.setMessage("根据画像和知识库资源生成个性化学习路径");
                         orchestrator.process(pathReq);
-
-                        // 课程设计师生成学习资源
-                        ChatRequest resReq = new ChatRequest();
-                        resReq.setStudentId(request.getStudentId());
-                        resReq.setMessage("根据画像和学习路径生成配套学习资料（PPT、习题、思维导图）");
-                        orchestrator.process(resReq);
-
-                        log.info("异步生成完成: studentId={}", request.getStudentId());
                     } catch (Exception e) {
-                        log.warn("自动生成路径/资源失败: {}", e.getMessage());
+                        log.warn("异步生成失败: {}", e.getMessage());
                     }
                 });
             }
