@@ -7,10 +7,10 @@
       </div>
       <el-form ref="formRef" :model="form" :rules="rules" @keyup.enter="handleLogin">
         <el-form-item prop="username">
-          <el-input v-model="form.username" placeholder="用户名" prefix-icon="User" size="large" />
+          <el-input v-model="form.username" placeholder="用户名" size="large" />
         </el-form-item>
         <el-form-item prop="password">
-          <el-input v-model="form.password" type="password" placeholder="密码" prefix-icon="Lock" size="large" show-password />
+          <el-input v-model="form.password" type="password" placeholder="密码" size="large" show-password />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" size="large" :loading="loading" style="width:100%" @click="handleLogin">
