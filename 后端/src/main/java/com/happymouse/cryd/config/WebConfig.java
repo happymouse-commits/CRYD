@@ -26,18 +26,14 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        // Vue Router SPA: forward all frontend routes to index.html
+        // Vue Router SPA: forward ALL frontend routes to index.html
         registry.addViewController("/student/**").setViewName("forward:/index.html");
         registry.addViewController("/teacher/**").setViewName("forward:/index.html");
         registry.addViewController("/admin/**").setViewName("forward:/index.html");
-        // Also handle direct route access without trailing slash
-        registry.addViewController("/student").setViewName("forward:/index.html");
-        registry.addViewController("/teacher").setViewName("forward:/index.html");
-        registry.addViewController("/admin").setViewName("forward:/index.html");
-        // Vue Router handles /login route internally, so redirect root to index.html
+        registry.addViewController("/login").setViewName("forward:/index.html");
+        registry.addViewController("/login.html").setViewName("forward:/index.html");
+        // Root → index.html (Vue Router handles /login internally)
         registry.addRedirectViewController("/", "/index.html");
-        // Backward compat: /login.html also goes to index.html
-        registry.addRedirectViewController("/login.html", "/index.html");
         registry.setOrder(Ordered.HIGHEST_PRECEDENCE);
     }
 
