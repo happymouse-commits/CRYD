@@ -19,7 +19,7 @@ crontab -l   # 确认已移除
 
 ```bash
 cd /root
-git clone https://github.com/happymouse-commits/SGHR.git SGHR-v2
+git clone https://github.com/happymouse-commits/CRYD-v2.git SGHR-v2
 cd /root/SGHR-v2
 git checkout master
 ```
