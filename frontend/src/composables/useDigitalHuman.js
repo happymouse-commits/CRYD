@@ -24,7 +24,7 @@ export function useDigitalHuman() {
   const state = reactive({
     mode: 'idle',           // idle | listening | thinking | speaking | error
     avatarEmoji: '🤖',
-    avatarUrl: '',          // 2D 图片 URL（手动指定，国内可直接访问）
+    avatarUrl: '/avatar.jpg',  // 数字人形象照片（首页左下角显示）
     avatar3dUrl: '',        // 3D 模型 URL（.glb，渐进增强）
     modelViewerLoaded: false, // model-viewer 组件是否加载成功（默认false，渐进增强）
     statusText: '在线中',
