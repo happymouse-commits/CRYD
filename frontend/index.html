@@ -5,18 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CRYD - 个性化学习多智能体系统</title>
-    <!-- 3D 模型查看器（渐进增强，加载失败不影响页面） -->
-    <script>
-      // 检测是否支持 3D（国内 CDN 可能不通，失败了自动降级到 2D/Emoji）
-      (function(){
-        var s = document.createElement('script');
-        s.type = 'module';
-        s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js';
-        s.onload = function(){ window.__modelViewerReady = true; };
-        s.onerror = function(){ window.__modelViewerReady = false; };
-        document.head.appendChild(s);
-      })();
-    </script>
+    <!-- 3D 模型查看器暂时禁用，改为 2D/Emoji -->
   </head>
   <body>
     <div id="app"></div>

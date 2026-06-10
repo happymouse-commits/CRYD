@@ -26,7 +26,7 @@ export function useDigitalHuman() {
     avatarEmoji: '🤖',
     avatarUrl: '',          // 2D 图片 URL（手动指定，国内可直接访问）
     avatar3dUrl: '',        // 3D 模型 URL（.glb，渐进增强）
-    modelViewerLoaded: false, // model-viewer 组件是否加载成功
+    modelViewerLoaded: false, // model-viewer 组件是否加载成功（默认false，渐进增强）
     statusText: '在线中',
     isOnline: true,
     isRecording: false,
