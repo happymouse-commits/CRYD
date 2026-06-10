@@ -36,6 +36,25 @@
             <div v-if="dh.loading" class="msg msg-ai">
               <span class="thinking-dots"><span>●</span><span>●</span><span>●</span></span>
             </div>
+
+            <!-- ☆ 数字人 3D 虚拟形象 — 左下角 -->
+            <div class="digital-human-avatar" :class="dh.state.mode">
+              <div class="dh-avatar-ring" :class="dh.state.mode"></div>
+              <div class="dh-avatar-inner">
+                <iframe
+                  :src="'https://models.readyplayer.me/' + dh.state.avatarId + '.glb?morphTargets=ARKit,Oculus+Visemes&frame=halfbody&mask=none&background=transparent'"
+                  class="dh-iframe"
+                  allow="autoplay"
+                  loading="lazy"
+                  title="数字人形象"
+                ></iframe>
+              </div>
+              <!-- 对话气泡 -->
+              <div class="dh-speech-bubble" v-if="dh.state.mode === 'speaking' || dh.state.mode === 'thinking'">
+                <span v-if="dh.state.mode === 'thinking'">...</span>
+                <span v-else>💬</span>
+              </div>
+            </div>
           </div>
           <!-- 输入区 -->
           <div class="chat-input-row">
@@ -437,6 +456,7 @@ window.addEventListener('resize', () => {
 .chat-msgs {
   flex: 1; overflow-y: auto; padding: 4px 16px 8px;
   display: flex; flex-direction: column; gap: 7px;
+  position: relative; /* 为 3D 虚拟人定位锚点 */
 }
 .msg {
   max-width: 78%; padding: 9px 12px; border-radius: 12px;
@@ -647,6 +667,98 @@ window.addEventListener('resize', () => {
 .res-detail :deep(h3) { font-size: 15px; margin: 12px 0 6px; color: #1a1a2e; }
 .res-detail :deep(pre) { background: #f4f4f5; padding: 10px; border-radius: 6px; overflow-x: auto; }
 .res-detail :deep(code) { font-family: Consolas, monospace; font-size: 13px; background: #f0f2f5; padding: 1px 4px; border-radius: 3px; }
+
+/* ===== 数字人 3D 虚拟形象 ===== */
+.digital-human-avatar {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 5;
+  pointer-events: none;
+}
+.dh-avatar-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  transition: all 0.6s ease;
+}
+.dh-avatar-ring.idle {
+  border-color: rgba(52,211,153,0.3);
+  animation: ring-pulse 3s infinite;
+}
+.dh-avatar-ring.thinking {
+  border-color: rgba(245,158,11,0.5);
+  animation: ring-spin 1.5s infinite;
+}
+.dh-avatar-ring.speaking {
+  border-color: rgba(91,141,239,0.6);
+  animation: ring-pulse 0.8s infinite;
+}
+@keyframes ring-pulse {
+  0%,100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+@keyframes ring-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.dh-avatar-inner {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8faff 0%, #eef3ff 100%);
+  box-shadow: 0 2px 16px rgba(91,141,239,0.12), 0 0 0 3px rgba(91,141,239,0.06);
+  animation: avatar-float 4s ease-in-out infinite;
+}
+.dh-avatar-inner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 20px rgba(91,141,239,0.08);
+  pointer-events: none;
+}
+@keyframes avatar-float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.digital-human-avatar.thinking .dh-avatar-inner {
+  animation: avatar-float 1.2s ease-in-out infinite;
+}
+.digital-human-avatar.speaking .dh-avatar-inner {
+  animation: avatar-float 0.7s ease-in-out infinite;
+}
+.dh-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 50%;
+  transform: scale(1.6);
+  transform-origin: center 30%;
+  opacity: 0.85;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
+}
+.dh-speech-bubble {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px 10px 10px 2px;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #5b8def;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  animation: bubble-pop 0.3s ease;
+  white-space: nowrap;
+}
+@keyframes bubble-pop {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
 
 /* 滚动条 */
 ::-webkit-scrollbar { width: 3px; }

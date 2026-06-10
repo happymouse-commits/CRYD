@@ -24,6 +24,7 @@ export function useDigitalHuman() {
   const state = reactive({
     mode: 'idle',           // idle | listening | thinking | speaking | error
     avatarEmoji: '🤖',
+    avatarId: '64bfa15f0ba58daef97d7e9c', // ReadyPlayerMe 默认形象ID
     statusText: '在线中',
     isOnline: true,
     isRecording: false,
@@ -167,6 +168,8 @@ export function useDigitalHuman() {
     let i = 0
     msgObj.displayContent = ''
     msgObj.typing = true
+    state.mode = 'speaking'
+    state.statusText = '说话中...'
 
     const timer = setInterval(() => {
       if (i < fullText.length) {
@@ -178,6 +181,8 @@ export function useDigitalHuman() {
         clearInterval(timer)
         msgObj.typing = false
         msgObj.displayContent = fullText
+        state.mode = 'idle'
+        state.statusText = '在线中'
       }
     }, speed)
   }

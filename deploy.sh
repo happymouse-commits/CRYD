@@ -50,6 +50,12 @@ rm -rf "$FRONTEND_TARGET"/*
 cp -r dist/* "$FRONTEND_TARGET/"
 log "   前端已部署到 $FRONTEND_TARGET"
 
+# ---- 3.5. 同步前端到后端静态资源（打包进 JAR） ----
+log "[3.5/8] 同步前端到后端静态资源..."
+rm -rf "$BACKEND_DIR/src/main/resources/static/assets" "$BACKEND_DIR/src/main/resources/static/index.html"
+cp -r "$FRONTEND_DIR/dist/"* "$BACKEND_DIR/src/main/resources/static/"
+log "   前端已同步到后端静态资源"
+
 # ---- 4. 备份旧 JAR ----
 log "[4/8] 备份旧 JAR..."
 if [ -f "$JAR_PATH" ]; then
