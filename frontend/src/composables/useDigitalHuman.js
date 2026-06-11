@@ -26,7 +26,7 @@ export function useDigitalHuman() {
     avatarEmoji: '🤖',
     avatarUrl: '/avatar.jpg',  // 2D 后备
     avatar3dUrl: '/avatar.glb', // 3D 虚拟人模型
-    modelViewerLoaded: true,   // 启用 3D
+    modelViewerLoaded: false,  // 等 model-viewer 异步加载完再切 3D
     statusText: '在线中',
     isOnline: true,
     isRecording: false,
@@ -34,6 +34,16 @@ export function useDigitalHuman() {
   })
 
   const hasTyping = computed(() => messages.value.some(m => m.typing))
+
+  // 轮询检测 model-viewer 是否加载成功
+  if (typeof window !== 'undefined') {
+    let attempts = 0
+    const check = setInterval(() => {
+      attempts++
+      if (window.__modelViewerReady) { state.modelViewerLoaded = true; clearInterval(check) }
+      else if (window.__modelViewerReady === false || attempts > 40) { clearInterval(check) }
+    }, 200)
+  }
 
   async function loadHistory() {
     try {

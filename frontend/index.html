@@ -5,7 +5,15 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CRYD - 个性化学习多智能体系统</title>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.3.1/dist/model-viewer.min.js"></script>
+    <!-- 3D 模型查看器（异步加载，不阻塞页面） -->
+    <script>
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = 'https://cdn.jsdelivr.net/npm/@google/model-viewer@4.3.1/dist/model-viewer.min.js';
+      s.onload = function(){ window.__modelViewerReady = true; };
+      s.onerror = function(){ window.__modelViewerReady = false; };
+      document.head.appendChild(s);
+    </script>
   </head>
   <body>
     <div id="app"></div>
