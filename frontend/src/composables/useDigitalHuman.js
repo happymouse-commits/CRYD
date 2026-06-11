@@ -24,9 +24,9 @@ export function useDigitalHuman() {
   const state = reactive({
     mode: 'idle',           // idle | listening | thinking | speaking | error
     avatarEmoji: '🤖',
-    avatarUrl: '/avatar.jpg',  // 数字人形象照片（首页左下角显示）
-    avatar3dUrl: '',        // 3D 模型 URL（.glb，渐进增强）
-    modelViewerLoaded: false, // model-viewer 组件是否加载成功（默认false，渐进增强）
+    avatarUrl: '/avatar.jpg',  // 2D 后备
+    avatar3dUrl: '/avatar.glb', // 3D 虚拟人模型
+    modelViewerLoaded: true,   // 启用 3D
     statusText: '在线中',
     isOnline: true,
     isRecording: false,
@@ -34,12 +34,6 @@ export function useDigitalHuman() {
   })
 
   const hasTyping = computed(() => messages.value.some(m => m.typing))
-
-  // ----- 初始化 -----
-  // 检测 model-viewer 是否加载成功（渐进增强）
-  if (typeof window !== 'undefined' && window.__modelViewerReady) {
-    state.modelViewerLoaded = true
-  }
 
   async function loadHistory() {
     try {
