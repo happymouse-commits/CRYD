@@ -6,19 +6,6 @@
       <!-- ===== 左列: 数字人对话 ===== -->
       <div class="col col-left">
         <div class="card card-chat">
-          <div class="card-head">
-            <span class="ch-icon">🤖</span>
-            <span>数字人对话</span>
-            <span class="jump-link" @click="$router.push('/student/chat')">全屏 →</span>
-          </div>
-          <!-- 数字人身份 -->
-          <div class="chat-avatar-bar">
-            <div class="ca-img">{{ dh.state.avatarEmoji }}</div>
-            <div class="ca-info">
-              <span class="ca-name">小智老师</span>
-              <span class="ca-online" :class="{ offline: !dh.state.isOnline }">{{ dh.state.statusText }}</span>
-            </div>
-          </div>
           <!-- 消息区 -->
           <div class="chat-msgs" ref="dh.msgBoxRef">
             <template v-for="msg in dh.messages" :key="msg.id">
@@ -442,11 +429,6 @@ window.addEventListener('resize', () => {
   color: #374151;
 }
 .ch-icon { font-size: 15px; }
-.jump-link {
-  margin-left: auto; font-size: 10px; color: #5b8def;
-  cursor: pointer; font-weight: 500;
-}
-.jump-link:hover { text-decoration: underline; }
 .refresh-link {
   margin-left: auto; font-size: 10px; color: #9ca3af;
   cursor: pointer; font-weight: 500;
@@ -456,23 +438,6 @@ window.addEventListener('resize', () => {
 /* ===== 数字人对话卡 ===== */
 .card-chat { flex: 1; }
 
-.chat-avatar-bar {
-  flex-shrink: 0;
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 16px; margin: 6px 16px;
-  background: #f8faff; border-radius: 12px;
-  border: 1px solid #eef0f5;
-}
-.ca-img {
-  width: 40px; height: 40px; border-radius: 12px;
-  background: linear-gradient(135deg, #5b8def, #7c5cfc);
-  color: #fff; display: flex; align-items: center; justify-content: center;
-  font-size: 20px; flex-shrink: 0;
-}
-.ca-info { display: flex; flex-direction: column; }
-.ca-name { font-size: 13px; font-weight: 700; color: #1a1a2e; }
-.ca-online { font-size: 10px; color: #34d399; }
-.ca-online.offline { color: #f87171; }
 
 .chat-msgs {
   flex: 1; overflow-y: auto; padding: 4px 16px 8px;
@@ -692,16 +657,16 @@ window.addEventListener('resize', () => {
 /* ===== 数字人 3D 虚拟形象 ===== */
 .digital-human-avatar {
   position: absolute;
-  bottom: 8px;
-  left: 8px;
+  bottom: 12px;
+  left: 12px;
   z-index: 5;
   pointer-events: none;
 }
 .dh-avatar-ring {
   position: absolute;
-  inset: -4px;
+  inset: -6px;
   border-radius: 50%;
-  border: 2px solid transparent;
+  border: 3px solid transparent;
   transition: all 0.6s ease;
 }
 .dh-avatar-ring.idle {
@@ -725,12 +690,12 @@ window.addEventListener('resize', () => {
   100% { transform: rotate(360deg); }
 }
 .dh-avatar-inner {
-  width: 72px;
-  height: 72px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   overflow: hidden;
   background: transparent;
-  box-shadow: 0 2px 16px rgba(91,141,239,0.12), 0 0 0 3px rgba(91,141,239,0.06);
+  box-shadow: 0 4px 24px rgba(91,141,239,0.15), 0 0 0 4px rgba(91,141,239,0.08);
   animation: avatar-float 4s ease-in-out infinite;
 }
 @keyframes avatar-float {
