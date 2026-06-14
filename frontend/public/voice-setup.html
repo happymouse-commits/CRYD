@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>声音录入 — CRYD 管理员</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+}
+.card {
+  background: white; border-radius: 20px; padding: 40px;
+  max-width: 440px; width: 90%; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+h1 { font-size: 24px; color: #303133; margin-bottom: 8px; }
+.subtitle { color: #909399; font-size: 14px; margin-bottom: 32px; }
+.status { margin-bottom: 24px; }
+.tag {
+  display: inline-block; padding: 6px 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 500;
+}
+.tag-none { background: #f5f7fa; color: #909399; }
+.tag-ready { background: #ecf5ff; color: #409EFF; }
+.tag-success { background: #f0f9eb; color: #67c23a; }
+.record-btn {
+  width: 100px; height: 100px; border-radius: 50%;
+  border: 4px solid #e8e8e8; background: #f5f7fa; color: #409EFF;
+  cursor: pointer; transition: all 0.3s; display: inline-flex;
+  align-items: center; justify-content: center; margin: 16px 0;
+  -webkit-user-select: none; user-select: none; outline: none;
+}
+.record-btn:hover { border-color: #409EFF; transform: scale(1.05); }
+.record-btn:active { transform: scale(0.95); }
+.record-btn.recording {
+  background: #f56c6c; border-color: #f56c6c; color: white;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(245,108,108,0.4); } 50% { box-shadow: 0 0 0 20px rgba(245,108,108,0); } }
+.record-hint { color: #c0c4cc; font-size: 13px; }
+.timer { font-size: 28px; color: #409EFF; font-weight: bold; margin: 8px 0; }
+.progress { margin: 16px 0; }
+.bar {
+  width: 100%; height: 6px; background: #f5f7fa; border-radius: 3px; overflow: hidden;
+}
+.bar-inner {
+  height: 100%; background: linear-gradient(90deg, #409EFF, #67c23a);
+  border-radius: 3px; transition: width 0.1s linear;
+}
+.msg { margin-top: 16px; padding: 10px; border-radius: 8px; font-size: 13px; display: none; }
+.msg.show { display: block; }
+.msg.success { background: #f0f9eb; color: #67c23a; }
+.msg.error { background: #fef0f0; color: #f56c6c; }
+.voice-id-display {
+  margin-top: 12px; background: #f5f7fa; padding: 10px; border-radius: 8px;
+  font-family: monospace; font-size: 12px; color: #606266; word-break: break-all;
+  display: none;
+}
+.voice-id-display.show { display: block; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🎤 录入你的声音</h1>
+  <p class="subtitle">录制 10~30 秒语音，AI 将用你的声音朗读</p>
+
+  <div class="status">
+    <span id="statusTag" class="tag tag-none">未录入</span>
+  </div>
+
+  <div id="timer" class="timer" style="display:none">0s</div>
+
+  <button id="recordBtn" class="record-btn">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M17 11a1 1 0 0 1 2 0 7 7 0 0 1-6 6.93V20h3a1 1 0 0 1 0 2H8a1 1 0 0 1 0-2h3v-2.07A7 7 0 0 1 5 11a1 1 0 0 1 2 0 5 5 0 0 0 10 0z"/></svg>
+  </button>
+  <p id="recordHint" class="record-hint">按住开始录制，松开完成</p>
+
+  <div class="progress" style="display:none" id="progressWrap">
+    <div class="bar"><div id="progressBar" class="bar-inner" style="width:0%"></div></div>
+  </div>
+
+  <div id="msgBox" class="msg"></div>
+  <div id="voiceIdDisplay" class="voice-id-display"></div>
+</div>
+
+<script>
+const btn = document.getElementById('recordBtn')
+const hint = document.getElementById('recordHint')
+const timer = document.getElementById('timer')
+const progressWrap = document.getElementById('progressWrap')
+const progressBar = document.getElementById('progressBar')
+const msgBox = document.getElementById('msgBox')
+const statusTag = document.getElementById('statusTag')
+const voiceIdDisplay = document.getElementById('voiceIdDisplay')
+
+let mediaRecorder = null, stream = null, chunks = [], seconds = 0, timerInterval = null
+const MAX_SECONDS = 30, MIN_SECONDS = 3
+const API = '/api/chat'
+
+// 页面加载时检查是否已有声音
+async function checkStatus() {
+  try {
+    const res = await fetch(API + '/voice-id').then(r => r.json())
+    if (res.data && res.data.voiceId) {
+      setStatus('ready', '已录入')
+      voiceIdDisplay.textContent = '声音ID: ' + res.data.voiceId
+      voiceIdDisplay.classList.add('show')
+    }
+  } catch(e) {}
+}
+checkStatus()
+
+function setStatus(type, text) {
+  statusTag.className = 'tag tag-' + type
+  statusTag.textContent = text
+}
+function showMsg(type, text) {
+  msgBox.className = 'msg show ' + type
+  msgBox.textContent = text
+}
+
+btn.addEventListener('mousedown', startRecord)
+btn.addEventListener('mouseup', stopRecord)
+btn.addEventListener('mouseleave', stopRecord)
+btn.addEventListener('touchstart', e => { e.preventDefault(); startRecord() })
+btn.addEventListener('touchend', stopRecord)
+
+async function startRecord() {
+  chunks = []; seconds = 0
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
+    mediaRecorder.onstop = handleStop
+    mediaRecorder.start(100)
+
+    btn.classList.add('recording')
+    hint.textContent = '正在录制...'
+    timer.style.display = 'block'
+    progressWrap.style.display = 'block'
+    msgBox.classList.remove('show')
+    updateTimer()
+
+    timerInterval = setInterval(() => {
+      seconds++
+      updateTimer()
+      if (seconds >= MAX_SECONDS) stopRecord()
+    }, 1000)
+  } catch(e) {
+    showMsg('error', '麦克风访问失败，请允许浏览器使用麦克风')
+  }
+}
+
+function updateTimer() {
+  timer.textContent = seconds + 's'
+  progressBar.style.width = (seconds / MAX_SECONDS * 100) + '%'
+}
+
+function stopRecord() {
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return
+  btn.classList.remove('recording')
+  hint.textContent = '按住开始录制，松开完成'
+  timer.style.display = 'none'
+  progressWrap.style.display = 'none'
+  clearInterval(timerInterval)
+  mediaRecorder.stop()
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null }
+}
+
+async function handleStop() {
+  if (seconds < MIN_SECONDS) {
+    showMsg('error', '录制时间太短，请至少录制 ' + MIN_SECONDS + ' 秒')
+    return
+  }
+
+  showMsg('success', '正在上传并克隆声音...')
+  setStatus('ready', '处理中...')
+
+  const blob = new Blob(chunks, { type: 'audio/webm' })
+  const form = new FormData()
+  form.append('audio', blob, 'voice_sample.webm')
+
+  try {
+    const res = await fetch(API + '/voice-clone', { method: 'POST', body: form }).then(r => r.json())
+    if (res.data && res.data.voiceId) {
+      setStatus('success', '已录入 ✓')
+      showMsg('success', '声音克隆成功！AI 现在用你的声音朗读')
+      voiceIdDisplay.textContent = '声音ID: ' + res.data.voiceId
+      voiceIdDisplay.classList.add('show')
+    } else if (res.data && res.data.error) {
+      showMsg('error', res.data.error)
+      setStatus('none', '未录入')
+    } else {
+      // MiMo 可能返回了文字内容而非结构化 voiceId，尝试提取
+      showMsg('success', '声音克隆请求已提交，请检查是否生效')
+    }
+  } catch(e) {
+    showMsg('error', '上传失败: ' + e.message)
+    setStatus('none', '未录入')
+  }
+}
+</script>
+</body>
+</html>

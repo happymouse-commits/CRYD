@@ -13,56 +13,47 @@
       </div>
     </div>
 
-    <el-card shadow="hover" class="profile-card" body-style="padding: 0;">
-      <template #header>
-        <div class="card-header">
-          <el-icon><TrendCharts /></el-icon>
-          <span>学习画像</span>
-          <el-tag v-if="completedDims >= 8" type="success" size="small">画像完善</el-tag>
-          <el-tag v-else-if="completedDims >= 4" type="warning" size="small">收集中（{{ completedDims }}/8）</el-tag>
-          <el-tag v-else type="info" size="small">待完善（{{ completedDims }}/8）</el-tag>
-        </div>
-      </template>
-
-      <!-- 雷达图 + 八维画像框 左右布局 -->
-      <div class="profile-body">
-        <!-- 左侧：雷达图 -->
-        <div class="radar-panel">
-          <div ref="radarChartRef" class="radar-chart"></div>
-          <div class="radar-legend">
-            <span class="legend-item" v-for="dim in dimensions" :key="dim.key">
-              <span class="legend-dot" :style="{ background: dim.color }"></span>
-              {{ dim.name }}
-            </span>
-          </div>
+    <!-- 左右布局：学生信息卡 + 雷达图 -->
+    <div class="profile-body">
+      <!-- 左侧：学生信息卡 -->
+      <div class="student-card">
+        <div class="sc-avatar">👩‍🎓</div>
+        <div class="sc-name">{{ profileName }}</div>
+        <div class="sc-meta">{{ profileMajor }} · {{ profileGrade }}</div>
+        <div class="sc-level">
+          <span class="level-icon">{{ levelIcon }}</span>
+          <span>{{ profileLevel }}</span>
         </div>
 
-        <!-- 右侧：八维画像框 -->
-        <div class="dim-panel">
-          <div class="profile-grid">
-            <div v-for="dim in dimensions" :key="dim.key"
-              class="dim-card" :class="{ active: dim.value !== null }"
-              :style="{ borderLeftColor: dim.color }">
-              <div class="dim-top">
-                <span class="dim-icon">{{ dim.icon }}</span>
-                <span class="dim-name">{{ dim.name }}</span>
-              </div>
-              <div class="dim-value" v-if="dim.value !== null">
-                <span class="dim-score" v-if="dim.score !== undefined">{{ dim.score }}</span>
-                <span class="dim-text">{{ dim.value }}</span>
-              </div>
-              <div class="dim-empty" v-else>
-                <el-icon><QuestionFilled /></el-icon>
-                待识别
-              </div>
-              <div class="dim-bar">
-                <div class="dim-bar-fill" :style="{ width: (dim.score || 0) + '%', background: dim.color }"></div>
-              </div>
+        <!-- 成长轨迹 R1→R2→R3 -->
+        <div class="growth-track" v-if="growthStages.length">
+          <template v-for="(s, i) in growthStages" :key="i">
+            <div class="gt-round" :class="{ active: s.active }">
+              <span class="gt-num">R{{ i + 1 }}</span>
+              <span class="gt-desc">{{ s.label }}</span>
             </div>
-          </div>
+            <span v-if="i < growthStages.length - 1" class="gt-arrow">→</span>
+          </template>
+        </div>
+
+        <!-- AI 学情摘要 -->
+        <div class="sc-summary">
+          <span class="summary-label">🤖 AI 学情</span>
+          <p>{{ aiSummary }}</p>
         </div>
       </div>
-    </el-card>
+
+      <!-- 右侧：雷达图 -->
+      <div class="radar-panel">
+        <div ref="radarChartRef" class="radar-chart"></div>
+        <div class="radar-legend">
+          <span class="legend-item" v-for="dim in dimensions" :key="dim.key">
+            <span class="legend-dot" :style="{ background: dim.color }"></span>
+            {{ dim.name }}
+          </span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -72,7 +63,7 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '../../store/user'
 import api from '../../api'
 import * as echarts from 'echarts'
-import { TrendCharts, QuestionFilled, Refresh } from '@element-plus/icons-vue'
+import { Refresh } from '@element-plus/icons-vue'
 
 const store = useUserStore()
 const analyzing = ref(false)
@@ -80,77 +71,129 @@ const lastUpdate = ref('')
 const radarChartRef = ref(null)
 let radarChart = null
 
+// ── 维度定义（保留后端原有的 8 维，接口不变） ──
 const dimensions = ref([
-  { key: 'knowledgeLevel',  name: '知识基础', icon: '📚', value: null, score: null, color: '#5b8def', desc: '已掌握知识的深度与广度' },
-  { key: 'cognitiveStyle',  name: '认知风格', icon: '🧠', value: null, score: null, color: '#34d399', desc: '获取与处理信息的方式偏好' },
-  { key: 'learningPreference', name: '学习偏好', icon: '🎯', value: null, score: null, color: '#f59e0b', desc: '偏好的学习资源与活动类型' },
-  { key: 'learningPace',    name: '学习节奏', icon: '⏱️', value: null, score: null, color: '#f87171', desc: '学习速度与进度倾向' },
-  { key: 'interestDirection', name: '兴趣方向', icon: '⭐', value: null, score: null, color: '#9ca3af', desc: '感兴趣的知识领域与方向' },
-  { key: 'weakAreas',       name: '薄弱环节', icon: '⚠️', value: null, score: null, color: '#f59e0b', desc: '需要加强的知识薄弱点' },
-  { key: 'studyMotivation', name: '学习动机', icon: '💪', value: null, score: null, color: '#5b8def', desc: '驱动学习的动力来源类型' },
-  { key: 'focusLevel',      name: '专注力',   icon: '🔥', value: null, score: null, color: '#34d399', desc: '学习过程中的注意力水平' },
+  { key: 'grammar',       name: '语法掌握力', icon: '📝', value: null, score: null, color: '#b15311' },
+  { key: 'logic',         name: '逻辑推理',   icon: '🧩', value: null, score: null, color: '#4a7c4e' },
+  { key: 'coding',        name: '代码实践',   icon: '💻', value: null, score: null, color: '#c97930' },
+  { key: 'debug',         name: '调试能力',   icon: '🔍', value: null, score: null, color: '#a14a3d' },
+  { key: 'abstract',      name: '抽象思维',   icon: '💡', value: null, score: null, color: '#8b5a3c' },
+  { key: 'selfLearn',     name: '自主学习',   icon: '📖', value: null, score: null, color: '#a14a3d' },
 ])
 
-const dimensionKeys = [
-  'knowledgeLevel', 'cognitiveStyle', 'learningPreference', 'learningPace',
-  'interestDirection', 'weakAreas', 'studyMotivation', 'focusLevel'
+const completedDims = computed(() => dimensions.value.filter(d => d.score !== null && d.score > 0).length)
+
+// ── 学生信息（从 store / profile 派生） ──
+const profileData = ref(null)
+const profileName = computed(() => profileData.value?.name || store.name || '同学')
+const profileMajor = computed(() => profileData.value?.major || '计算机科学与技术')
+const profileGrade = computed(() => profileData.value?.grade || '大一')
+
+const levelMap = [
+  { icon: '⚡', label: '初级探索者', min: 0 },
+  { icon: '🔥', label: '进阶挑战者', min: 30 },
+  { icon: '👑', label: '高手程序员', min: 60 },
 ]
+const profileLevel = computed(() => {
+  const avg = completedDims.value > 0
+    ? dimensions.value.reduce((s, d) => s + (d.score || 0), 0) / dimensions.value.length
+    : 0
+  const match = [...levelMap].reverse().find(l => avg >= l.min)
+  return match ? match.label : levelMap[0].label
+})
+const levelIcon = computed(() => {
+  const avg = completedDims.value > 0
+    ? dimensions.value.reduce((s, d) => s + (d.score || 0), 0) / dimensions.value.length
+    : 0
+  const match = [...levelMap].reverse().find(l => avg >= l.min)
+  return match ? match.icon : levelMap[0].icon
+})
 
-const completedDims = computed(() => dimensions.value.filter(d => d.value !== null).length)
+// ── 成长轨迹（R1→R2→R3） ──
+const growthStages = computed(() => {
+  const scores = dimensions.value.map(d => d.score || 0)
+  const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
+  if (avg === 0) return []
+  return [
+    { active: avg < 35,  label: `入门 · ${Math.max(0, avg - 15)}分` },
+    { active: avg >= 35 && avg < 60, label: `进阶 · ${avg}分` },
+    { active: avg >= 60, label: `掌握 · ${Math.min(100, avg + 10)}分` },
+  ]
+})
 
-const labelMaps = {
-  cognitiveStyle: { visual: '视觉型', auditory: '听觉型', kinesthetic: '动觉型', reading: '阅读型' },
-  learningPreference: { video: '视频偏好', doc: '文档偏好', exercise: '实践偏好', mixed: '混合型' },
-  learningPace: { fast: '快速型', steady: '稳健型', slow: '慢速型' },
-  studyMotivation: { intrinsic: '内在驱动', extrinsic: '外部驱动', hybrid: '混合驱动' },
-  focusLevel: { high: '优秀', medium: '一般', low: '有待提升' },
+// ── AI 摘要（优先用后端返回，否则兜底） ──
+const aiSummary = computed(() => {
+  if (profileData.value?.aiSummary) return profileData.value.aiSummary
+  if (completedDims.value === 0) return '完成诊断对话后，AI 将自动生成学情摘要，帮你精准定位学习方向。'
+  const dims = dimensions.value
+  const sorted = [...dims].sort((a, b) => (b.score || 0) - (a.score || 0))
+  const top = sorted[0]
+  const low = sorted[sorted.length - 1]
+  return `${top?.name || '综合能力'}表现最好，${low?.name || '薄弱环节'}是重点提升方向。建议从薄弱项入手，每天保持30分钟练习。`
+})
+
+// ── 匹配后端返回字段 → 维度 ──
+const fieldToDimKey = {
+  knowledgeLevel: 'grammar',
+  cognitiveStyle: 'logic',
+  learningPreference: 'coding',
+  learningPace: 'debug',
+  interestDirection: 'abstract',
+  weakAreas: 'selfLearn',
+  studyMotivation: 'grammar',
+  focusLevel: 'coding',
 }
 
-// 将文字型维度映射为雷达图分数
-function mapTextToScore(key, rawValue) {
-  if (rawValue === null || rawValue === undefined) return 0
-  const maps = {
-    cognitiveStyle: { visual: 75, auditory: 65, kinesthetic: 55, reading: 70 },
-    learningPreference: { video: 70, exercise: 75, doc: 60, mixed: 65 },
-    learningPace: { fast: 80, steady: 65, slow: 40 },
-    studyMotivation: { intrinsic: 85, hybrid: 65, extrinsic: 50 },
-    focusLevel: { high: 85, medium: 55, low: 30 },
-  }
-  if (maps[key]) {
-    return maps[key][rawValue] || 0
-  }
-  if (key === 'interestDirection') return rawValue ? 60 : 0
-  if (key === 'weakAreas') return rawValue ? 50 : 0
-  return 0
+const labelScoreMap = {
+  cognitiveStyle: { visual: 75, auditory: 65, kinesthetic: 55, reading: 70 },
+  learningPreference: { video: 70, exercise: 75, doc: 60, mixed: 65 },
+  learningPace: { fast: 80, steady: 65, slow: 40 },
+  focusLevel: { high: 85, medium: 55, low: 30 },
+  studyMotivation: { intrinsic: 85, hybrid: 65, extrinsic: 50 },
 }
 
 function updateDimensions(profile) {
   if (!profile) return
-  for (const dim of dimensions.value) {
-    const v = profile[dim.key]
-    if (v === null || v === undefined) continue
+  profileData.value = profile
 
-    if (dim.key === 'knowledgeLevel') {
-      dim.score = Number(v)
-      dim.value = v >= 80 ? '扎实' : v >= 60 ? '中等' : '基础'
-    } else {
-      const map = labelMaps[dim.key]
-      dim.value = map ? (map[v] || v) : v
-      // 计算雷达图分数
-      if (dim.key === 'interestDirection' || dim.key === 'weakAreas') {
-        dim.score = v ? (dim.key === 'interestDirection' ? 60 : 50) : 20
-      } else {
-        dim.score = mapTextToScore(dim.key, v)
-      }
+  // 重置所有维度
+  for (const dim of dimensions.value) {
+    dim.value = null
+    dim.score = null
+  }
+
+  // 从后端字段映射到新维度
+  for (const [fieldKey, dimKey] of Object.entries(fieldToDimKey)) {
+    const raw = profile[fieldKey]
+    if (raw === null || raw === undefined) continue
+
+    const dim = dimensions.value.find(d => d.key === dimKey)
+    if (!dim) continue
+
+    let score = 0
+    if (fieldKey === 'knowledgeLevel') {
+      score = Number(raw) || 0
+      dim.value = score >= 80 ? '扎实' : score >= 60 ? '中等' : '基础'
+    } else if (labelScoreMap[fieldKey]) {
+      score = labelScoreMap[fieldKey][raw] || 0
+      dim.value = raw
+    } else if (fieldKey === 'interestDirection' || fieldKey === 'weakAreas') {
+      score = raw ? 50 : 20
+      dim.value = raw || '待识别'
     }
+    dim.score = Math.max(dim.score || 0, score)
+  }
+
+  // 兜底：无数据的维度给默认低分
+  for (const dim of dimensions.value) {
+    if (dim.score === null) dim.score = 15
   }
 }
 
-// ==================== 雷达图 ====================
+// ── ECharts 雷达图 ──
 function buildRadarOption() {
   const scores = dimensions.value.map(d => d.score ?? 0)
   const names = dimensions.value.map(d => d.name)
-  const colors = dimensions.value.map(d => d.color)
   const maxVal = Math.max(...scores, 80)
 
   return {
@@ -158,70 +201,63 @@ function buildRadarOption() {
       center: ['50%', '52%'],
       radius: '65%',
       axisName: {
-        color: '#6b7280',
-        fontSize: 11,
-        borderRadius: 3,
-        padding: [3, 5],
-        formatter: (name) => {
-          // 超过4个字就换行
-          return name.length > 4 ? name.slice(0, 4) + '\n' + name.slice(4) : name
-        }
+        color: '#6a6054',
+        fontSize: 12,
+        fontWeight: 600,
+        formatter: (name) => name.length > 4 ? name.slice(0, 4) + '\n' + name.slice(4) : name,
       },
-      indicator: names.map((name, i) => ({
-        name,
-        max: maxVal,
-        color: colors[i]
-      })),
+      indicator: names.map((name) => ({ name, max: maxVal })),
       shape: 'circle',
       splitNumber: 5,
       axisNameGap: 15,
       splitArea: {
-        areaStyle: {
-          color: ['#fff', '#f5f7fa', '#fff', '#f5f7fa', '#fff']
-        }
+        areaStyle: { color: ['#f4efe7', '#e4dfd8', '#f4efe7', '#e4dfd8', '#f4efe7'] },
       },
-      axisLine: { lineStyle: { color: '#e5e7eb' } },
-      splitLine: { lineStyle: { color: '#e4e7ed' } }
+      axisLine: { lineStyle: { color: '#dad2c7' } },
+      splitLine: { lineStyle: { color: '#e4e7ed' } },
     },
-    series: [{
-      type: 'radar',
-      data: [{
-        value: scores,
-        name: '学习画像',
-        areaStyle: {
-          color: {
-            type: 'radial',
-            x: 0.5, y: 0.5, r: 0.5,
-            colorStops: [
-              { offset: 0, color: 'rgba(91,141,239,0.3)' },
-              { offset: 1, color: 'rgba(91,141,239,0.06)' }
-            ]
-          }
+    series: [
+      {
+        type: 'radar',
+        data: [
+          {
+            value: scores,
+            name: '学习画像',
+            areaStyle: {
+              color: {
+                type: 'radial',
+                x: 0.5, y: 0.5, r: 0.5,
+                colorStops: [
+                  { offset: 0, color: 'rgba(177,83,17,0.3)' },
+                  { offset: 1, color: 'rgba(177,83,17,0.06)' },
+                ],
+              },
+            },
+            lineStyle: { color: '#b15311', width: 2 },
+            itemStyle: { color: '#b15311', borderColor: '#b15311', borderWidth: 2 },
+            symbol: 'circle',
+            symbolSize: 6,
+            label: { show: true, fontSize: 10, color: '#b15311', fontWeight: 600 },
+          },
+        ],
+        emphasis: {
+          lineStyle: { width: 3 },
+          areaStyle: { color: 'rgba(177,83,17,0.4)' },
         },
-        lineStyle: { color: '#5b8def', width: 2 },
-        itemStyle: { color: '#5b8def', borderColor: '#5b8def', borderWidth: 2 },
-        symbol: 'circle',
-        symbolSize: 6,
-        label: { show: true, fontSize: 10, color: '#5b8def', fontWeight: 600 }
-      }],
-      emphasis: {
-        lineStyle: { width: 3 },
-        areaStyle: { color: 'rgba(91,141,239,0.4)' }
-      }
-    }]
+      },
+    ],
   }
 }
 
 function initRadarChart() {
   if (!radarChartRef.value) return
   if (radarChart) radarChart.dispose()
-
   radarChart = echarts.init(radarChartRef.value)
   radarChart.setOption(buildRadarOption())
-
   window.addEventListener('resize', () => radarChart?.resize())
 }
 
+// ── API ──
 async function loadProfile() {
   try {
     const res = await api.get('/student/by-sysuser/' + store.id)
@@ -230,10 +266,9 @@ async function loadProfile() {
       if (res.data.profileUpdatedAt) {
         lastUpdate.value = new Date(res.data.profileUpdatedAt).toLocaleString('zh-CN')
       }
-      // 数据就绪后渲染雷达图
       nextTick(() => {
         if (radarChart) {
-          radarChart.setOption(buildRadarOption())
+          radarChart.setOption(buildRadarOption(), true)
         } else {
           setTimeout(() => initRadarChart(), 200)
         }
@@ -250,7 +285,6 @@ async function triggerAnalysis() {
     if (data.profile) {
       updateDimensions(data.profile)
       lastUpdate.value = new Date().toLocaleString('zh-CN')
-      // 刷新雷达图
       nextTick(() => {
         if (radarChart) {
           radarChart.setOption(buildRadarOption(), true)
@@ -275,84 +309,215 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.profile-page { }
+.profile-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
 .page-header {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
-.page-header h2 { margin: 0 0 4px 0; font-size: 20px; font-weight: 700; color: #1a1a2e; }
-.subtitle { color: #9ca3af; font-size: 13px; margin: 0; }
-.header-right { display: flex; align-items: center; gap: 12px; }
-.update-time { color: #9ca3af; font-size: 12px; }
+.page-header h2 {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #342618;
+}
+.subtitle {
+  color: #b6ada1;
+  font-size: 13px;
+  margin: 0;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.update-time {
+  color: #b6ada1;
+  font-size: 12px;
+}
 
-/* 主卡片 */
-.profile-card {
-  border-radius: 16px !important;
-  border: 1px solid #eef0f4 !important;
-  box-shadow: 0 1px 8px rgba(0,0,0,0.04) !important;
-  overflow: hidden;
+/* ── 左右布局 ── */
+.profile-body {
+  display: flex;
+  gap: 24px;
 }
-.profile-card :deep(.el-card__header) {
-  background: #fafbfd;
-  border-bottom: 1px solid #eef0f4;
-}
-.card-header { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: #374151; }
 
-/* 左右布局 */
-.profile-body { display: flex; gap: 0; }
+/* ── 左侧：学生信息卡 ── */
+.student-card {
+  flex: 0 0 320px;
+  width: 320px;
+  background: #f4efe7;
+  border-radius: 20px;
+  border: 1px solid #dad2c7;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.sc-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #b15311, #8b5a3c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin-bottom: 14px;
+}
+.sc-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #342618;
+  margin-bottom: 4px;
+}
+.sc-meta {
+  font-size: 13px;
+  color: #b6ada1;
+  margin-bottom: 12px;
+}
+.sc-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b15311;
+  background: rgba(177,83,17,0.08);
+  margin-bottom: 20px;
+}
+.level-icon {
+  font-size: 16px;
+}
+
+/* 成长轨迹 */
+.growth-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  width: 100%;
+  justify-content: center;
+}
+.gt-round {
+  text-align: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #e4dfd8;
+  border: 1px solid #dad2c7;
+  min-width: 58px;
+}
+.gt-round.active {
+  background: rgba(177,83,17,0.08);
+  border-color: #b15311;
+}
+.gt-num {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #b15311;
+}
+.gt-desc {
+  font-size: 10px;
+  color: #b6ada1;
+}
+.gt-round.active .gt-desc {
+  color: #b15311;
+}
+.gt-arrow {
+  color: #dad2c7;
+  font-size: 16px;
+}
+
+/* AI 摘要 */
+.sc-summary {
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #6a6054;
+  background: #e4dfd8;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #dad2c7;
+  position: relative;
+}
+.summary-label {
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: #f4efe7;
+  border: 1px solid #dad2c7;
+  color: #b15311;
+  font-weight: 600;
+}
+.sc-summary p {
+  margin: 0;
+}
+
+/* ── 右侧：雷达图 ── */
 .radar-panel {
-  flex: 0 0 360px; width: 360px;
-  padding: 20px 10px 16px 10px;
-  border-right: 1px solid #eef0f4;
-  display: flex; flex-direction: column; align-items: center;
+  flex: 1;
+  background: #f4efe7;
+  border-radius: 20px;
+  border: 1px solid #dad2c7;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-.radar-chart { width: 340px; height: 360px; }
+.radar-chart {
+  width: 400px;
+  height: 400px;
+}
 .radar-legend {
-  display: flex; flex-wrap: wrap; justify-content: center;
-  gap: 6px 12px; margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  margin-top: 8px;
 }
-.legend-item { font-size: 11px; color: #6b7280; display: flex; align-items: center; gap: 4px; }
-.legend-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-
-.dim-panel { flex: 1; padding: 16px 16px 12px 16px; min-width: 0; }
-.profile-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.dim-card {
-  background: #fafbfd; border-radius: 12px;
-  padding: 14px 10px; text-align: center;
-  border: 1px solid #eef0f4;
-  border-left: 3px solid #e5e7eb;
-  transition: all 0.25s;
+.legend-item {
+  font-size: 11px;
+  color: #6a6054;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
-.dim-card.active { background: rgba(91,141,239,0.04); border-color: #dbeafe; }
-.dim-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.06); border-color: #dbeafe; }
-
-.dim-top { display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 6px; }
-.dim-icon { font-size: 22px; }
-.dim-name { font-size: 12px; color: #6b7280; font-weight: 500; }
-
-.dim-value { margin-bottom: 2px; }
-.dim-score { display: block; font-size: 26px; color: #5b8def; font-weight: 700; margin-bottom: 2px; }
-.dim-card:nth-child(2) .dim-score { color: #34d399; }
-.dim-card:nth-child(3) .dim-score { color: #f59e0b; }
-.dim-card:nth-child(4) .dim-score { color: #f87171; }
-.dim-card:nth-child(5) .dim-score { color: #8b5cf6; }
-.dim-card:nth-child(6) .dim-score { color: #f59e0b; }
-.dim-card:nth-child(7) .dim-score { color: #5b8def; }
-.dim-card:nth-child(8) .dim-score { color: #34d399; }
-
-.dim-text { font-size: 13px; font-weight: 600; color: #374151; }
-.dim-empty { font-size: 12px; color: #d1d5db; display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 2px; }
-
-/* 进度条 */
-.dim-bar { margin-top: 8px; height: 3px; background: #e5e7eb; border-radius: 2px; overflow: hidden; }
-.dim-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
-
-@media (max-width: 1200px) {
-  .profile-body { flex-direction: column; }
-  .radar-panel { flex: none; width: 100%; border-right: none; border-bottom: 1px solid #eef0f4; }
-  .radar-chart { width: 100%; max-width: 360px; height: 320px; }
-  .profile-grid { grid-template-columns: repeat(4, 1fr); }
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
 }
-@media (max-width: 900px) { .profile-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 600px) { .profile-grid { grid-template-columns: 1fr; } }
+
+@media (max-width: 860px) {
+  .profile-body {
+    flex-direction: column;
+  }
+  .student-card {
+    flex: none;
+    width: 100%;
+  }
+  .radar-chart {
+    width: 100%;
+    max-width: 360px;
+    height: 340px;
+  }
+}
 </style>

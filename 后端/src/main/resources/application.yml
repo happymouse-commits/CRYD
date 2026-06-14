@@ -9,18 +9,17 @@ spring:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
-  # ===== 数据库配置 — openGauss 6.0 =====
+  # ===== 数据库配置 — H2 本地开发 =====
   datasource:
-    # H2 开发数据库（已切换 openGauss）
-    # url: jdbc:h2:file:f:/从容应对/后端/data/cryd;AUTO_SERVER=TRUE
-    # driver-class-name: org.h2.Driver
-    # username: sa
-    # password:
-    # openGauss 6.0 配置
-    url: jdbc:postgresql://localhost:5432/sghr?ssl=false
-    driver-class-name: org.postgresql.Driver
-    username: sghr_admin
-    password: Sghr@2026
+    url: jdbc:h2:file:f:/从容应对/后端/data/cryd;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    # openGauss 6.0 生产配置（部署到 ECS 时取消注释下面）
+    # url: jdbc:postgresql://localhost:5432/sghr?ssl=false
+    # driver-class-name: org.postgresql.Driver
+    # username: sghr_admin
+    # password: Sghr@2026
     # MySQL配置（正式环境切换）
     # url: jdbc:mysql://localhost:3306/cryd?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     # driver-class-name: com.mysql.cj.jdbc.Driver
@@ -47,6 +46,21 @@ spring:
     redis:
       host: localhost
       port: 6379
+
+# ===== 讯飞语音听写 (IAT) 配置 =====
+# 在 https://console.xfyun.cn 创建应用 → 语音听写 → 获取凭证
+xunfei:
+  asr:
+    app-id: 99d50715
+    api-key: 94563f2f6aee1cc7366625bc278b0b88
+    api-secret: NTA4ZmZiNWZiYjc2N2U5OGUyM2E1M2E3
+
+# ===== 小米 MiMo Token Plan — TTS 语音合成 + 声音克隆 =====
+# tp- 开头的 key 表示预付费 Token Plan
+mimo:
+  api:
+    url: https://token-plan-cn.xiaomimimo.com/v1
+    key: tp-c6592p532j3g9k9hsoxbowg18wsh2b8cwp1xmij04okatpao
 
 # ===== 大模型配置（通过环境变量注入，参考 .env.example）=====
 # DeepSeek V4 Pro — OpenAI 兼容接口

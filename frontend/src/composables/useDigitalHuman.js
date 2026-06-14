@@ -24,7 +24,7 @@ export function useDigitalHuman() {
   const state = reactive({
     mode: 'idle',           // idle | listening | thinking | speaking | error
     avatarEmoji: '🤖',
-    avatarUrl: '/avatar.jpg',  // 2D 后备
+    avatarUrl: '/avatar.png',  // 2D 后备
     avatar3dUrl: '/avatar.glb', // 3D 虚拟人模型
     modelViewerLoaded: false,  // 等 model-viewer 异步加载完再切 3D
     statusText: '在线中',
@@ -218,17 +218,15 @@ export function useDigitalHuman() {
     state.mode = 'thinking'
     state.statusText = '思考中...'
     try {
-      // 先查画像完整度
       let needOnboarding = true
       try {
-        const statusRes = await api.get('/onboarding/status/' + store.id)
+        const statusRes = await api.get('/onboarding/status/' + store.id, { timeout: 3000 })
         needOnboarding = statusRes.data.needOnboarding !== false
       } catch {}
-      // 发引导触发词给 AI
       const res = await api.post('/chat/send', {
         studentId: store.id,
         message: needOnboarding ? '__START_ONBOARDING__' : '__GREETING__'
-      })
+      }, { timeout: 8000 })
       const data = res.data
       const aiMsg = {
         id: Date.now(),
@@ -244,6 +242,20 @@ export function useDigitalHuman() {
       state.mode = 'idle'
       state.statusText = '在线中'
     } catch (e) {
+      // 兜底：静默失败时也发送一条本地欢迎消息
+      if (messages.value.length === 0) {
+        messages.value.push({
+          id: Date.now(),
+          role: 'ai',
+          content: '你好呀！我是你的 AI 学习助手，有什么问题尽管问我～',
+          displayContent: '',
+          agentName: '小智老师',
+          createdAt: new Date().toISOString(),
+          typing: false,
+        })
+        const localMsg = messages.value[messages.value.length - 1]
+        typewriteEffect(localMsg, localMsg.content, 15)
+      }
       state.mode = 'idle'
       state.statusText = '在线中'
       console.warn('数字人首发失败:', e)

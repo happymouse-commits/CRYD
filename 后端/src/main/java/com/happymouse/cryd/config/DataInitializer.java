@@ -5,6 +5,7 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.happymouse.cryd.model.entity.*;
 import com.happymouse.cryd.repository.*;
+import com.happymouse.cryd.service.knowledge.KnowledgeBaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -33,6 +34,7 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final SystemConfigRepository systemConfigRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final KnowledgeBaseService knowledgeBaseService;
 
     public DataInitializer(SysUserRepository sysUserRepository,
                            CourseRepository courseRepository,
@@ -40,7 +42,8 @@ public class DataInitializer implements CommandLineRunner {
                            QuestionRepository questionRepository,
                            PasswordEncoder passwordEncoder,
                            SystemConfigRepository systemConfigRepository,
-                           JdbcTemplate jdbcTemplate) {
+                           JdbcTemplate jdbcTemplate,
+                           KnowledgeBaseService knowledgeBaseService) {
         this.sysUserRepository = sysUserRepository;
         this.courseRepository = courseRepository;
         this.chapterRepository = chapterRepository;
@@ -48,6 +51,7 @@ public class DataInitializer implements CommandLineRunner {
         this.passwordEncoder = passwordEncoder;
         this.systemConfigRepository = systemConfigRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.knowledgeBaseService = knowledgeBaseService;
     }
 
     @Override
@@ -56,6 +60,51 @@ public class DataInitializer implements CommandLineRunner {
         initCProgrammingBank();
         initSystemConfig();
         syncSequences();
+        importQuestionBankToKnowledgeBase();
+    }
+
+    /**
+     * 将教师端C语言题库导入AI知识库
+     * 用途: 新用户AI诊断后，根据薄弱知识点检索本题库作为参考，生成高质量针对性练习题
+     */
+    private void importQuestionBankToKnowledgeBase() {
+        try {
+            ClassPathResource resource = new ClassPathResource("knowledge-base/c-question-bank.md");
+            if (!resource.exists()) {
+                log.info("题库 Markdown 文件不存在，跳过知识库导入");
+                return;
+            }
+            String content;
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line).append("\n");
+                content = sb.toString();
+            }
+            List<KnowledgeBase> existingKbs = knowledgeBaseService.getByCourse(1L);
+            KnowledgeBase kb = existingKbs.stream()
+                    .filter(k -> "C语言题库".equals(k.getName()))
+                    .findFirst().orElse(null);
+            SysUser teacher = sysUserRepository.findByUsername("teacher1").orElse(null);
+            Long teacherId = teacher != null ? teacher.getId() : 1L;
+            if (kb == null) {
+                kb = knowledgeBaseService.createKB(1L, teacherId,
+                        "C语言题库",
+                        "谭浩强《C程序设计》课后习题题库，共97题，覆盖12章。用于AI诊断后自动生成针对性练习题。");
+            }
+            List<KnowledgeDocument> existingDocs = knowledgeBaseService.getDocuments(kb.getId());
+            boolean alreadyImported = existingDocs.stream()
+                    .anyMatch(d -> "c-question-bank.md".equals(d.getFileName()));
+            if (alreadyImported) {
+                log.info("题库已存在于知识库中，跳过导入");
+                return;
+            }
+            knowledgeBaseService.uploadTextDocument(kb.getId(), "c-question-bank.md", content);
+            log.info("题库知识库导入完成: kbId={}, 文件=c-question-bank.md", kb.getId());
+        } catch (Exception e) {
+            log.warn("题库知识库导入失败 (非致命): {}", e.getMessage());
+        }
     }
 
     /**

@@ -4,17 +4,18 @@ import com.happymouse.cryd.common.Result;
 import com.happymouse.cryd.model.dto.ChatRequest;
 import com.happymouse.cryd.model.dto.ChatResponse;
 import com.happymouse.cryd.model.entity.ChatMessage;
-import com.happymouse.cryd.model.entity.Student;
 import com.happymouse.cryd.repository.ChatMessageRepository;
-import com.happymouse.cryd.repository.StudentRepository;
-import com.happymouse.cryd.service.OnboardingService;
 import com.happymouse.cryd.service.agent.AgentOrchestrator;
 import com.happymouse.cryd.service.rag.RagService;
 import com.happymouse.cryd.service.rag.VectorStore;
 import com.happymouse.cryd.service.spark.SparkClient;
+import com.happymouse.cryd.service.xunfei.XiaomiMiMoTtsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,123 +34,50 @@ public class ChatController {
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
     private final AgentOrchestrator orchestrator;
     private final ChatMessageRepository chatMessageRepository;
-    private final StudentRepository studentRepository;
-    private final OnboardingService onboardingService;
 
     private final SparkClient sparkClient;
     private final RagService ragService;
     private final VectorStore vectorStore;
+    private final XiaomiMiMoTtsService mimoTts;
 
     @Value("${server.port:8080}")
     private String serverPort;
 
-    public ChatController(AgentOrchestrator orchestrator, ChatMessageRepository chatMessageRepository,
-                          StudentRepository studentRepository, OnboardingService onboardingService,
-                          SparkClient sparkClient, RagService ragService, VectorStore vectorStore) {
+    public ChatController(AgentOrchestrator orchestrator, ChatMessageRepository chatMessageRepository, SparkClient sparkClient, RagService ragService, VectorStore vectorStore, XiaomiMiMoTtsService mimoTts) {
         this.orchestrator = orchestrator;
         this.chatMessageRepository = chatMessageRepository;
-        this.studentRepository = studentRepository;
-        this.onboardingService = onboardingService;
         this.sparkClient = sparkClient;
         this.ragService = ragService;
         this.vectorStore = vectorStore;
+        this.mimoTts = mimoTts;
     }
 
     @PostMapping("/send")
     public Result<ChatResponse> send(@RequestBody ChatRequest request) {
-        log.info("收到聊天请求: studentId={}, msg={}", request.getStudentId(),
-            request.getMessage() != null ? request.getMessage().substring(0, Math.min(50, request.getMessage().length())) : "null");
-
-        // 查找学生
-        Student student = studentRepository.findByUsername("student_" + request.getStudentId())
-            .orElse(null);
-
-        // ★ 检测引导模式触发词
-        boolean isOnboarding = "__START_ONBOARDING__".equals(request.getMessage());
-        boolean isGreeting = "__GREETING__".equals(request.getMessage());
-        boolean isSpecialTrigger = isOnboarding || isGreeting;
-
-        // 如果是引导触发，把消息内容替换为更自然的提示
-        String displayMessage = isSpecialTrigger ? (isOnboarding ? "开始引导对话" : "打个招呼") : request.getMessage();
+        log.info("收到聊天请求: studentId={}", request.getStudentId());
 
         ChatMessage userMsg = new ChatMessage();
         userMsg.setStudentId(request.getStudentId());
         userMsg.setRole("user");
-        userMsg.setContent(displayMessage);
+        userMsg.setContent(request.getMessage());
         chatMessageRepository.save(userMsg);
 
         try {
+            String msg = request.getMessage();
+            // 短消息且非复杂问题 → 快速通道，跳过 PipelineOrchestrator
+            boolean isShort = msg != null && msg.length() < 30;
+            boolean isComplex = msg != null && (msg.contains("代码") || msg.contains("编程")
+                    || msg.contains("算法") || msg.contains("指针") || msg.contains("题目"));
             ChatResponse response;
-            String systemPrompt;
-            String userPrompt;
-
-            if (isOnboarding && student != null) {
-                // 引导模式：使用 OnboardingService 生成专属 System Prompt（含专业、错题历史）
-                systemPrompt = onboardingService.buildSystemPrompt(request.getStudentId());
-                userPrompt = "你好，请开始引导对话";
-            } else if (isGreeting && student != null) {
-                // 打招呼模式：友好的简短欢迎
-                systemPrompt = onboardingService.buildSystemPrompt(request.getStudentId());
-                userPrompt = "打个招呼";
-            } else {
-                // 正常聊天模式
-                String msg = request.getMessage();
-                boolean isShort = msg != null && msg.length() < 30;
-                boolean isComplex = msg != null && (msg.contains("代码") || msg.contains("编程")
-                        || msg.contains("算法") || msg.contains("指针") || msg.contains("题目"));
-                if (isShort && !isComplex) {
-                    systemPrompt = "你是C语言辅导老师，回答简洁友好。学生水平：大一。";
-                } else {
-                    systemPrompt = null; // 走 PipelineOrchestrator
-                }
-                userPrompt = msg;
-            }
-
-            // 调用 LLM
-            if (systemPrompt != null && !isOnboarding && !isGreeting) {
-                // 快速通道
-                String aiReply = sparkClient.chat(systemPrompt, userPrompt, 0.5f, 512);
+            if (isShort && !isComplex) {
+                String aiReply = sparkClient.chat(
+                    "你是C语言辅导老师，回答简洁友好。学生水平：大一。",
+                    msg, 0.5f, 512);
                 response = new ChatResponse();
                 response.setAgentName("辅导老师");
                 response.setMessage(aiReply);
-            } else if (isOnboarding || isGreeting) {
-                // 引导/打招呼 → 使用带历史的多轮对话
-                String aiReply = sparkClient.chat(systemPrompt, userPrompt, 0.5f, 2048);
-                response = new ChatResponse();
-                response.setAgentName("小智老师");
-                response.setMessage(aiReply);
             } else {
-                // 完整 Pipeline
                 response = orchestrator.process(request);
-            }
-
-            // ★ 每次对话都实时提取画像
-            try {
-                if (student != null && !isSpecialTrigger) {
-                    onboardingService.extractAndUpdateProfile(student, request.getMessage());
-                }
-            } catch (Exception e) {
-                log.warn("画像提取跳过: {}", e.getMessage());
-            }
-
-            // ★ 如果画像完整度达标，异步触发生成（先查知识库再用 LLM）
-            if (student != null && onboardingService.calcCompleteness(student) >= 70) {
-                Thread.ofVirtual().start(() -> {
-                    try {
-                        log.info("画像完整度达标({}%)，开始知识库增强资源生成",
-                            onboardingService.calcCompleteness(student));
-                        // 1. 知识库增强生成学习资源（先查RAG再LLM）
-                        int count = onboardingService.generateResourcesFromKnowledgeBase(request.getStudentId());
-                        log.info("知识库资源生成完成: {} 个资源", count);
-                        // 2. 路径规划师生成学习路径
-                        ChatRequest pathReq = new ChatRequest();
-                        pathReq.setStudentId(request.getStudentId());
-                        pathReq.setMessage("根据画像和知识库资源生成个性化学习路径");
-                        orchestrator.process(pathReq);
-                    } catch (Exception e) {
-                        log.warn("异步生成失败: {}", e.getMessage());
-                    }
-                });
             }
 
             ChatMessage aiMsg = new ChatMessage();
@@ -327,5 +255,91 @@ public class ChatController {
             fallback.setMessage("图片分析失败，请重试：" + e.getMessage());
             return Result.success(fallback);
         }
+    }
+
+    /**
+     * TTS 文字转语音 — 使用小米 MiMo Token Plan
+     * POST /api/chat/tts
+     * body: { text: "...", voice?: "default_zh" | 克隆声音ID }
+     * 返回: MP3 音频流
+     */
+    @PostMapping("/tts")
+    public ResponseEntity<byte[]> tts(@RequestBody Map<String, String> request) {
+        String text = request.get("text");
+        String voice = request.getOrDefault("voice", "");
+
+        if (text == null || text.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        byte[] audio = mimoTts.textToSpeech(text.trim(), voice);
+        if (audio == null || audio.length == 0) {
+            return ResponseEntity.internalServerError().build();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
+                .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(audio.length))
+                .body(audio);
+    }
+
+    /**
+     * 声音克隆 — 上传 10-30 秒音频样本
+     * POST /api/chat/voice-clone
+     * multipart: audio (WAV/MP3)
+     * 返回: { voiceId: "..." }
+     */
+    @PostMapping("/voice-clone")
+    public Result<Map<String, String>> cloneVoice(@RequestParam("audio") MultipartFile audioFile) {
+        log.info("收到声音克隆请求, 文件大小: {}", audioFile.getSize());
+        Map<String, String> result = new HashMap<>();
+
+        try {
+            byte[] audioBytes = audioFile.getBytes();
+            if (audioBytes.length < 10000) {
+                result.put("error", "音频太短，请录制至少10秒");
+                return Result.success(result);
+            }
+            String voiceId = mimoTts.cloneVoice(audioBytes);
+            if (voiceId != null && !voiceId.isEmpty()) {
+                result.put("voiceId", voiceId);
+                result.put("message", "声音克隆成功！AI将用你的声音朗读");
+                log.info("声音克隆成功: {}", voiceId);
+            } else {
+                result.put("error", "声音克隆失败，请重试");
+            }
+            return Result.success(result);
+        } catch (Exception e) {
+            log.error("声音克隆异常", e);
+            result.put("error", "声音克隆失败: " + e.getMessage());
+            return Result.success(result);
+        }
+    }
+
+    /**
+     * 获取已克隆的声音ID
+     * GET /api/chat/voice-id
+     */
+    @GetMapping("/voice-id")
+    public Result<Map<String, String>> getVoiceId() {
+        Map<String, String> result = new HashMap<>();
+        String voiceId = mimoTts.getClonedVoiceId();
+        result.put("voiceId", voiceId != null ? voiceId : "");
+        result.put("hasClone", String.valueOf(voiceId != null));
+        return Result.success(result);
+    }
+
+    /**
+     * 设置克隆声音ID（用于页面恢复）
+     * POST /api/chat/voice-id
+     */
+    @PostMapping("/voice-id")
+    public Result<Map<String, String>> setVoiceId(@RequestBody Map<String, String> request) {
+        String voiceId = request.get("voiceId");
+        mimoTts.setClonedVoiceId(voiceId);
+        Map<String, String> result = new HashMap<>();
+        result.put("voiceId", voiceId);
+        result.put("message", "声音ID已设置");
+        return Result.success(result);
     }
 }

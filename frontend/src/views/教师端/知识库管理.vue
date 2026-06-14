@@ -174,12 +174,12 @@ onMounted(() => { loadCourses() })
 .kb-page { }
 .page-header { margin-bottom: 20px; }
 .page-header h2 { margin: 0 0 4px 0; font-size: 22px; }
-.subtitle { color: #9ca3af; font-size: 14px; margin: 0; }
+.subtitle { color: #b6ada1; font-size: 14px; margin: 0; }
 
-.section { background: #fff; border-radius: 14px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.04); }
+.section { background: #f4efe7; border-radius: 14px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.04); }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.section-title { font-size: 16px; color: #1a1a2e; margin: 0 0 14px 0; padding-left: 8px; border-left: 3px solid #5b8def; }
-.hint { font-size: 12px; color: #9ca3af; margin-top: 8px; }
+.section-title { font-size: 16px; color: #342618; margin: 0 0 14px 0; padding-left: 8px; border-left: 3px solid #b15311; }
+.hint { font-size: 12px; color: #b6ada1; margin-top: 8px; }
 .course-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 
 .doc-list { display: flex; flex-direction: column; gap: 10px; }
@@ -187,15 +187,15 @@ onMounted(() => { loadCourses() })
   border: 1px solid #f0f0f0; border-radius: 10px; padding: 14px;
   transition: all 0.2s;
 }
-.doc-card:hover { border-color: #5b8def; }
-.doc-card.ai { border-left: 3px solid #f59e0b; }
-.doc-card.teacher { border-left: 3px solid #34d399; }
+.doc-card:hover { border-color: #b15311; }
+.doc-card.ai { border-left: 3px solid #c97930; }
+.doc-card.teacher { border-left: 3px solid #4a7c4e; }
 .doc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .doc-icon { font-size: 20px; flex-shrink: 0; }
 .doc-info { flex: 1; }
-.doc-info h4 { margin: 0 0 2px 0; font-size: 14px; color: #1a1a2e; }
-.doc-date { font-size: 12px; color: #9ca3af; }
-.doc-preview { font-size: 13px; color: #374151; margin: 0 0 8px 0; line-height: 1.5; }
+.doc-info h4 { margin: 0 0 2px 0; font-size: 14px; color: #342618; }
+.doc-date { font-size: 12px; color: #b6ada1; }
+.doc-preview { font-size: 13px; color: #6a6054; margin: 0 0 8px 0; line-height: 1.5; }
 .doc-actions { display: flex; gap: 8px; }
 
 .doc-detail { font-size: 14px; line-height: 1.8; max-height: 500px; overflow-y: auto; }
@@ -208,7 +208,7 @@ onMounted(() => { loadCourses() })
 .doc-detail :deep(pre) { background: #f4f4f5; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
 .doc-detail :deep(code) { font-family: Consolas, monospace; font-size: 13px; background: #f0f2f5; padding: 1px 4px; border-radius: 3px; }
 .doc-detail :deep(pre code) { background: none; padding: 0; }
-.doc-detail :deep(blockquote) { border-left: 3px solid #5b8def; padding: 4px 10px; margin: 8px 0; background: rgba(91,141,239,0.04); }
+.doc-detail :deep(blockquote) { border-left: 3px solid #b15311; padding: 4px 10px; margin: 8px 0; background: rgba(177,83,17,0.04); }
 .doc-detail :deep(table) { border-collapse: collapse; margin: 8px 0; }
-.doc-detail :deep(th), .doc-detail :deep(td) { border: 1px solid #e5e7eb; padding: 6px 10px; }
+.doc-detail :deep(th), .doc-detail :deep(td) { border: 1px solid #dad2c7; padding: 6px 10px; }
 </style>

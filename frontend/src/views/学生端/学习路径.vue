@@ -292,23 +292,23 @@ function initTreeChart() {
     tooltip: {
       trigger: 'item',
       triggerOn: 'mousemove',
-      backgroundColor: '#fff',
-      borderColor: '#5b8def',
+      backgroundColor: '#f4efe7',
+      borderColor: '#b15311',
       borderWidth: 2,
       borderRadius: 8,
       padding: [12, 16],
-      textStyle: { color: '#1a1a2e', fontSize: 13 },
+      textStyle: { color: '#342618', fontSize: 13 },
       formatter: function (params) {
         if (params.dataType !== 'node') return ''
         const d = params.data
         if (!d || d.value === 'root') return `<b>${d.name}</b>`
         return `
           <div style="max-width:260px">
-            <b style="font-size:15px;color:#5b8def">${d.icon || ''} ${d.name}</b>
-            ${d.difficulty ? `<br/><span style="color:#9ca3af">难度：</span>${d.difficulty}` : ''}
-            ${d.estimatedHours ? `<br/><span style="color:#9ca3af">建议学时：</span>${d.estimatedHours}` : ''}
-            ${d.description ? `<br/><span style="color:#9ca3af">简介：</span><span style="font-size:12px">${d.description.slice(0, 80)}...</span>` : ''}
-            <br/><span style="color:#5b8def;font-size:12px">💡 点击查看详情</span>
+            <b style="font-size:15px;color:#b15311">${d.icon || ''} ${d.name}</b>
+            ${d.difficulty ? `<br/><span style="color:#b6ada1">难度：</span>${d.difficulty}` : ''}
+            ${d.estimatedHours ? `<br/><span style="color:#b6ada1">建议学时：</span>${d.estimatedHours}` : ''}
+            ${d.description ? `<br/><span style="color:#b6ada1">简介：</span><span style="font-size:12px">${d.description.slice(0, 80)}...</span>` : ''}
+            <br/><span style="color:#b15311;font-size:12px">💡 点击查看详情</span>
           </div>
         `
       }
@@ -331,7 +331,7 @@ function initTreeChart() {
           verticalAlign: 'middle',
           align: 'left',
           fontSize: 12,
-          color: '#1a1a2e',
+          color: '#342618',
           formatter: function (params) {
             const d = params.data
             const icon = d.icon || ''
@@ -349,7 +349,7 @@ function initTreeChart() {
             verticalAlign: 'middle',
             align: 'left',
             fontSize: 11,
-            color: '#374151'
+            color: '#6a6054'
           }
         },
         lineStyle: {
@@ -358,19 +358,19 @@ function initTreeChart() {
           curveness: 0.5
         },
         itemStyle: {
-          color: '#5b8def',
-          borderColor: '#5b8def',
+          color: '#b15311',
+          borderColor: '#b15311',
           borderWidth: 2
         },
         emphasis: {
           focus: 'descendant',
-          lineStyle: { color: '#5b8def', width: 3 },
-          itemStyle: { shadowBlur: 12, shadowColor: 'rgba(91,141,239,0.5)' }
+          lineStyle: { color: '#b15311', width: 3 },
+          itemStyle: { shadowBlur: 12, shadowColor: 'rgba(177,83,17,0.5)' }
         },
         // 叶子节点样式
         leavesStyle: {
-          color: '#fff',
-          borderColor: '#34d399',
+          color: '#f4efe7',
+          borderColor: '#4a7c4e',
           borderWidth: 1.5
         }
       }
@@ -479,69 +479,69 @@ onMounted(() => {
 <style scoped>
 .learning-path-page { }
 .page-header { margin-bottom: 20px; }
-.page-header h2 { margin: 0 0 4px 0; font-size: 20px; font-weight: 700; color: #1a1a2e; }
-.subtitle { color: #9ca3af; font-size: 13px; margin: 0; }
+.page-header h2 { margin: 0 0 4px 0; font-size: 20px; font-weight: 700; color: #342618; }
+.subtitle { color: #b6ada1; font-size: 13px; margin: 0; }
 
 .stats-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 
 .checkin-section { margin-bottom: 20px; }
-.checkin-section h3 { margin-bottom: 12px; font-size: 16px; color: #374151; }
+.checkin-section h3 { margin-bottom: 12px; font-size: 16px; color: #6a6054; }
 .checkin-bar { display: flex; align-items: center; gap: 12px; }
-.streak-info { font-size: 13px; font-weight: 600; color: #34d399; }
+.streak-info { font-size: 13px; font-weight: 600; color: #4a7c4e; }
 
 .stat-card {
-  flex: 1; min-width: 140px; background: #fff; border-radius: 14px; padding: 14px 18px;
+  flex: 1; min-width: 140px; background: #f4efe7; border-radius: 14px; padding: 14px 18px;
   display: flex; align-items: center; gap: 12px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #dad2c7;
 }
 .stat-icon { font-size: 26px; }
-.stat-value { font-size: 22px; font-weight: 700; color: #1a1a2e; }
-.stat-label { font-size: 12px; color: #9ca3af; }
+.stat-value { font-size: 22px; font-weight: 700; color: #342618; }
+.stat-label { font-size: 12px; color: #b6ada1; }
 
 .ai-path-section {
-  background: #fff; border-radius: 14px; padding: 20px;
-  margin-bottom: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4;
+  background: #f4efe7; border-radius: 14px; padding: 20px;
+  margin-bottom: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #dad2c7;
 }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.section-header h3 { margin: 0; font-size: 16px; color: #374151; }
+.section-header h3 { margin: 0; font-size: 16px; color: #6a6054; }
 .path-progress-bar { margin-bottom: 20px; padding: 16px 0; }
 .path-detail {
-  padding: 16px; background: #fafbfd; border-radius: 10px;
+  padding: 16px; background: #e4dfd8; border-radius: 10px;
   max-height: 500px; overflow-y: auto; line-height: 1.8; font-size: 14px;
-  border: 1px solid #f0f2f5;
+  border: 1px solid #dad2c7;
 }
-.path-detail :deep(h2) { font-size: 18px; margin: 16px 0 8px; color: #1a1a2e; }
-.path-detail :deep(h3) { font-size: 15px; margin: 12px 0 6px; color: #1a1a2e; }
-.path-detail :deep(h4) { font-size: 14px; margin: 10px 0 4px; color: #374151; }
+.path-detail :deep(h2) { font-size: 18px; margin: 16px 0 8px; color: #342618; }
+.path-detail :deep(h3) { font-size: 15px; margin: 12px 0 6px; color: #342618; }
+.path-detail :deep(h4) { font-size: 14px; margin: 10px 0 4px; color: #6a6054; }
 .path-detail :deep(p) { margin: 0 0 8px; }
 .path-detail :deep(ul), .path-detail :deep(ol) { margin: 6px 0; padding-left: 20px; }
 .path-detail :deep(li) { margin-bottom: 3px; }
-.path-detail :deep(pre) { background: #f5f7fa; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
+.path-detail :deep(pre) { background: #e4dfd8; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
 .path-detail :deep(code) { font-family: Consolas, 'Courier New', monospace; font-size: 13px; }
 .path-detail :deep(pre code) { background: none; padding: 0; }
-.path-detail :deep(blockquote) { border-left: 3px solid #5b8def; padding: 4px 12px; margin: 8px 0; background: rgba(91,141,239,0.04); border-radius: 0 6px 6px 0; }
+.path-detail :deep(blockquote) { border-left: 3px solid #b15311; padding: 4px 12px; margin: 8px 0; background: rgba(177,83,17,0.04); border-radius: 0 6px 6px 0; }
 .path-detail :deep(table) { border-collapse: collapse; margin: 8px 0; }
-.path-detail :deep(th), .path-detail :deep(td) { border: 1px solid #e5e7eb; padding: 6px 10px; }
+.path-detail :deep(th), .path-detail :deep(td) { border: 1px solid #dad2c7; padding: 6px 10px; }
 .no-path-hint { padding: 20px 0; }
 
 /* 知识体系树状图 */
 .tree-section {
-  background: #fff; border-radius: 14px; padding: 20px;
-  margin-bottom: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4;
+  background: #f4efe7; border-radius: 14px; padding: 20px;
+  margin-bottom: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #dad2c7;
 }
 .tree-section .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.tree-section .section-header h3 { margin: 0; font-size: 16px; color: #374151; }
-.tree-hint { font-size: 11px; color: #9ca3af; }
+.tree-section .section-header h3 { margin: 0; font-size: 16px; color: #6a6054; }
+.tree-hint { font-size: 11px; color: #b6ada1; }
 .tree-container { width: 100%; }
 .tree-chart { width: 100%; height: 480px; }
 
 /* 节点详情弹窗 */
 .node-detail-header { display: flex; align-items: center; gap: 12px; }
-.node-detail-header h3 { margin: 0; font-size: 17px; color: #1a1a2e; }
+.node-detail-header h3 { margin: 0; font-size: 17px; color: #342618; }
 .node-detail-icon { font-size: 30px; }
 .detail-section { margin-bottom: 14px; }
-.detail-section h4 { margin: 0 0 6px 0; font-size: 13px; color: #6b7280; }
-.detail-section p { margin: 0; font-size: 13px; color: #374151; line-height: 1.8; }
+.detail-section h4 { margin: 0 0 6px 0; font-size: 13px; color: #6a6054; }
+.detail-section p { margin: 0; font-size: 13px; color: #6a6054; line-height: 1.8; }
 .keyword-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 
 </style>

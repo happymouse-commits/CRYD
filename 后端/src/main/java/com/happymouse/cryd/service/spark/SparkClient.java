@@ -3,6 +3,7 @@ package com.happymouse.cryd.service.spark;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.happymouse.cryd.service.xunfei.XunfeiIatService;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,12 @@ public class SparkClient {
             .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build();
+
+    private final XunfeiIatService xunfeiIatService;
+
+    public SparkClient(XunfeiIatService xunfeiIatService) {
+        this.xunfeiIatService = xunfeiIatService;
+    }
 
     /**
      * 同步调用 LLM，返回完整回复
@@ -151,11 +158,10 @@ public class SparkClient {
     }
 
     /**
-     * 语音转文字 — 保留接口，暂不支持
+     * 语音转文字 — 调用讯飞语音听写 API
      */
     public String voiceToText(byte[] audioBytes) {
-        log.warn("语音转文字功能暂未接入，请配置语音识别服务");
-        return "";
+        return xunfeiIatService.transcribe(audioBytes);
     }
 
     /**

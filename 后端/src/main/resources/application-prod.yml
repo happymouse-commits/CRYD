@@ -18,3 +18,16 @@ spring:
 rag:
   embedding:
     dimension: 2048
+
+# 讯飞语音听写
+xunfei:
+  asr:
+    app-id: 99d50715
+    api-key: 94563f2f6aee1cc7366625bc278b0b88
+    api-secret: NTA4ZmZiNWZiYjc2N2U5OGUyM2E1M2E3
+
+# 小米 MiMo TTS + 声音克隆
+mimo:
+  api:
+    url: https://token-plan-cn.xiaomimimo.com/v1
+    key: tp-c6592p532j3g9k9hsoxbowg18wsh2b8cwp1xmij04okatpao

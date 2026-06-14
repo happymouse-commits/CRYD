@@ -150,9 +150,9 @@ function renderLine(records) {
     yAxis: { type: 'value', min: 0, max: 100 },
     series: [{
       type: 'line', data: scores.length ? scores : [0], smooth: true,
-      lineStyle: { color: '#5b8def', width: 2 },
-      areaStyle: { color: 'rgba(91,141,239,0.1)' },
-      itemStyle: { color: '#5b8def' }
+      lineStyle: { color: '#b15311', width: 2 },
+      areaStyle: { color: 'rgba(177,83,17,0.1)' },
+      itemStyle: { color: '#b15311' }
     }]
   })
 }
@@ -165,37 +165,37 @@ onMounted(() => { loadData() })
 
 .stats-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 .stat-card {
-  flex: 1; min-width: 140px; background: #fff; border-radius: 14px;
+  flex: 1; min-width: 140px; background: #f4efe7; border-radius: 14px;
   padding: 14px 18px; display: flex; align-items: center; gap: 12px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #dad2c7;
 }
 .stat-icon { font-size: 26px; }
-.stat-value { font-size: 22px; font-weight: 700; color: #1a1a2e; }
-.stat-label { font-size: 12px; color: #9ca3af; }
+.stat-value { font-size: 22px; font-weight: 700; color: #342618; }
+.stat-label { font-size: 12px; color: #b6ada1; }
 
 .charts-row { display: flex; margin-bottom: 20px; }
 .chart-panel {
-  flex: 1; background: #fff; border-radius: 14px; padding: 20px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4;
+  flex: 1; background: #f4efe7; border-radius: 14px; padding: 20px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #dad2c7;
 }
 .chart-box { width: 100%; height: 380px; }
 
-.panel-title { font-size: 15px; color: #374151; margin: 0 0 12px 0; padding-left: 8px; border-left: 3px solid #5b8def; }
+.panel-title { font-size: 15px; color: #6a6054; margin: 0 0 12px 0; padding-left: 8px; border-left: 3px solid #b15311; }
 
 .weakness-section {
-  margin-bottom: 20px; background: #fff; border-radius: 14px; padding: 20px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4;
+  margin-bottom: 20px; background: #f4efe7; border-radius: 14px; padding: 20px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #dad2c7;
 }
 .weakness-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .weakness-tag { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; }
-.weakness-tag.high { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-.weakness-tag.medium { background: #fefce8; color: #d97706; border: 1px solid #fde68a; }
-.weakness-tag.low { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.weakness-tag.high { background: rgba(161,74,61,0.06); color: #a14a3d; border: 1px solid #fecaca; }
+.weakness-tag.medium { background: #fefce8; color: #a86220; border: 1px solid #fde68a; }
+.weakness-tag.low { background: #ecfdf5; color: #3a6340; border: 1px solid #a7f3d0; }
 
 .records-section {
-  background: #fff; border-radius: 14px; padding: 20px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef0f4;
+  background: #f4efe7; border-radius: 14px; padding: 20px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #dad2c7;
 }
-.score-pass { color: #059669; font-weight: 700; }
-.score-fail { color: #dc2626; font-weight: 700; }
+.score-pass { color: #3a6340; font-weight: 700; }
+.score-fail { color: #a14a3d; font-weight: 700; }
 </style>

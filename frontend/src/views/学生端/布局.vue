@@ -76,18 +76,33 @@ function handleLogout() {
 </script>
 
 <style scoped>
+/* ===== Typer 暖色主题变量 ===== */
+:root {
+  --t-ground: #ebe2d7;
+  --t-surface: #f4efe7;
+  --t-wash: #dad2c7;
+  --t-line: #342618;
+  --t-line-dim: #6a6054;
+  --t-line-subtle: #b6ada1;
+  --t-accent: #b15311;
+  --t-accent-soft: #e0d9cd;
+  --t-status-ready: #4a7c4e;
+  --t-surface-muted: #e4dfd8;
+  --t-shadow: 0 2px 24px rgb(52 38 24 / 8%);
+}
+
 /* ===== 整体 ===== */
 .student-layout { height: 100vh; }
 
 /* ===== 侧边栏 ===== */
 .sidebar {
-  background: #fff;
-  border-right: 1px solid #e8ecf1;
+  background: var(--t-surface);
+  border-right: 1px solid var(--t-wash);
   display: flex;
   flex-direction: column;
   align-items: stretch;
   padding: 16px 0 0;
-  box-shadow: 2px 0 16px rgba(0,0,0,0.03);
+  box-shadow: var(--t-shadow);
   z-index: 10;
 }
 .logo-box {
@@ -95,19 +110,19 @@ function handleLogout() {
   align-items: center;
   gap: 10px;
   padding: 0 14px 14px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--t-wash);
   margin-bottom: 8px;
 }
 .logo-icon {
   width: 34px; height: 34px;
   border-radius: 9px;
-  background: linear-gradient(135deg, #5b8def, #7c5cfc);
-  color: #fff;
+  background: var(--t-accent);
+  color: var(--t-surface);
   display: flex; align-items: center; justify-content: center;
   font-size: 14px; font-weight: 800;
   flex-shrink: 0;
 }
-.logo-text { font-size: 16px; font-weight: 700; color: #1a1a2e; letter-spacing: 1px; white-space: nowrap; }
+.logo-text { font-size: 16px; font-weight: 700; color: var(--t-line); letter-spacing: 1px; white-space: nowrap; }
 
 /* 导航 */
 .side-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 8px; }
@@ -115,15 +130,15 @@ function handleLogout() {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 10px; border-radius: 10px;
   cursor: pointer; text-decoration: none;
-  color: #6b7280; font-size: 13px; font-weight: 500;
-  transition: all 0.18s; border-left: 2px solid transparent;
+  color: var(--t-line-dim); font-size: 13px; font-weight: 500;
+  transition: all 0.18s; border-left: 3px solid transparent;
   white-space: nowrap;
 }
-.nav-item:hover { background: #f5f7fa; color: #1a1a2e; }
+.nav-item:hover { background: var(--t-wash); color: var(--t-line); }
 .nav-item.active {
-  background: rgba(91,141,239,0.06);
-  color: #5b8def;
-  border-left-color: #5b8def;
+  background: var(--t-accent-soft);
+  color: var(--t-accent);
+  border-left-color: var(--t-accent);
 }
 .ni-icon {
   font-size: 17px; width: 20px; text-align: center; flex-shrink: 0;
@@ -133,7 +148,7 @@ function handleLogout() {
 /* 底部 */
 .sidebar-bottom {
   padding: 8px 8px 12px;
-  border-top: 1px solid #f0f2f5;
+  border-top: 1px solid var(--t-wash);
   display: flex; flex-direction: column; gap: 2px;
   margin-top: 8px;
 }
@@ -141,38 +156,38 @@ function handleLogout() {
   width: 34px; height: 34px;
   border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(245,158,11,0.08);
-  border: 1px solid rgba(245,158,11,0.15);
-  color: #f59e0b;
+  background: var(--t-accent-soft);
+  border: 1px solid var(--t-wash);
+  color: var(--t-accent);
 }
-.sb-login:hover { background: rgba(245,158,11,0.04); }
+.sb-login:hover { background: var(--t-accent-soft); }
 .sb-avatar-item { gap: 10px; }
 .ni-avatar {
   width: 34px; height: 34px;
   border-radius: 9px;
-  background: linear-gradient(135deg, #34d399, #5b8def);
-  color: #fff;
+  background: var(--t-accent);
+  color: var(--t-surface);
   display: flex; align-items: center; justify-content: center;
   font-size: 15px; flex-shrink: 0;
 }
 
 /* ===== 主内容区 ===== */
-.main-area { background: #f3f5f9; }
+.main-area { background: var(--t-ground); }
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   height: 50px; padding: 0 22px;
-  background: #fff;
-  border-bottom: 1px solid #e8ecf1;
+  background: var(--t-surface);
+  border-bottom: 1px solid var(--t-wash);
 }
-.greeting { font-size: 14px; font-weight: 600; color: #1a1a2e; }
-.greeting em { font-style: normal; color: #5b8def; }
+.greeting { font-size: 14px; font-weight: 600; color: var(--t-line); }
+.greeting em { font-style: normal; color: var(--t-accent); }
 .exit-btn {
-  background: transparent; color: #9ca3af;
-  border: 1px solid #e5e7eb; padding: 5px 14px;
+  background: transparent; color: var(--t-line-subtle);
+  border: 1px solid var(--t-wash); padding: 5px 14px;
   border-radius: 10px; font-size: 12px; cursor: pointer;
   transition: all 0.18s;
 }
-.exit-btn:hover { color: #f87171; border-color: rgba(248,113,113,0.3); background: #fef2f2; }
+.exit-btn:hover { color: #c0392b; border-color: rgba(192,57,43,0.25); background: var(--t-surface-muted); }
 
 .content {
   padding: 16px 18px 18px 14px;

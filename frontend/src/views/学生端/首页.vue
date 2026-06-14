@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="dashboard">
     <!-- 三列主体 -->
     <div class="dash-grid">
@@ -17,58 +17,16 @@
                 <span v-else v-html="renderMd(msg.content)"></span>
               </div>
             </template>
-            <div v-if="dh.messages.length === 0 && !dh.loading" class="msg msg-ai">
-              你好呀！我是你的 AI 学习助手 🎓<br>有什么 C 语言问题尽管问我～
-            </div>
-            <div v-if="dh.loading" class="msg msg-ai">
-              <span class="thinking-dots"><span>●</span><span>●</span><span>●</span></span>
-            </div>
-
-            <!-- ☆ 数字人 3D 虚拟形象 — 左下角 -->
-            <div class="digital-human-avatar" :class="dh.state.mode">
-              <div class="dh-avatar-ring" :class="dh.state.mode"></div>
-              <div class="dh-avatar-inner">
-                <!-- 3D 模型（渐进增强，加载成功后显示） -->
-                <model-viewer
-                  v-if="dh.state.modelViewerLoaded"
-                  :src="dh.state.avatar3dUrl"
-                  camera-target="0m 1.5m 0m"
-                  camera-orbit="0deg 75deg 2.5m"
-                  field-of-view="30deg"
-                  exposure="1"
-                  shadow-intensity="0"
-                  environment-image="neutral"
-                  auto-rotate
-                  rotation-per-second="15deg"
-                  interaction-prompt="none"
-                  class="dh-3d-viewer"
-                  loading="lazy"
-                ></model-viewer>
-                <!-- 2D 图片后备（国内可用） -->
-                <img
-                  v-else
-                  :src="dh.state.avatarUrl"
-                  class="dh-2d-img"
-                  alt="数字人"
-                  @error="dh.state.avatarUrl = ''"
-                />
-                <!-- 纯 Emoji 兜底 -->
-                <span v-if="!dh.state.avatarUrl && !dh.state.modelViewerLoaded" class="dh-emoji-fallback">
-                  {{ dh.state.avatarEmoji }}
-                </span>
-              </div>
-              <!-- 对话气泡 -->
-              <div class="dh-speech-bubble" v-if="dh.state.mode === 'speaking' || dh.state.mode === 'thinking'">
-                <span v-if="dh.state.mode === 'thinking'">...</span>
-                <span v-else>💬</span>
-              </div>
+            <!-- ☆ 数字人 2D 虚拟形象 — 左下角 -->
+            <div class="digital-human-avatar">
+              <DigitalHumanPlaceholder :state="avatarState" avatarSrc="/tutor-body.png" />
             </div>
           </div>
           <!-- 输入区 -->
           <div class="chat-input-row">
             <button v-if="dh.voiceSupported" class="voice-mini-btn" :class="{ recording: dh.state.isRecording }" @mousedown="dh.startRecording" @mouseup="dh.stopRecording" @mouseleave="dh.stopRecording" title="按住说话">🎤</button>
-            <input v-model="dh.inputText" placeholder="输入你的问题或答案..." @keyup.enter="sendMsg" :disabled="dh.loading">
-            <button class="send-btn" @click="sendMsg" :disabled="dh.loading">发送</button>
+            <input v-model="dh.inputText" placeholder="输入你的问题或答案..." @keyup.enter="sendMsg">
+            <button class="send-btn" @click="sendMsg">发送</button>
           </div>
         </div>
       </div>
@@ -167,8 +125,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick, watch } from 'vue'
+import { ref, reactive, onMounted, nextTick, watch, computed } from 'vue'
 import { useDigitalHuman } from '../../composables/useDigitalHuman'
+import DigitalHumanPlaceholder from '../../components/DigitalHumanPlaceholder.vue'
 import { useUserStore } from '../../store/user'
 import { marked } from 'marked'
 import * as echarts from 'echarts'
@@ -176,6 +135,14 @@ import api from '../../api'
 
 const dh = useDigitalHuman()
 const store = useUserStore()
+
+// 数字人状态映射：录音→listening, 等待AI→thinking, AI回复→speaking, 其他→idle
+const avatarState = computed(() => {
+  if (dh.state.isRecording) return 'listening'
+  if (dh.loading.value) return 'thinking'
+  if (dh.state.mode === 'speaking') return 'speaking'
+  return 'idle'
+})
 
 // ===== 画像 =====
 const radarChartRef = ref(null)
@@ -248,8 +215,8 @@ function renderRadar() {
         { name: '互动频率', max: 100 },
         { name: '薄弱项识别', max: 100 },
       ],
-      axisName: { fontSize: 9, color: '#6b7280' },
-      splitArea: { areaStyle: { color: ['#fff', '#f8faff', '#fff', '#f8faff', '#fff'] } }
+      axisName: { fontSize: 9, color: '#6a6054' },
+      splitArea: { areaStyle: { color: ['#f4efe7', '#ebe2d7', '#f4efe7', '#ebe2d7', '#f4efe7'] } }
     },
     series: [{
       type: 'radar',
@@ -264,9 +231,9 @@ function renderRadar() {
         ],
         name: '学习画像',
       }],
-      areaStyle: { color: 'rgba(91,141,239,0.15)' },
-      lineStyle: { color: '#5b8def', width: 2 },
-      itemStyle: { color: '#5b8def' },
+      areaStyle: { color: 'rgba(177,83,17,0.12)' },
+      lineStyle: { color: '#b15311', width: 2 },
+      itemStyle: { color: '#b15311' },
       symbolSize: 4,
       label: { show: false },
     }]
@@ -380,12 +347,42 @@ function formatTime(t) {
 }
 
 // ===== 初始化 =====
-onMounted(async () => {
-  await dh.loadHistory()
-  // ★ 首次访问无历史 → 数字人主动发起引导对话
-  if (dh.messages.value.length === 0) {
-    setTimeout(() => dh.initOnboarding(), 500)
+onMounted(() => {
+  // ★ 强制解锁 — 不依赖任何 API
+  dh.loading.value = false
+
+  // 直接本地欢迎消息，不依赖后端 API — 输入框秒开
+  const welcome = {
+    id: 1,
+    role: 'ai',
+    content: '你好呀！我是你的 AI 学习助手，有什么问题尽管问我～',
+    displayContent: '',
+    agentName: '小智老师',
+    createdAt: new Date().toISOString(),
+    typing: false,
   }
+  dh.messages.value = [welcome]
+  let i = 0
+  dh.state.mode = 'speaking'
+  const ival = setInterval(() => {
+    if (i < welcome.content.length) {
+      welcome.displayContent += welcome.content[i++]
+      dh.scrollToBottom()
+    } else {
+      welcome.typing = false
+      dh.state.mode = 'idle'
+      clearInterval(ival)
+    }
+  }, 30)
+
+  // 后台异步加载（不阻塞）
+  dh.loadHistory().then(() => {
+    // 后端有历史 → 替换掉临时欢迎消息
+    if (dh.messages.value.length > 1 || (dh.messages.value.length === 1 && dh.messages.value[0].id !== 1)) {
+      return // 后端历史已就绪
+    }
+  }).catch(() => {})
+
   loadProfile()
   loadResources()
   loadPath()
@@ -414,10 +411,10 @@ window.addEventListener('resize', () => {
 
 /* ===== 通用卡片 ===== */
 .card {
-  background: #fff;
+  background: var(--t-surface);
   border-radius: 16px;
-  box-shadow: 0 1px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
-  border: 1px solid #eef0f4;
+  box-shadow: var(--t-shadow-soft);
+  border: 1px solid var(--t-border);
   display: flex; flex-direction: column;
   overflow: hidden; min-height: 0;
 }
@@ -426,14 +423,14 @@ window.addEventListener('resize', () => {
   padding: 12px 16px 0;
   display: flex; align-items: center; gap: 6px;
   font-size: 12.5px; font-weight: 700;
-  color: #374151;
+  color: var(--t-line);
 }
 .ch-icon { font-size: 15px; }
 .refresh-link {
-  margin-left: auto; font-size: 10px; color: #9ca3af;
+  margin-left: auto; font-size: 10px; color: var(--t-line-subtle);
   cursor: pointer; font-weight: 500;
 }
-.refresh-link:hover { color: #5b8def; }
+.refresh-link:hover { color: var(--t-accent); }
 
 /* ===== 数字人对话卡 ===== */
 .card-chat { flex: 1; }
@@ -442,7 +439,7 @@ window.addEventListener('resize', () => {
 .chat-msgs {
   flex: 1; overflow-y: auto; padding: 4px 16px 8px;
   display: flex; flex-direction: column; gap: 7px;
-  position: relative; /* 为 3D 虚拟人定位锚点 */
+  position: relative;
 }
 .msg {
   max-width: 78%; padding: 9px 12px; border-radius: 12px;
@@ -450,31 +447,31 @@ window.addEventListener('resize', () => {
 }
 .msg-ai {
   align-self: flex-start;
-  background: #f5f7fa; color: #374151;
+  background: var(--t-surface-muted); color: var(--t-line);
   border-bottom-left-radius: 4px;
 }
 .msg-sys {
   align-self: center;
-  background: #fef2f2; color: #dc2626;
+  background: rgba(161,74,61,0.08); color: var(--t-status-error);
   border-radius: 8px;
   font-size: 11px; padding: 5px 12px;
 }
-.msg-agent-tag { font-size: 9px; color: #5b8def; font-weight: 600; display: block; margin-bottom: 2px; }
-.typing-cursor { color: #5b8def; animation: blink 0.8s infinite; }
+.msg-agent-tag { font-size: 9px; color: var(--t-accent); font-weight: 600; display: block; margin-bottom: 2px; }
+.typing-cursor { color: var(--t-accent); animation: blink 0.8s infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 .msg-me {
   align-self: flex-end;
-  background: linear-gradient(135deg, #5b8def, #6d9cf7);
-  color: #fff; border-bottom-right-radius: 4px;
+  background: var(--t-accent);
+  color: var(--t-surface); border-bottom-right-radius: 4px;
 }
 .msg code {
-  background: rgba(0,0,0,0.06); color: #5b8def;
+  background: var(--t-surface-muted); color: var(--t-accent);
   padding: 1px 6px; border-radius: 5px;
-  font-family: 'Consolas', 'Courier New', monospace; font-size: 11px;
+  font-family: var(--t-font-mono); font-size: 11px;
 }
 .thinking-dots { display: flex; gap: 4px; }
 .thinking-dots span {
-  width: 6px; height: 6px; border-radius: 50%; background: #9ca3af;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--t-line-subtle);
   animation: bounce-dot 1.2s infinite;
 }
 .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
@@ -488,25 +485,25 @@ window.addEventListener('resize', () => {
 }
 .voice-mini-btn {
   width: 32px; height: 32px; border-radius: 10px;
-  border: 1px solid #e5e7eb; background: #f5f7fa;
+  border: 1px solid var(--t-wash); background: var(--t-surface-muted);
   font-size: 14px; cursor: pointer; display: flex;
   align-items: center; justify-content: center;
   transition: all 0.2s; flex-shrink: 0;
 }
-.voice-mini-btn:hover { background: #fff; border-color: #5b8def; }
-.voice-mini-btn.recording { background: #f87171; color: #fff; border-color: #f87171; animation: pulse-rec 1.5s infinite; }
+.voice-mini-btn:hover { background: var(--t-surface); border-color: var(--t-accent); }
+.voice-mini-btn.recording { background: var(--t-status-error); color: var(--t-surface); border-color: var(--t-status-error); animation: pulse-rec 1.5s infinite; }
 @keyframes pulse-rec { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
 .chat-input-row input {
   flex: 1;
-  background: #f5f7fa; border: 1px solid #e5e7eb;
+  background: var(--t-surface-muted); border: 1px solid var(--t-wash);
   border-radius: 12px; padding: 9px 14px;
-  font-size: 12px; color: #1a1a2e; outline: none;
+  font-size: 12px; color: var(--t-line); outline: none;
   transition: border-color 0.2s;
 }
-.chat-input-row input:focus { border-color: #5b8def; background: #fff; }
+.chat-input-row input:focus { border-color: var(--t-accent); background: var(--t-surface); }
 .send-btn {
-  background: linear-gradient(135deg, #5b8def, #6d9cf7);
-  border: none; color: #fff; padding: 9px 18px;
+  background: var(--t-accent);
+  border: none; color: var(--t-surface); padding: 9px 18px;
   border-radius: 12px; cursor: pointer;
   font-size: 13px; font-weight: 600;
   transition: opacity 0.18s; white-space: nowrap;
@@ -520,10 +517,10 @@ window.addEventListener('resize', () => {
   display: flex; gap: 6px; padding: 8px 16px 0; flex-shrink: 0;
 }
 .stat-chip {
-  flex: 1; background: #f8faff; border-radius: 10px;
-  padding: 7px 4px; text-align: center; font-size: 9px; color: #9ca3af;
+  flex: 1; background: var(--t-surface-muted); border-radius: 10px;
+  padding: 7px 4px; text-align: center; font-size: 9px; color: var(--t-line-subtle);
 }
-.sc-val { font-size: 16px; font-weight: 800; color: #1a1a2e; display: block; }
+.sc-val { font-size: 16px; font-weight: 800; color: var(--t-line); display: block; }
 .pf-radar {
   flex: 1; display: flex; align-items: center; justify-content: center;
   padding: 4px 8px;
@@ -534,12 +531,12 @@ window.addEventListener('resize', () => {
 .res-section { padding: 0 16px; }
 .res-section + .res-section { margin-top: 4px; }
 .res-sec-title {
-  font-size: 10.5px; font-weight: 700; color: #6b7280;
+  font-size: 10.5px; font-weight: 700; color: var(--t-line-dim);
   padding: 4px 0; display: flex; align-items: center; gap: 5px;
 }
 .pulse-dot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: #34d399; flex-shrink: 0;
+  background: var(--t-status-ready); flex-shrink: 0;
   animation: pulse 1.6s infinite;
 }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
@@ -551,38 +548,38 @@ window.addEventListener('resize', () => {
 .res-row {
   display: flex; align-items: center; gap: 8px;
   padding: 7px 10px; border-radius: 10px; cursor: pointer;
-  background: #fafbfd; border: 1px solid transparent;
+  background: var(--t-surface-muted); border: 1px solid transparent;
   transition: all 0.18s;
 }
-.res-row:hover { background: #f0f4ff; border-color: #dbeafe; }
+.res-row:hover { background: var(--t-accent-soft); border-color: var(--t-wash); }
 .res-row .rr-icon {
   font-size: 18px; flex-shrink: 0;
   width: 32px; height: 32px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  background: #f5f7fa;
+  background: var(--t-wash);
 }
 .rr-body { flex: 1; min-width: 0; }
-.rr-title { font-weight: 700; font-size: 12px; color: #1a1a2e; }
+.rr-title { font-weight: 700; font-size: 12px; color: var(--t-line); }
 .rr-meta {
-  font-size: 9px; color: #9ca3af; margin-top: 2px;
+  font-size: 9px; color: var(--t-line-subtle); margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .rr-tag {
   padding: 2px 7px; border-radius: 6px;
   font-size: 9px; font-weight: 700; flex-shrink: 0;
 }
-.rr-tag.ppt { background: rgba(245,158,11,0.1); color: #f59e0b; }
-.rr-tag.mind { background: rgba(124,92,252,0.1); color: #7c5cfc; }
-.rr-tag.ex { background: rgba(52,211,153,0.1); color: #34d399; }
-.rr-tag.art { background: rgba(91,141,239,0.1); color: #5b8def; }
-.rr-tag.exp { background: rgba(139,92,246,0.1); color: #8b5cf6; }
-.rr-tag.code { background: rgba(236,72,153,0.1); color: #ec4899; }
-.rr-tag.vid { background: rgba(249,115,22,0.1); color: #f97316; }
+.rr-tag.ppt { background: rgba(201,121,48,0.12); color: var(--t-status-warn); }
+.rr-tag.mind { background: rgba(139,90,60,0.1); color: var(--t-accent-muted); }
+.rr-tag.ex { background: rgba(74,124,78,0.1); color: var(--t-status-ready); }
+.rr-tag.art { background: var(--t-accent-soft); color: var(--t-accent); }
+.rr-tag.exp { background: rgba(139,90,60,0.1); color: var(--t-accent-muted); }
+.rr-tag.code { background: rgba(161,74,61,0.1); color: var(--t-status-error); }
+.rr-tag.vid { background: rgba(201,121,48,0.12); color: var(--t-status-warn); }
 .res-row.new {
-  background: rgba(52,211,153,0.03);
-  border-color: rgba(52,211,153,0.12);
+  background: rgba(74,124,78,0.04);
+  border-color: rgba(74,124,78,0.12);
 }
-.res-row.new .rr-title { color: #059669; }
+.res-row.new .rr-title { color: var(--t-status-ready); }
 
 /* ===== 学习路径 ===== */
 .card-path { flex: 1; }
@@ -594,162 +591,77 @@ window.addEventListener('resize', () => {
 .path-empty {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  color: #9ca3af; font-size: 13px;
+  color: var(--t-line-subtle); font-size: 13px;
 }
-.path-hint { font-size: 11px; margin-top: 6px; color: #d1d5db; }
+.path-hint { font-size: 11px; margin-top: 6px; color: var(--t-wash); }
 .p-node {
   display: flex; align-items: center; gap: 10px;
   padding: 10px; border-radius: 12px; cursor: pointer;
   border: 1.5px solid transparent; transition: all 0.18s;
-  background: #fafbfd; position: relative;
+  background: var(--t-surface-muted); position: relative;
 }
-.p-node:hover { border-color: #dbeafe; }
+.p-node:hover { border-color: var(--t-wash); }
 .p-node:not(:last-child)::after {
   content: ''; position: absolute;
   left: 27px; bottom: -6px;
-  width: 2px; height: 6px; background: #e5e7eb;
+  width: 2px; height: 6px; background: var(--t-wash);
 }
 .p-node.done {
-  background: rgba(52,211,153,0.03);
-  border-color: rgba(52,211,153,0.08);
+  background: rgba(74,124,78,0.05);
+  border-color: rgba(74,124,78,0.1);
 }
-.p-node.done:not(:last-child)::after { background: rgba(52,211,153,0.15); }
+.p-node.done:not(:last-child)::after { background: rgba(74,124,78,0.2); }
 .p-node.current {
-  background: rgba(245,158,11,0.04);
-  border-color: rgba(245,158,11,0.18);
-  box-shadow: 0 0 14px rgba(245,158,11,0.06);
+  background: rgba(201,121,48,0.06);
+  border-color: rgba(201,121,48,0.2);
+  box-shadow: 0 0 14px rgba(201,121,48,0.08);
 }
 .p-node.locked { opacity: 0.4; cursor: default; }
 .pn-icon {
   width: 38px; height: 38px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; flex-shrink: 0; background: #f5f7fa;
+  font-size: 18px; flex-shrink: 0; background: var(--t-wash);
 }
-.p-node.done .pn-icon { background: rgba(52,211,153,0.08); }
+.p-node.done .pn-icon { background: rgba(74,124,78,0.1); }
 .p-node.current .pn-icon {
-  background: rgba(245,158,11,0.1);
+  background: rgba(201,121,48,0.1);
   animation: node-glow 2s infinite;
 }
 @keyframes node-glow {
-  0%,100% { box-shadow: 0 0 8px rgba(245,158,11,0.1); }
-  50% { box-shadow: 0 0 20px rgba(245,158,11,0.2); }
+  0%,100% { box-shadow: 0 0 8px rgba(201,121,48,0.1); }
+  50% { box-shadow: 0 0 20px rgba(201,121,48,0.2); }
 }
 .pn-body { flex: 1; min-width: 0; }
-.pn-title { font-size: 12px; font-weight: 700; color: #1a1a2e; }
-.pn-desc { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+.pn-title { font-size: 12px; font-weight: 700; color: var(--t-line); }
+.pn-desc { font-size: 10px; color: var(--t-line-subtle); margin-top: 2px; }
 .pn-badge {
   font-size: 9px; padding: 3px 8px; border-radius: 7px;
   font-weight: 700; flex-shrink: 0;
 }
-.done-badge { background: rgba(52,211,153,0.1); color: #059669; }
-.cur-badge { background: rgba(245,158,11,0.1); color: #d97706; }
-.locked-badge { background: #f5f7fa; color: #9ca3af; }
+.done-badge { background: rgba(74,124,78,0.1); color: var(--t-status-ready); }
+.cur-badge { background: rgba(201,121,48,0.1); color: var(--t-status-warn); }
+.locked-badge { background: var(--t-surface-muted); color: var(--t-line-subtle); }
 
 /* 资源详情 */
 .res-detail {
   font-size: 14px; line-height: 1.8; max-height: 400px; overflow-y: auto;
 }
-.res-detail :deep(h2) { font-size: 18px; margin: 16px 0 10px; color: #1a1a2e; }
-.res-detail :deep(h3) { font-size: 15px; margin: 12px 0 6px; color: #1a1a2e; }
-.res-detail :deep(pre) { background: #f4f4f5; padding: 10px; border-radius: 6px; overflow-x: auto; }
-.res-detail :deep(code) { font-family: Consolas, monospace; font-size: 13px; background: #f0f2f5; padding: 1px 4px; border-radius: 3px; }
+.res-detail :deep(h2) { font-size: 18px; margin: 16px 0 10px; color: var(--t-line); }
+.res-detail :deep(h3) { font-size: 15px; margin: 12px 0 6px; color: var(--t-line); }
+.res-detail :deep(pre) { background: var(--t-surface-muted); padding: 10px; border-radius: 6px; overflow-x: auto; }
+.res-detail :deep(code) { font-family: var(--t-font-mono); font-size: 13px; background: var(--t-wash); padding: 1px 4px; border-radius: 3px; }
 
-/* ===== 数字人 3D 虚拟形象 ===== */
+/* ===== 数字人 2D 虚拟形象 — 左下角悬浮 ===== */
 .digital-human-avatar {
   position: absolute;
   bottom: 12px;
   left: 12px;
-  z-index: 5;
+  z-index: 1;
   pointer-events: none;
-}
-.dh-avatar-ring {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  transition: all 0.6s ease;
-}
-.dh-avatar-ring.idle {
-  border-color: rgba(52,211,153,0.3);
-  animation: ring-pulse 3s infinite;
-}
-.dh-avatar-ring.thinking {
-  border-color: rgba(245,158,11,0.5);
-  animation: ring-spin 1.5s infinite;
-}
-.dh-avatar-ring.speaking {
-  border-color: rgba(91,141,239,0.6);
-  animation: ring-pulse 0.8s infinite;
-}
-@keyframes ring-pulse {
-  0%,100% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.08); opacity: 1; }
-}
-@keyframes ring-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-.dh-avatar-inner {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: transparent;
-  box-shadow: 0 4px 24px rgba(91,141,239,0.15), 0 0 0 4px rgba(91,141,239,0.08);
-  animation: avatar-float 4s ease-in-out infinite;
-}
-@keyframes avatar-float {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-.digital-human-avatar.thinking .dh-avatar-inner {
-  animation: avatar-float 1.2s ease-in-out infinite;
-}
-.digital-human-avatar.speaking .dh-avatar-inner {
-  animation: avatar-float 0.7s ease-in-out infinite;
-}
-.dh-3d-viewer {
-  width: 100%;
-  height: 100%;
-  --poster-color: transparent;
-}
-.dh-2d-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 20%;
-}
-.dh-emoji-fallback {
-  font-size: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #f8faff 0%, #eef3ff 100%);
-}
-.dh-speech-bubble {
-  position: absolute;
-  top: -22px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px 10px 10px 2px;
-  padding: 2px 8px;
-  font-size: 12px;
-  color: #5b8def;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  animation: bubble-pop 0.3s ease;
-  white-space: nowrap;
-}
-@keyframes bubble-pop {
-  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 /* 滚动条 */
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--t-wash); border-radius: 3px; }
 </style>

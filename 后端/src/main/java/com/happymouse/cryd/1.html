@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>从容应对 AI导学</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:
+    "Inter",
+    "Microsoft YaHei",
+    sans-serif;
+}
+
+
+body{
+
+    background:#faf7f2;
+
+    color:#171512;
+
+    min-height:100vh;
+
+    overflow-x:hidden;
+
+}
+
+
+
+/* 漂浮元素 */
+
+.float{
+
+    position:absolute;
+
+    background:white;
+
+    border-radius:20px;
+
+    box-shadow:
+    0 15px 40px rgba(0,0,0,.08);
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:30px;
+
+}
+
+
+.f1{
+
+    width:80px;
+    height:80px;
+
+    top:170px;
+    left:130px;
+
+    animation:float 5s infinite alternate;
+
+}
+
+
+.f2{
+
+    width:65px;
+    height:65px;
+
+    top:260px;
+    right:160px;
+
+    animation:float 6s infinite alternate;
+
+}
+
+
+.f3{
+
+    width:90px;
+    height:90px;
+
+    bottom:160px;
+    left:220px;
+
+}
+
+
+
+@keyframes float{
+
+from{
+transform:translateY(0);
+}
+
+to{
+transform:translateY(-25px);
+}
+
+}
+
+
+
+
+
+/* 页面 */
+
+.page{
+
+    width:100%;
+
+    text-align:center;
+
+}
+
+
+
+/* logo */
+
+.logo{
+
+    padding-top:35px;
+
+    font-size:22px;
+
+    font-weight:700;
+
+}
+
+
+
+
+.hero{
+
+
+    margin-top:110px;
+
+
+}
+
+
+
+h1{
+
+
+    font-size:76px;
+
+
+    letter-spacing:-4px;
+
+
+    line-height:1.1;
+
+
+}
+
+
+
+h1 span{
+
+
+    background:
+
+    linear-gradient(
+
+    90deg,
+
+    #7565ff,
+
+    #55cbb0
+
+    );
+
+
+    -webkit-background-clip:text;
+
+
+    color:transparent;
+
+
+}
+
+
+
+.desc{
+
+
+    margin-top:30px;
+
+
+    color:#81776c;
+
+
+    font-size:20px;
+
+
+    line-height:1.8;
+
+
+}
+
+
+
+
+.btn{
+
+
+    margin-top:35px;
+
+
+    padding:16px 45px;
+
+
+    border:none;
+
+
+    border-radius:999px;
+
+
+    background:#171512;
+
+
+    color:white;
+
+
+    font-size:17px;
+
+
+}
+
+
+
+
+
+/* AI窗口 */
+
+
+.ai-window{
+
+
+    margin:
+
+    90px auto 0;
+
+
+    width:760px;
+
+
+    height:430px;
+
+
+    background:
+
+    rgba(255,255,255,.8);
+
+
+    border-radius:32px;
+
+
+    box-shadow:
+
+
+    0 40px 100px rgba(0,0,0,.12);
+
+
+    overflow:hidden;
+
+
+    display:flex;
+
+
+    text-align:left;
+
+
+}
+
+
+
+
+/* 顶部 */
+
+
+.top{
+
+
+    position:absolute;
+
+
+}
+
+
+
+
+.sidebar{
+
+
+    width:210px;
+
+
+    background:#f6f1e9;
+
+
+    padding:30px;
+
+
+}
+
+
+
+
+.avatar{
+
+
+    width:100px;
+
+
+    height:100px;
+
+
+    border-radius:50%;
+
+
+    background:
+
+    linear-gradient(
+
+    135deg,
+
+    #b9c8ff,
+
+    #b9f0dc
+
+    );
+
+
+    display:flex;
+
+
+    align-items:center;
+
+
+    justify-content:center;
+
+
+    font-size:30px;
+
+
+    margin:auto;
+
+
+}
+
+
+
+
+
+.side-text{
+
+
+    text-align:center;
+
+
+    margin-top:20px;
+
+
+    color:#777;
+
+
+}
+
+
+
+
+
+.chat{
+
+
+    flex:1;
+
+
+    padding:35px;
+
+
+}
+
+
+
+.message{
+
+
+    padding:15px 20px;
+
+
+    border-radius:20px;
+
+
+    background:#f5f2ed;
+
+
+    width:max-content;
+
+
+    margin-bottom:18px;
+
+
+    max-width:80%;
+
+
+}
+
+
+
+.user{
+
+
+    margin-left:auto;
+
+
+    background:#171512;
+
+
+    color:white;
+
+
+}
+
+
+
+.input{
+
+
+    margin-top:60px;
+
+
+    border:
+
+    1px solid #eee;
+
+
+    height:50px;
+
+
+    border-radius:25px;
+
+
+    padding:15px;
+
+
+    color:#aaa;
+
+
+}
+
+
+
+
+
+
+</style>
+
+</head>
+
+
+
+<body>
+
+
+
+<div class="float f1">📘</div>
+
+<div class="float f2">✦</div>
+
+<div class="float f3">📝</div>
+
+
+
+<div class="page">
+
+
+<div class="logo">
+
+从容应对
+
+</div>
+
+
+
+<div class="hero">
+
+
+<h1>
+
+你的
+
+<span>AI学习伙伴</span>
+
+</h1>
+
+
+
+<div class="desc">
+
+
+通过一次对话了解你的学习情况<br>
+
+生成属于你的学习画像与学习路径
+
+
+</div>
+
+
+
+
+<button class="btn">
+
+开始 AI 导学
+
+</button>
+
+
+
+</div>
+
+
+
+
+
+<div class="ai-window">
+
+
+<div class="sidebar">
+
+
+<div class="avatar">
+
+AI
+
+</div>
+
+
+<div class="side-text">
+
+智能学习助手
+
+</div>
+
+
+
+</div>
+
+
+
+
+<div class="chat">
+
+
+<div class="message">
+
+你好，我会先了解你的学习目标
+
+</div>
+
+
+
+<div class="message user">
+
+我是计算机专业，想学习机器学习
+
+</div>
+
+
+
+<div class="message">
+
+好的，我正在分析你的学习画像...
+
+</div>
+
+
+
+<div class="input">
+
+输入你的问题...
+
+</div>
+
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+</div>
+
+
+
+</body>
+
+</html>

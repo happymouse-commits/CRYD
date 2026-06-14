@@ -1,0 +1,111 @@
+/* =================================================================
+   Typer 暖色主题 — CRYD 学生端专用
+   基于 https://typer.space 配色方案
+   ================================================================= */
+
+:root {
+  /* 色彩 */
+  --t-ground: #ebe2d7;      /* 页面底色 - 暖沙 */
+  --t-surface: #f4efe7;     /* 卡片/面板 - 米白 */
+  --t-wash: #dad2c7;        /* 分隔/淡色区 */
+  --t-line: #342618;        /* 主文字 - 深棕 */
+  --t-line-dim: #6a6054;    /* 次要文字 - 灰棕 */
+  --t-line-subtle: #b6ada1; /* 占位/边框 - 浅灰棕 */
+  --t-accent: #b15311;      /* 强调色 - 铜橙 */
+  --t-accent-soft: #e0d9cd; /* 柔和强调 */
+  --t-accent-muted: #8b5a3c;
+  --t-status-ready: #4a7c4e; /* 成功/完成 - 森绿 */
+  --t-status-warn: #c97930;  /* 警告/进行中 - 橙 */
+  --t-status-error: #a14a3d; /* 错误 - 暖红 */
+  --t-surface-muted: #e4dfd8;
+  --t-shadow-base: 52 38 24;
+  --t-shadow: 0 2px 24px rgb(var(--t-shadow-base) / 8%);
+  --t-shadow-soft: 0 1px 6px rgb(var(--t-shadow-base) / 4%);
+  --t-border: var(--t-wash);
+
+  /* 字体 */
+  --t-font: -apple-system, BlinkMacSystemFont, "SF Pro", "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --t-font-heading: ui-rounded, "SF Pro Rounded", "Nunito", -apple-system, BlinkMacSystemFont, "PingFang SC", system-ui, sans-serif;
+  --t-font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+/* 通用卡片 */
+.t-card {
+  background: var(--t-surface);
+  border-radius: 16px;
+  box-shadow: var(--t-shadow-soft);
+  border: 1px solid var(--t-border);
+}
+
+/* 按钮样式 */
+.t-btn-primary {
+  background: var(--t-accent);
+  color: var(--t-surface);
+  border: none;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.t-btn-primary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.t-btn-ghost {
+  background: transparent;
+  color: var(--t-accent);
+  border: 1px solid var(--t-accent);
+  padding: 7px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.t-btn-ghost:hover {
+  background: var(--t-accent-soft);
+}
+
+/* 状态色 */
+.t-success { color: var(--t-status-ready); }
+.t-warn { color: var(--t-status-warn); }
+.t-error { color: var(--t-status-error); }
+
+/* 滚动条 */
+.t-scrollbar::-webkit-scrollbar { width: 4px; }
+.t-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.t-scrollbar::-webkit-scrollbar-thumb { background: var(--t-wash); border-radius: 2px; }
+
+/* =================================================================
+   Element Plus 全局覆盖 — 让 el-button/el-tag 等走 Typer 暖色
+   ================================================================= */
+:root {
+  --el-color-primary: #b15311;
+  --el-color-primary-light-3: #c97930;
+  --el-color-primary-light-5: #d4a06a;
+  --el-color-primary-light-7: #e0d9cd;
+  --el-color-primary-light-8: #ebe2d7;
+  --el-color-primary-light-9: #f4efe7;
+  --el-color-primary-dark-2: #8b3f0d;
+  --el-color-success: #4a7c4e;
+  --el-color-warning: #c97930;
+  --el-color-danger: #a14a3d;
+  --el-color-info: #6a6054;
+  --el-bg-color: #ebe2d7;
+  --el-bg-color-page: #ebe2d7;
+  --el-bg-color-overlay: #f4efe7;
+  --el-text-color-primary: #342618;
+  --el-text-color-regular: #6a6054;
+  --el-text-color-secondary: #6a6054;
+  --el-text-color-placeholder: #b6ada1;
+  --el-border-color: #dad2c7;
+  --el-border-color-light: #e0d9cd;
+  --el-border-color-lighter: #e4dfd8;
+  --el-border-color-extra-light: #f4efe7;
+  --el-fill-color: #e4dfd8;
+  --el-fill-color-light: #e0d9cd;
+  --el-fill-color-lighter: #f4efe7;
+  --el-fill-color-extra-light: #f4efe7;
+  --el-mask-color: rgba(52,38,24,0.5);
+}

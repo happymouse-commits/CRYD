@@ -12,8 +12,9 @@ export const useUserStore = defineStore('user', () => {
 
   const isLoggedIn = computed(() => !!token.value)
   const homePath = computed(() => {
-    const map = { student: '/student/home', teacher: '/teacher/home', admin: '/admin/dashboard' }
-    return map[role.value] || '/login'
+    // 教师端/管理员端已打包 (2026-06-13)，统一跳学生端
+    const map = { student: '/student/home' }
+    return map[role.value] || '/student/home'
   })
 
   function setUser(data) {

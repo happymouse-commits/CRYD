@@ -111,12 +111,12 @@ onMounted(() => { resetForm() })
 .my-info-page { padding: 0; }
 .my-info-page :deep(.el-card) {
   border-radius: 14px;
-  border: 1px solid #eef0f4;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+  border: 1px solid var(--t-wash);
+  box-shadow: var(--t-shadow-soft);
 }
 .my-info-page :deep(.el-card__header) {
-  background: #fafbfd;
-  border-bottom: 1px solid #eef0f4;
+  background: var(--t-surface-muted);
+  border-bottom: 1px solid var(--t-wash);
 }
-.card-header { font-weight: 600; color: #374151; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.card-header { font-weight: 600; color: var(--t-line); font-size: 14px; display: flex; align-items: center; gap: 6px; }
 </style>

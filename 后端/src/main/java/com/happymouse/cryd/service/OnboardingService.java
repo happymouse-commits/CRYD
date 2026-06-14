@@ -42,30 +42,19 @@ public class OnboardingService {
     // 新增维度：在这里加一条即可
     // ============================================================
     public static final List<DimensionDef> DIMENSIONS = List.of(
-        new DimensionDef("interestDirection", "目标方向", 20,
-            "学C语言你想往哪个方向发展？嵌入式开发、游戏开发、后端服务、还是先打好基础？",
-            "选择的领域或方向，如：嵌入式/后端/游戏/基础"),
-        new DimensionDef("weakAreas", "薄弱环节", 20,
-            "之前学的编程内容里，感觉哪块最难？指针、内存管理、还是递归？",
-            "薄弱的知识点，如：指针/数组/递归/内存管理"),
-        new DimensionDef("className", "专业方向", 15,
-            "你是哪个专业/班级的？",
-            "专业或班级，如：计算机科学/软件工程/自动化"),
-        new DimensionDef("knowledgeLevel", "知识水平", 15,
-            "现在C语言大概什么水平？零基础、学过一点、还是已经能写小程序了？",
-            "0-100的数字"),
-        new DimensionDef("learningPreference", "学习偏好", 10,
-            "你喜欢哪种学习方式？看视频教程、读文档、还是直接敲代码？",
-            "video(视频)/doc(文档)/exercise(做题)/mixed(混合)"),
-        new DimensionDef("learningPace", "学习节奏", 10,
-            "你大概多久能学一次？每天都能学、一周两三次、还是偶尔有空？",
-            "fast(快)/steady(稳)/slow(慢)"),
-        new DimensionDef("studyMotivation", "学习动机", 5,
-            "学C语言主要为了什么？考试、兴趣、还是就业？",
-            "考试/兴趣/就业/技能提升"),
-        new DimensionDef("focusLevel", "专注程度", 5,
-            "学习的时候容易走神吗？还是能比较专注？",
-            "high(专注)/medium(一般)/low(容易分心)")
+        // 4 个核心快问（简短，每题 < 15 字）
+        new DimensionDef("interestDirection", "学习目标", 30,
+            "学C语言目标？（做题考试 / 做项目 / 先打基础）",
+            "考试/项目/基础"),
+        new DimensionDef("knowledgeLevel", "当前水平", 20,
+            "现在水平？（零基础 / 学过点 / 能写程序）",
+            "0-100"),
+        new DimensionDef("learningPreference", "学习方式", 25,
+            "喜欢怎么学？（看视频 / 读文档 / 敲代码）",
+            "video/doc/exercise"),
+        new DimensionDef("learningPace", "学习频率", 25,
+            "多久学一次？（每天都学 / 几天一次 / 偶尔）",
+            "fast/steady/slow")
     );
 
     // ============================================================
@@ -107,22 +96,19 @@ public class OnboardingService {
         sb.append("你是「小智老师」，一个友好的 AI 学习助手。\n\n");
 
         if (completeness < 50) {
-            sb.append("## 当前任务：了解学生情况\n\n");
-            sb.append(name).append("同学，需要了解TA的学习情况。\n\n");
-            sb.append("## 对话规则（必须遵守）：\n");
-            sb.append("1. **每次只问一个问题**，等学生回答了再继续\n");
-            sb.append("2. 先打个招呼，简短介绍自己，然后自然地开始提问\n");
-            sb.append("3. 语气轻松友好，不要像做调查问卷\n");
-            sb.append("4. 学生回答后，先肯定一下，再自然地转入下一个问题\n");
-            sb.append("5. 问完 4-5 个关键问题后，告诉学生「差不多了，已帮你生成了学习路径和资料，去首页看看吧！」\n");
-            sb.append("6. 不要重复问已经知道答案的问题\n\n");
-            sb.append("## 需要了解（按优先级）：\n");
+            sb.append("## 任务：快问快答收集学习画像（4题）\n\n");
+            sb.append(name).append("同学。\n\n");
+            sb.append("## 规则：\n");
+            sb.append("1. 打招呼+自我介绍（1句话），然后马上问第1题\n");
+            sb.append("2. 每次只问一个问题，选项写在括号里方便学生快选\n");
+            sb.append("3. 学生回答后，简短肯定（1句话），立刻下一题\n");
+            sb.append("4. 4题问完后，告诉学生：画像采集完成，接下来出题测一下水平\n");
+            sb.append("5. 不要问已经知道答案的\n\n");
+            sb.append("## 待问：\n");
             for (DimensionDef d : DIMENSIONS) {
-                String status = isDimensionFilled(student, d.field) ? " ✓已知" : " ★待了解";
-                sb.append("- ").append(d.label).append(status).append("\n");
+                String status = isDimensionFilled(student, d.field) ? " ✓" : " ★";
+                sb.append("- ").append(d.question).append(status).append("\n");
             }
-            sb.append("\n## 学生已知信息：\n");
-            sb.append(buildKnownInfo(student, className, department));
         } else {
             sb.append("## 当前任务：欢迎回来 + 快速了解变化\n\n");
             sb.append(name).append("回来了。\n");
@@ -161,14 +147,10 @@ public class OnboardingService {
     /** 计算画像完整度（0-100），基于 DIMENSIONS 权重 */
     public int calcCompleteness(Student s) {
         int total = 0;
-        if (isFilled(s, "interestDirection")) total += getWeight("interestDirection");
-        if (isFilled(s, "weakAreas")) total += getWeight("weakAreas");
-        if (isFilled(s, "className")) total += getWeight("className");
-        if (s.getKnowledgeLevel() != null && s.getKnowledgeLevel() > 0) total += getWeight("knowledgeLevel");
-        if (s.getLearningPreference() != null && !"mixed".equals(s.getLearningPreference())) total += getWeight("learningPreference");
-        if (s.getLearningPace() != null && !"steady".equals(s.getLearningPace())) total += getWeight("learningPace");
-        if (s.getStudyMotivation() != null) total += getWeight("studyMotivation");
-        if (s.getFocusLevel() != null) total += getWeight("focusLevel");
+        if (isFilled(s, "interestDirection")) total += 30;
+        if (s.getKnowledgeLevel() != null && s.getKnowledgeLevel() > 0) total += 20;
+        if (s.getLearningPreference() != null && !"mixed".equals(s.getLearningPreference())) total += 25;
+        if (s.getLearningPace() != null && !"steady".equals(s.getLearningPace())) total += 25;
         return total;
     }
 
@@ -258,6 +240,30 @@ public class OnboardingService {
         if (m.contains("考试") || m.contains("期末") || m.contains("及格")) s.setStudyMotivation("考试");
         else if (m.contains("兴趣") || m.contains("喜欢")) s.setStudyMotivation("兴趣");
         else if (m.contains("就业") || m.contains("工作") || m.contains("找实习")) s.setStudyMotivation("就业");
+    }
+
+    // ============================================================
+    // 出题 — 根据画像生成3道选择题
+    // ============================================================
+    public String generateQuiz(Long sysUserId) {
+        Student s = studentRepo.findByUsername("student_" + sysUserId).orElse(null);
+        int level = (s != null && s.getKnowledgeLevel() != null) ? s.getKnowledgeLevel() : 30;
+        String difficulty = level < 30 ? "入门" : level < 60 ? "基础" : "进阶";
+        String prompt = """
+            你是C语言老师。请根据学生水平出3道选择题。
+            学生水平: %s (%d/100)
+
+            输出JSON数组：
+            [{"q":"题目","opts":["A.xx","B.xx","C.xx","D.xx"],"ans":0}]
+
+            规则：ans是正确答案索引(0-3)，题目简洁，选项不超过15字，只输出JSON。
+            """.formatted(difficulty, level);
+        try {
+            String result = spark.chat(prompt, "出3道C语言选择题", 0.5f, 1024);
+            return result.replaceAll("```json|```", "").trim();
+        } catch (Exception e) {
+            return "[{\"q\":\"C语言中 main 函数的返回类型是？\",\"opts\":[\"A.void\",\"B.int\",\"C.char\",\"D.float\"],\"ans\":1},{\"q\":\"下面哪个是合法的变量名？\",\"opts\":[\"A.2var\",\"B._count\",\"C.int\",\"D.a-b\"],\"ans\":1},{\"q\":\"printf函数在哪个头文件里？\",\"opts\":[\"A.string.h\",\"B.math.h\",\"C.stdio.h\",\"D.stdlib.h\"],\"ans\":2}]";
+        }
     }
 
     // ============================================================

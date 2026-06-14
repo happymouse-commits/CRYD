@@ -43,10 +43,10 @@ const classOverview = ref(null)
 const aiAnalysis = ref('')
 
 const actions = [
-  { name: '知识库管理', path: '/teacher/knowledge-base', icon: Collection, color: '#5b8def' },
-  { name: '布置作业', path: '/teacher/assignments', icon: Document, color: '#34d399' },
-  { name: '学情分析', path: '/teacher/analysis', icon: DataAnalysis, color: '#f59e0b' },
-  { name: '个人信息', path: '/teacher/info', icon: User, color: '#9ca3af' },
+  { name: '知识库管理', path: '/teacher/knowledge-base', icon: Collection, color: '#b15311' },
+  { name: '布置作业', path: '/teacher/assignments', icon: Document, color: '#4a7c4e' },
+  { name: '学情分析', path: '/teacher/analysis', icon: DataAnalysis, color: '#c97930' },
+  { name: '个人信息', path: '/teacher/info', icon: User, color: '#b6ada1' },
 ]
 
 onMounted(async () => {
@@ -65,12 +65,12 @@ onMounted(async () => {
 .teacher-home { padding: 8px; }
 .welcome-section { margin-bottom: 24px; }
 .welcome-section h2 { font-size: 22px; margin: 0 0 4px; }
-.welcome-section p { color: #9ca3af; margin: 0; }
+.welcome-section p { color: #b6ada1; margin: 0; }
 .quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .action-card { cursor: pointer; text-align: center; padding: 16px; transition: transform .2s; }
 .action-card:hover { transform: translateY(-4px); }
 .action-card span { display: block; margin-top: 8px; font-size: 15px; }
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; text-align: center; }
-.s-val { font-size: 28px; font-weight: 700; color: #5b8def; }
-.s-label { font-size: 13px; color: #9ca3af; margin-top: 4px; }
+.s-val { font-size: 28px; font-weight: 700; color: #b15311; }
+.s-label { font-size: 13px; color: #b6ada1; margin-top: 4px; }
 </style>

@@ -275,7 +275,7 @@ loginForm.addEventListener("submit", async (event) => {
       localStorage.setItem("cryd_studentId", data.data.studentId || "");
       // 根据角色跳转到Vue内容页
       const rolePath = {
-        student: "/student/home",
+        student: "/student-dashboard.html",
         teacher: "/teacher/home",
         admin: "/admin/dashboard"
       };

@@ -19,6 +19,11 @@ const routes = [
       { path: 'breakthrough', redirect: '/student/practice' },
     ]
   },
+
+  // ========== 教师端 & 管理员端已打包 (2026-06-13) ==========
+  // 题库数据已迁移至 AI 知识库，用于新用户诊断后智能出题
+  // 如需恢复，取消下方注释即可
+  /*
   // 教师端
   { path: '/teacher', component: () => import('../views/教师端/布局.vue'), meta: { role: 'teacher' },
     children: [
@@ -39,6 +44,7 @@ const routes = [
       { path: 'statistics', component: () => import('../views/管理员/数据统计.vue') },
     ]
   },
+  */
 ]
 
 const router = createRouter({
