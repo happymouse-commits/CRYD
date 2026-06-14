@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRYD — 从容应对 · C语言智能学习平台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#ebe2d7; --border:rgba(52,36,24,.08); --text:#342618; --muted:#6a6054;
+  --accent:#b15311; --accent2:#4a7c4e; --accent3:#c97930; --accent4:#c0564a;
+  --nav-h:3.6rem; --radius:14px;
+  --font:'Manrope','HarmonyOS Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:var(--nav-h);overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased;padding-top:var(--nav-h)}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(177,83,17,.06),transparent),radial-gradient(ellipse 40% 30% at 80% 70%,rgba(74,124,78,.04),transparent),radial-gradient(ellipse 30% 40% at 20% 40%,rgba(201,121,48,.04),transparent);pointer-events:none}
+body::after{content:'';position:fixed;inset:0;z-index:-1;opacity:.022;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");pointer-events:none}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:#c4b9a8;border-radius:3px}
+
+/* ── NAV ── */
+.navbar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--nav-h);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2rem;padding:0 2.5rem;backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);background:rgba(235,226,215,.82);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.3px}
+.nav-logo .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.nav-links{display:flex;justify-content:center;gap:4px;list-style:none;padding:4px}
+.nav-links a{color:rgba(52,36,24,.6);text-decoration:none;font-size:13px;font-weight:500;letter-spacing:.4px;padding:8px 16px;border-radius:10px;transition:all .25s cubic-bezier(.16,1,.3,1);white-space:nowrap;border:1px solid transparent}
+.nav-links a:hover{color:#342618;background:rgba(52,36,24,.06);border-color:rgba(255,255,255,.1);transform:translateY(-1px)}
+.nav-links a.active{color:#342618;background:rgba(177,83,17,.1);border-color:rgba(177,83,17,.2);box-shadow:0 0 16px rgba(177,83,17,.06)}
+.nav-links a.nav-daoxue{font-weight:600}
+.nav-links a.nav-daoxue:hover,.nav-links a.nav-daoxue.active{background:rgba(201,121,48,.1);border-color:rgba(201,121,48,.25);color:var(--accent3);box-shadow:0 0 16px rgba(201,121,48,.08)}
+.nav-actions{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+
+/* ── BUTTONS ── */
+.btn-solid{position:relative;background:var(--accent);border:none;color:#342618;padding:7px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s;font-family:var(--font);box-shadow:0 0 0 0 rgba(177,83,17,.4)}
+.btn-solid:hover{transform:translateY(-2px);box-shadow:0 0 24px 4px rgba(177,83,17,.35),0 4px 12px rgba(0,0,0,.3)}
+.btn-solid:active{transform:translateY(0)}
+.btn-solid-lg{padding:12px 28px;font-size:15px}
+.btn-ghost{background:transparent;color:var(--accent);border:1px solid rgba(177,83,17,.25);padding:7px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s;font-family:var(--font)}
+.btn-ghost:hover{background:rgba(177,83,17,.06);border-color:var(--accent)}
+
+/* ── SCROLL REVEAL ── */
+.scroll-reveal{opacity:0;transform:translateY(30px);filter:blur(8px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1),filter .8s cubic-bezier(.16,1,.3,1)}
+.scroll-reveal.visible{opacity:1;transform:translateY(0);filter:blur(0)}
+
+/* ═══ FLOATING PROGRESS RING ═══ */
+#floatProgress{position:fixed;z-index:9999;cursor:grab;user-select:none;-webkit-user-select:none;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5));transition:filter .4s,#floatProgress .box;top:120px;right:24px}
+#floatProgress:active{cursor:grabbing}
+#floatProgress.dragging{filter:drop-shadow(0 8px 24px rgba(0,0,0,.6))}
+#floatProgress .box{display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(244,239,231,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:18px;padding:12px 10px 10px;transition:border-color .5s,box-shadow .5s,background .5s}
+#floatProgress.ready .box{border-color:rgba(74,124,78,.3);box-shadow:0 0 20px rgba(74,124,78,.15);background:rgba(74,124,78,.08)}
+#floatProgress .tooltip{position:absolute;right:calc(100% + 16px);top:50%;transform:translateY(-50%);background:rgba(74,124,78,.12);border:1px solid rgba(74,124,78,.3);border-radius:10px;padding:10px 14px;color:var(--accent2);font-size:12px;font-weight:500;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .4s cubic-bezier(.16,1,.3,1),transform .4s cubic-bezier(.16,1,.3,1);transform-origin:right center;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#floatProgress.ready .tooltip{opacity:1;pointer-events:auto}
+#floatProgress .tooltip button{margin-top:6px;background:var(--accent2);border:none;border-radius:6px;color:#000;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)}
+#floatProgress.ring svg{transform:rotate(-90deg)}
+#floatProgress .bgCirc{fill:none;stroke:rgba(255,255,255,.08);stroke-width:4}
+#floatProgress .fgCirc{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset .6s cubic-bezier(.16,1,.3,1),stroke .5s}
+#floatProgress.ready .fgCirc{stroke:var(--accent2)}
+#floatProgress .lbl{font-size:11px;font-weight:600;letter-spacing:.3px;color:var(--muted);transition:color .5s}
+#floatProgress.ready .lbl{color:var(--accent2)}
+
+/* ═══ 六维学生画像 ═══ */
+.profile-layout{display:grid;grid-template-columns:360px 1fr;gap:3rem;max-width:1200px;margin:0 auto;width:100%;align-items:start}
+.student-card{background:rgba(244,239,231,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(52,36,24,.08);border-radius:var(--radius);padding:40px 32px;text-align:center;position:sticky;top:calc(var(--nav-h) + 2rem)}
+.student-card .sc-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 1.2rem;box-shadow:0 0 30px rgba(177,83,17,.25)}
+.student-card .sc-name{font-size:22px;font-weight:700;margin-bottom:4px}
+.student-card .sc-meta{font-size:13px;color:var(--muted);margin-bottom:4px}
+.student-card .sc-grade{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;margin:10px 0;border:1px solid rgba(177,83,17,.25);background:rgba(177,83,17,.06)}
+.student-card .sc-grade .g-icon{font-size:16px}
+.student-card .sc-summary{font-size:13px;line-height:1.7;color:var(--muted);text-align:left;margin-top:1.5rem;padding:16px;background:rgba(52,36,24,.03);border-radius:12px;border:1px solid rgba(52,36,24,.05);position:relative}
+.student-card .sc-summary::before{content:'🤖 AI 学情';position:absolute;top:-10px;left:16px;font-size:11px;padding:2px 10px;background:rgba(177,83,17,.15);border-radius:10px;color:var(--accent)}
+
+/* 六维画像面板 */
+.dimensions-panel{display:flex;flex-direction:column;gap:1.5rem}
+.radar-card{background:rgba(244,239,231,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(52,36,24,.08);border-radius:var(--radius);padding:32px}
+.radar-card h3{text-align:center;font-size:16px;font-weight:600;margin-bottom:1rem;letter-spacing:.3px}
+.radar-wrap{display:flex;align-items:center;justify-content:center;gap:2rem}
+.radar-wrap canvas{flex-shrink:0}
+.radar-legend{display:flex;flex-direction:column;gap:10px;font-size:12px}
+.radar-legend .legend-item{display:flex;align-items:center;gap:8px}
+.radar-legend .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.radar-legend .legend-val{font-weight:700;margin-left:auto;padding-left:12px;min-width:38px;text-align:right}
+
+/* 维度卡片组 */
+.dim-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.dim-card{background:rgba(244,239,231,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(52,36,24,.08);border-radius:var(--radius);padding:24px 20px;transition:transform .3s,border-color .3s}
+.dim-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.1)}
+.dim-card .dim-icon{font-size:24px;margin-bottom:8px}
+.dim-card .dim-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.dim-card .dim-value{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* 易错热力条 */
+.err-bar{margin-bottom:10px}
+.err-bar .err-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
+.err-bar .err-label .err-tag{color:var(--muted)}
+.err-bar .err-track{height:6px;border-radius:3px;background:rgba(52,36,24,.06);overflow:hidden}
+.err-bar .err-fill{height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(.16,1,.3,1)}
+.err-fill.hot{background:var(--accent4)}
+.err-fill.warm{background:var(--accent3)}
+.err-fill.cool{background:var(--accent2)}
+
+/* 思维等级徽章 */
+.thinking-badge{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:700;margin-bottom:1rem}
+.thinking-badge.lv-1{background:rgba(74,124,78,.08);border:1px solid rgba(74,124,78,.2);color:var(--accent2)}
+.thinking-badge.lv-2{background:rgba(177,83,17,.06);border:1px solid rgba(177,83,17,.2);color:var(--accent)}
+.thinking-badge.lv-3{background:rgba(201,121,48,.08);border:1px solid rgba(201,121,48,.2);color:var(--accent3)}
+
+/* 投入趋势 */
+.engagement-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1rem}
+.engagement-stats .eg-stat{text-align:center;padding:16px 12px;background:rgba(52,36,24,.03);border-radius:10px;border:1px solid rgba(255,255,255,.03)}
+.engagement-stats .eg-stat .eg-val{font-size:22px;font-weight:800;color:var(--accent)}
+.engagement-stats .eg-stat .eg-lbl{font-size:11px;color:var(--muted);margin-top:2px}
+.eg-bar-wrap{margin-top:4px}
+.eg-bar-wrap .eg-label{font-size:11px;color:var(--muted);margin-bottom:4px;display:flex;justify-content:space-between}
+.eg-bar-wrap .eg-track{height:5px;border-radius:3px;background:rgba(52,36,24,.06);overflow:hidden}
+.eg-bar-wrap .eg-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 1.5s}
+
+/* ═══ 游戏地图学习路径 ═══ */
+.game-map{display:flex;flex-direction:column;align-items:center;gap:0;max-width:900px;margin:0 auto;width:100%;padding:2rem 0}
+.map-row{display:flex;align-items:center;gap:0;position:relative}
+.map-node{position:relative;cursor:pointer;display:flex;flex-direction:column;align-items:center;transition:transform .3s;z-index:1}
+.map-node:hover{transform:scale(1.08)}
+.map-node .mn-circle{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;transition:all .3s;position:relative}
+.map-node.mn-done .mn-circle{background:var(--accent2);color:#000;box-shadow:0 0 24px rgba(74,124,78,.35)}
+.map-node.mn-current .mn-circle{background:var(--accent);color:#342618;box-shadow:0 0 28px rgba(177,83,17,.5);animation:mnPulse 2s infinite}
+.map-node.mn-next .mn-circle{background:rgba(52,36,24,.08);border:2px solid var(--border);color:var(--muted)}
+.map-node.mn-locked .mn-circle{background:rgba(255,255,255,.03);border:2px solid rgba(52,36,24,.06);color:#333}
+@keyframes mnPulse{0%,100%{box-shadow:0 0 28px rgba(177,83,17,.5)}50%{box-shadow:0 0 48px rgba(177,83,17,.7)}}
+.map-node .mn-stars{display:flex;gap:2px;margin-top:8px}
+.map-node .mn-stars span{font-size:10px;opacity:.7}
+.map-node .mn-stars span.on{opacity:1}
+.map-node .mn-label{font-size:12px;font-weight:600;margin-top:6px;text-align:center;max-width:90px}
+.map-node .mn-pct{font-size:10px;color:var(--muted);margin-top:2px}
+.map-connector{position:relative;width:80px;height:4px;flex-shrink:0}
+.map-connector::before{content:'';position:absolute;top:50%;left:0;right:0;height:3px;border-radius:2px;transform:translateY(-50%)}
+.map-connector.mc-done::before{background:var(--accent2);box-shadow:0 0 8px rgba(74,124,78,.3)}
+.map-connector.mc-active::before{background:linear-gradient(90deg,var(--accent2),rgba(177,83,17,.3))}
+.map-connector.mc-next::before{background:rgba(52,36,24,.06)}
+.map-connector.mc-locked::before{background:rgba(255,255,255,.03)}
+.map-branch{display:flex;align-items:center;justify-content:center;margin:1rem 0}
+.map-branch-down{width:3px;height:40px;background:rgba(177,83,17,.2);border-radius:2px}
+
+/* ═══ 答案反馈 ═══ */
+.pr-feedback{padding:12px 16px;border-radius:10px;margin:12px 0;font-size:13px;line-height:1.6;border:1px solid}
+.pr-feedback.correct{background:rgba(74,124,78,.06);border-color:rgba(74,124,78,.2);color:var(--accent2)}
+.pr-feedback.wrong{background:rgba(192,86,74,.06);border-color:rgba(192,86,74,.2);color:var(--accent4)}
+
+/* ═══ SECTION TOC DOTS ═══ */
+#sectionToc{position:fixed;z-index:998;display:flex;flex-direction:column;gap:6px;right:16px;top:50%;transform:translateY(-50%);display:none}
+#sectionToc.visible{display:flex}
+#sectionToc .toc-dot{cursor:pointer;display:flex;align-items:center;gap:14px;padding:10px 18px 10px 16px;border-radius:12px;border:1px solid transparent;transition:all .3s}
+#sectionToc .toc-dot:hover{background:rgba(52,36,24,.05);border-color:rgba(52,36,24,.08)}
+#sectionToc .toc-dot .dot-core{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.08);transition:all .35s cubic-bezier(.16,1,.3,1);flex-shrink:0}
+#sectionToc .toc-dot .dot-label{white-space:nowrap;font-size:14px;font-weight:500;color:var(--muted);transition:color .3s}
+#sectionToc .toc-dot.active{background:rgba(177,83,17,.06);border-color:rgba(177,83,17,.12)}
+#sectionToc .toc-dot.active .dot-core{background:var(--accent);border-color:var(--accent);box-shadow:0 0 10px rgba(177,83,17,.4);width:16px;height:16px}
+#sectionToc .toc-dot.active .dot-label{color:var(--text);font-weight:600}
+
+/* ═══ PAGES ═══ */
+.page{display:none}
+.page.active{display:block}
+
+/* ── AI导学 ── */
+#page-daoxue{min-height:100vh;padding-top:2rem}
+.dx-layout{max-width:1400px;margin:0 auto;padding:0 2.5rem 3rem;display:grid;grid-template-columns:1fr 580px;gap:3rem;align-items:start}
+.dx-left{padding-top:2rem}
+.dx-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px;margin-bottom:1.5rem;border:1px solid rgba(74,124,78,.25);color:var(--accent2);background:rgba(74,124,78,.06);transition:all .4s}
+.dx-badge .pulse{width:7px;height:7px;border-radius:50%;background:var(--accent2);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(74,124,78,.4)}50%{opacity:.6;box-shadow:0 0 0 6px rgba(74,124,78,0)}}
+.dx-left h1{font-size:clamp(2rem,4vw,2.6rem);font-weight:800;line-height:1.2;letter-spacing:-1px}
+.dx-left h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.dx-left .sub{color:var(--muted);font-size:15px;margin-top:1rem;max-width:420px}
+.dx-progress{margin-top:2rem;transition:opacity .3s}
+.dx-progress .prog-label{font-size:12px;color:var(--muted);letter-spacing:.5px;margin-bottom:8px}
+.prog-bar{height:4px;border-radius:2px;background:rgba(52,36,24,.08);overflow:hidden;max-width:320px}
+.prog-bar .fill{height:100%;border-radius:2px;background:var(--accent);transition:width .4s}
+.step-summary{margin-top:1rem;list-style:none}
+.step-summary li{font-size:13px;padding:4px 0;display:flex;align-items:center;gap:8px;transition:color .3s;color:var(--muted)}
+.step-summary li::before{content:'';width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.1)}
+.step-summary li.done{color:var(--accent2)}.step-summary li.done::before{background:var(--accent2)}
+.step-summary li.active{color:var(--text);font-weight:500}.step-summary li.active::before{background:var(--accent);box-shadow:0 0 6px rgba(177,83,17,.5)}
+.dx-summary{display:none;text-align:center;background:rgba(244,239,231,.85);border:1px solid rgba(74,124,78,.15);border-radius:var(--radius);padding:28px 32px;margin-top:2rem;max-width:460px}
+.dx-summary.show{display:block}
+.dx-summary h3{font-size:18px;font-weight:700;color:var(--accent2)}
+.dx-summary .tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.dx-summary .tag{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid}
+.tag-strong{border-color:rgba(74,124,78,.3)!important;color:var(--accent2)!important}
+.tag-weak{border-color:rgba(201,121,48,.3)!important;color:var(--accent3)!important}
+.tag-new{border-color:rgba(167,139,250,.3)!important;color:#a78bfa!important}
+
+/* ── Chat card ── */
+.chat-card{background:rgba(244,239,231,.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;height:clamp(520px,70vh,680px);box-shadow:0 24px 80px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.03)}
+.chat-card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.chat-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;box-shadow:0 0 14px rgba(177,83,17,.3)}
+.chat-card-body{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.msg-bot{display:flex;gap:10px;align-items:flex-start;max-width:88%}
+.msg-bot .bubble{background:rgba(52,36,24,.06);border-radius:0 14px 14px 14px;padding:12px 16px;font-size:14px;line-height:1.6}
+.msg-bot .bubble .label{color:var(--accent);font-weight:600;font-size:12px;margin-bottom:4px;letter-spacing:.5px}
+.msg-user{display:flex;justify-content:flex-end}
+.msg-user .bubble{background:var(--accent);border-radius:14px 0 14px 14px;padding:10px 16px;font-size:14px;max-width:70%}
+.chat-card-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px}
+.chat-card-footer input{flex:1;background:rgba(52,36,24,.05);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;transition:border-color .2s}
+.chat-card-footer input:focus{border-color:var(--accent)}
+.chat-card-footer input::placeholder{color:#4a5568}
+.chat-card-footer button{background:var(--accent);border:none;border-radius:10px;padding:10px 16px;color:#342618;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--font);transition:all .3s}
+.chat-card-footer button:hover{box-shadow:0 0 20px 3px rgba(177,83,17,.35)}
+.typing-dots{display:flex;gap:4px;padding:4px 0}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:typing 1.4s infinite}
+.typing-dots span:nth-child(2){animation-delay:.2s}.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes typing{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+.next-step-bar{display:none;text-align:center;padding:1.5rem 0 2rem}
+.next-step-bar.show{display:block}
+
+/* ═══ 学习空间 ═══ */
+section{padding:5rem 2.5rem;min-height:100vh;display:flex;flex-direction:column}
+section.lite{min-height:auto;padding:4rem 2.5rem}
+.section-title{text-align:center;font-size:2rem;font-weight:700;margin-bottom:2.5rem;letter-spacing:-.5px}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;max-width:1100px;margin:0 auto;width:100%}
+.glass-card{background:rgba(244,239,231,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(52,36,24,.08);border-radius:var(--radius);padding:32px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:1.5rem 0}
+.stat-box{text-align:center;padding:20px 16px;background:rgba(52,36,24,.03);border-radius:12px;border:1px solid rgba(52,36,24,.05)}
+.stat-box .val{font-size:32px;font-weight:800;color:var(--accent)}
+.stat-box .lbl{font-size:12px;color:var(--muted);margin-top:4px}
+.radar-placeholder{width:100%;aspect-ratio:1;max-width:320px;margin:0 auto;background:radial-gradient(circle,rgba(177,83,17,.06),transparent 70%),conic-gradient(from 0deg,rgba(177,83,17,.06) 0deg 72deg,transparent 72deg 120deg,rgba(74,124,78,.06) 120deg 200deg,transparent 200deg 260deg,rgba(201,121,48,.06) 260deg 320deg,transparent 320deg);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid rgba(177,83,17,.12);position:relative}
+.radar-placeholder::before{content:'C语言能力雷达';color:var(--muted);font-size:14px;font-weight:500}
+.mastery-item{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:8px}
+.mastery-item .label{flex:0 0 140px}
+.mastery-item .bar-wrap{flex:1;height:6px;border-radius:3px;background:rgba(52,36,24,.06);margin:0 12px;overflow:hidden}
+.mastery-item .bar-fill{height:100%;border-radius:3px;transition:width 1.5s cubic-bezier(.16,1,.3,1)}
+.bar-green{background:var(--accent2)}.bar-blue{background:var(--accent)}.bar-amber{background:var(--accent3)}.bar-red{background:var(--accent4)}
+.mastery-item .pct{flex:0 0 42px;text-align:right;font-weight:600;font-size:13px}
+.path-section{min-height:auto;padding:4rem 2.5rem;max-width:1100px;margin:0 auto;width:100%}
+.path-timeline{display:flex;flex-wrap:wrap;justify-content:center}
+.path-step{display:flex;flex-direction:column;align-items:center;text-align:center;width:120px;position:relative}
+.path-step:not(:last-child)::after{content:'';position:absolute;top:24px;left:calc(50% + 28px);width:calc(120px - 56px);height:2px;background:linear-gradient(90deg,var(--accent),rgba(177,83,17,.15))}
+.path-step .circle{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;position:relative;z-index:1;transition:all .3s}
+.path-step.done .circle{background:var(--accent2);color:#000;box-shadow:0 0 16px rgba(74,124,78,.3)}
+.path-step.current .circle{background:var(--accent);color:#342618;box-shadow:0 0 20px rgba(177,83,17,.4)}
+.path-step.next .circle{background:rgba(52,36,24,.08);border:2px solid var(--border);color:var(--muted)}
+.path-step .step-title{font-size:12px;font-weight:600;margin-top:10px}
+.path-step .step-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* 刷题房 - 学习空间中的快捷入口卡片 */
+.practice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:1100px;margin:0 auto;width:100%}
+.practice-card{background:rgba(244,239,231,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(52,36,24,.08);border-radius:var(--radius);padding:24px;transition:all .3s;position:relative;overflow:hidden}
+.practice-card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.1);box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.practice-card .pc-diff{font-size:11px;padding:3px 10px;border-radius:10px;background:rgba(52,36,24,.05);margin-bottom:10px;display:inline-block}
+.practice-card h3{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:4px}
+.practice-card .pc-stat{font-size:12px;color:var(--muted)}
+
+/* 评估 — 五模块 */
+.eval-grid-full{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:1100px;margin:0 auto;width:100%}
+.eval-mod{background:rgba(244,239,231,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(52,36,24,.08);border-radius:var(--radius);padding:28px 24px}
+.eval-mod h3{font-size:14px;font-weight:600;margin-bottom:16px;color:var(--muted)}
+.mod-ai{grid-column:1/-1}
+/* 趋势图 */
+.trend-chart{display:flex;align-items:flex-end;gap:20px;height:140px;padding-top:8px}
+.trend-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+.trend-bar{width:40px;border-radius:6px 6px 0 0;min-height:4px;transition:height 1s cubic-bezier(.16,1,.3,1)}
+.trend-label{font-size:10px;color:var(--muted)}
+.trend-score{font-size:13px;font-weight:700;color:var(--accent)}
+/* 薄弱卡片 */
+.weak-card{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;background:rgba(52,36,24,.03);margin-bottom:8px;border:1px solid rgba(52,36,24,.05)}
+.weak-rank{font-size:18px;font-weight:800;color:var(--accent4);min-width:28px}
+.weak-info{flex:1;display:flex;flex-direction:column;gap:2px}
+.weak-info strong{font-size:13px}
+.weak-err{font-size:11px;color:var(--muted)}
+.weak-rec{font-size:11px;color:var(--accent2)}
+/* 对比 */
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cmp-col h4{font-size:12px;margin-bottom:8px}
+.cmp-col ul{list-style:none;padding:0;margin:0}
+.cmp-col li{font-size:12px;padding:4px 0;color:var(--muted)}
+.cmp-up{color:var(--accent2)!important}
+.cmp-down{color:var(--accent4)!important}
+.t-up{color:var(--accent2)}.t-stable{color:var(--accent3)}.t-down{color:var(--accent4)}
+/* 成长轨迹 */
+.growth-track{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
+.gt-round{text-align:center;padding:6px 10px;border-radius:8px;background:rgba(52,36,24,.03);border:1px solid rgba(52,36,24,.05);min-width:50px}
+.gt-round.active{border-color:rgba(177,83,17,.3);background:rgba(177,83,17,.06)}
+.gt-num{font-size:10px;font-weight:700;color:var(--accent);display:block;margin-bottom:2px}
+.gt-desc{font-size:10px;color:var(--muted);line-height:1.3}
+.gt-arrow{color:var(--muted);font-size:12px}
+
+/* 学习资源-卡片网格 */
+.resource-section{padding:4rem 2.5rem;max-width:1100px;margin:0 auto;width:100%}
+.resource-section>h2{font-size:2rem;font-weight:700;text-align:center;margin-bottom:.25rem}
+.resource-section>p.subtitle{font-size:13px;color:var(--muted);text-align:center;margin-bottom:1.5rem}
+.resource-sort{display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;justify-content:center}
+.resource-sort-btn{padding:8px 18px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:500;transition:all .25s;font-family:var(--font)}
+.resource-sort-btn:hover,.resource-sort-btn.active{color:#342618;background:rgba(177,83,17,.1);border-color:rgba(177,83,17,.25)}
+.resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;max-width:1100px;margin:0 auto;width:100%}
+.resource-card{background:rgba(244,239,231,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(52,36,24,.08);border-radius:var(--radius);padding:24px;transition:all .3s;cursor:pointer;position:relative;overflow:hidden}
+.resource-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--card-accent,var(--accent)),transparent);opacity:0;transition:opacity .3s}
+.resource-card:hover::before{opacity:1}
+.resource-card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.1);box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.resource-card:nth-child(3n+1){--card-accent:var(--accent)}
+.resource-card:nth-child(3n+2){--card-accent:var(--accent2)}
+.resource-card:nth-child(3n+3){--card-accent:var(--accent3)}
+.resource-card .rc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.resource-card .rc-type{font-size:10px;font-weight:600;letter-spacing:.4px;padding:3px 10px;border-radius:4px}
+.resource-card .rc-type.doc{background:rgba(177,83,17,.1);color:var(--accent)}
+.resource-card .rc-type.mindmap{background:rgba(167,139,250,.1);color:#a78bfa}
+.resource-card .rc-type.exercise{background:rgba(201,121,48,.1);color:var(--accent3)}
+.resource-card .rc-type.article{background:rgba(74,124,78,.1);color:var(--accent2)}
+.resource-card .rc-type.code{background:rgba(192,86,74,.1);color:var(--accent4)}
+.resource-card .rc-dur{font-size:11px;color:var(--muted)}
+.resource-card h3{font-size:14px;font-weight:600;line-height:1.5;margin-bottom:6px}
+.resource-card .rc-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.resource-card .rc-meta{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted)}
+.resource-card .rc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.resource-card .rc-tag{font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.03);border:1px solid rgba(52,36,24,.05)}
+
+/* ═══ 刷题房独立页 ═══ */
+#page-practice-room{min-height:100vh;padding-top:calc(var(--nav-h) + .5rem)}
+.pr-layout{display:grid;grid-template-columns:280px 1fr 240px;height:calc(100vh - var(--nav-h) - .5rem);max-width:1500px;margin:0 auto}
+.pr-sidebar{background:rgba(244,239,231,.75);border-right:1px solid var(--border);overflow-y:auto;padding:1rem}
+.pr-sidebar h3{font-size:13px;font-weight:600;margin-bottom:1rem;color:var(--muted);letter-spacing:.3px}
+.pr-sidebar .pr-filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.pr-sidebar .pr-filter-chip{padding:4px 10px;border-radius:14px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--muted);transition:all .2s;font-family:var(--font)}
+.pr-sidebar .pr-filter-chip:hover,.pr-sidebar .pr-filter-chip.active{background:rgba(177,83,17,.1);border-color:rgba(177,83,17,.25);color:#342618}
+.pr-sidebar .pr-filter-chip.done-chip{background:rgba(74,124,78,.06);border-color:rgba(74,124,78,.2);color:var(--accent2)}
+.pr-sidebar .pr-qlist{display:flex;flex-direction:column;gap:4px}
+.pr-sidebar .pr-qitem{padding:10px 12px;border-radius:8px;cursor:pointer;transition:all .2s;font-size:13px;display:flex;align-items:center;gap:8px;border:1px solid transparent}
+.pr-sidebar .pr-qitem:hover{background:rgba(255,255,255,.03)}
+.pr-sidebar .pr-qitem.active{background:rgba(177,83,17,.06);border-color:rgba(177,83,17,.15)}
+.pr-sidebar .pr-qitem.done{color:var(--accent2)}
+.pr-sidebar .pr-qitem .q-num{font-size:11px;color:var(--muted);min-width:24px}
+.pr-sidebar .pr-qitem .q-done-mark{font-size:11px;color:var(--accent2);min-width:16px;text-align:center}
+
+.pr-main{overflow-y:auto;padding:2rem 2.5rem;display:flex;flex-direction:column;gap:1.5rem}
+.pr-main .pr-empty{text-align:center;padding:4rem 2rem;color:var(--muted)}
+.pr-main .pr-empty .big-icon{font-size:48px;margin-bottom:1rem}
+.pr-question{background:rgba(244,239,231,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(52,36,24,.08);border-radius:var(--radius);padding:28px}
+.pr-question .pr-qmeta{display:flex;gap:10px;align-items:center;margin-bottom:16px}
+.pr-question .pr-qdiff{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;background:rgba(52,36,24,.05)}
+.pr-question .pr-qtags{display:flex;gap:6px;flex-wrap:wrap}
+.pr-question .pr-qtag{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.08);color:var(--muted)}
+.pr-question .pr-qtitle{font-size:16px;font-weight:600;line-height:1.6;margin-bottom:20px}
+.pr-options{display:flex;flex-direction:column;gap:8px}
+.pr-options .pr-opt{padding:12px 16px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(52,36,24,.06);cursor:pointer;transition:all .2s;font-size:14px;color:var(--text)}
+.pr-options .pr-opt:hover{border-color:rgba(177,83,17,.25);background:rgba(177,83,17,.06)}
+.pr-options .pr-opt.chosen{border-color:rgba(177,83,17,.3);background:rgba(177,83,17,.1)}
+.pr-options .pr-opt.correct{border-color:rgba(74,124,78,.3)!important;background:rgba(74,124,78,.08)!important;color:var(--accent2)!important}
+.pr-options .pr-opt.wrong{border-color:rgba(201,121,48,.3)!important;background:rgba(201,121,48,.08)!important;color:var(--accent3)!important}
+.pr-actions{display:flex;gap:10px;margin-top:12px}
+.pr-explanation{display:none;background:rgba(244,239,231,.85);border:1px solid rgba(52,36,24,.08);border-radius:var(--radius);padding:20px;margin-top:12px}
+.pr-explanation.show{display:block}
+.pr-explanation h4{font-size:14px;font-weight:600;margin-bottom:8px;color:var(--accent2)}
+.pr-explanation p{font-size:13px;line-height:1.7;color:var(--muted)}
+.pr-nav-btns{display:flex;justify-content:space-between;margin-top:1rem}
+.pr-nav-btns button{padding:8px 16px}
+
+.pr-right{background:rgba(244,239,231,.7);border-left:1px solid var(--border);overflow-y:auto;padding:1rem}
+.pr-right h3{font-size:13px;font-weight:600;margin-bottom:1rem;color:var(--muted);letter-spacing:.3px}
+.pr-right .pr-stat-item{display:flex;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03)}
+.pr-right .pr-stat-item .v{font-weight:600}
+.pr-right .pr-kptags{display:flex;flex-wrap:wrap;gap:6px;margin:.8rem 0 1.2rem}
+.pr-right .pr-kptag{padding:4px 10px;border-radius:14px;font-size:11px;background:rgba(255,255,255,.03);border:1px solid rgba(52,36,24,.08);color:var(--muted)}
+.pr-right .pr-kptag.active{background:rgba(177,83,17,.1);border-color:rgba(177,83,17,.25);color:var(--accent)}
+.pr-right .pr-reset{width:100%;margin-top:.5rem;padding:6px 12px;border-radius:8px;font-size:11px;font-family:var(--font);background:transparent;border:1px solid rgba(201,121,48,.2);color:var(--accent3);cursor:pointer;transition:all .2s}
+.pr-right .pr-reset:hover{background:rgba(201,121,48,.06)}
+
+footer{border-top:1px solid var(--border);padding:2rem 2.5rem;text-align:center;font-size:13px;color:var(--muted)}
+@media (max-width:900px){
+  .dx-layout{grid-template-columns:1fr}
+  .nav-links a{font-size:11px;padding:6px 10px}
+  section{padding:3rem 1.2rem}
+  .profile-grid{grid-template-columns:1fr}
+  .resource-grid{grid-template-columns:1fr}
+  .path-step{width:80px}.path-step:not(:last-child)::after{width:calc(80px - 56px);left:calc(50% + 28px)}
+  .pr-layout{grid-template-columns:1fr}
+  .pr-sidebar,.pr-right{display:none}
+}
+/* ═══ LOGIN MODAL ═══ */
+.login-overlay{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.login-overlay.show{opacity:1;pointer-events:auto}
+.login-modal{background:rgba(244,239,231,.95);border:1px solid rgba(52,36,24,.12);border-radius:18px;padding:40px 36px;width:360px;max-width:90vw;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.login-modal h2{font-size:22px;font-weight:700;margin-bottom:6px}
+.login-modal .login-sub{font-size:13px;color:var(--muted);margin-bottom:1.5rem}
+.login-modal input{display:block;width:100%;background:rgba(52,36,24,.05);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;margin-bottom:12px;transition:border-color .2s}
+.login-modal input:focus{border-color:var(--accent)}
+.login-modal input::placeholder{color:#4a5568}
+.login-modal .login-btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#342618;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .3s}
+.login-modal .login-btn:hover{box-shadow:0 0 24px 4px rgba(177,83,17,.35)}
+.login-modal .login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-modal .login-err{color:var(--accent4);font-size:12px;margin-top:8px;min-height:18px}
+.login-modal .login-skip{margin-top:12px;font-size:12px;color:var(--muted);cursor:pointer}
+.login-modal .login-skip:hover{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN MODAL ═══ -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-modal">
+    <div style="font-size:36px;margin-bottom:12px">🎓</div>
+    <h2>从容应对</h2>
+    <p class="login-sub">C语言智能学习平台 · 请登录</p>
+    <input id="loginUsername" placeholder="用户名" autocomplete="off">
+    <input id="loginPassword" type="password" placeholder="密码">
+    <button class="login-btn" id="loginBtn" onclick="handleLogin()">登 录</button>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-skip" onclick="handleSkipLogin()">暂不登录，使用演示模式 →</div>
+  </div>
+</div>
+
+<!-- ═══ NAVBAR ═══ -->
+<nav class="navbar">
+  <div class="nav-logo"><span class="dot"></span>从容应对</div>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="/student/chat" class="nav-daoxue active">AI导学</a></li>
+    <li><a href="/student/resources">学习空间</a></li>
+    <li><a href="/student/practice">刷题房</a></li>
+  </ul>
+  <div class="nav-actions">👤 张小泉</div>
+</nav>
+
+<!-- ═══ FLOATING PROGRESS RING ═══ -->
+<div id="floatProgress">
+  <div class="tooltip">
+    学得差不多了！<br>回到AI导学进行下一轮考核？
+    <br><button onclick="backToDaoxue()">去考核 →</button>
+  </div>
+  <div class="box">
+    <svg width="48" height="48" viewBox="0 0 48 48">
+      <circle class="bgCirc" cx="24" cy="24" r="21"/>
+      <circle class="fgCirc" id="fgCirc" cx="24" cy="24" r="21" stroke-dasharray="131.95" stroke-dashoffset="131.95"/>
+    </svg>
+    <span class="lbl" id="fpLabel">0%</span>
+  </div>
+</div>
+
+<!-- ═══ SECTION TOC ═══ -->
+<div id="sectionToc">
+  <div class="toc-dot" data-target="profile"><div class="dot-core"></div><div class="dot-label">🧬 我的画像</div></div>
+  <div class="toc-dot" data-target="path"><div class="dot-core"></div><div class="dot-label">🗺️ 学习路径</div></div>
+  <div class="toc-dot" data-target="practice"><div class="dot-core"></div><div class="dot-label">📝 刷题速览</div></div>
+  <div class="toc-dot" data-target="evaluation"><div class="dot-core"></div><div class="dot-label">📊 学习评估</div></div>
+  <div class="toc-dot" data-target="resources"><div class="dot-core"></div><div class="dot-label">📚 学习资源</div></div>
+</div>
+
+<!-- ═══ PAGE 1: AI导学 ═══ -->
+<div class="page active" id="page-daoxue">
+<div class="dx-layout">
+  <div class="dx-left">
+    <div class="dx-badge" id="dxBadge"><span class="pulse"></span><span id="badgeText">新用户 · 智能诊断中</span></div>
+    <h1 id="dxTitle">Hi，我是<span>小容</span> 👋<br>帮你搞定C语言</h1>
+    <p class="sub" id="dxSub">通过AI对话了解你的C语言水平，自动生成个性化学习画像、路径和资源，持续追踪成长。</p>
+    <div class="dx-progress" id="dxProgress">
+      <div class="prog-label" id="progLabel">诊断进度 0 / 5</div>
+      <div class="prog-bar"><div class="fill" id="progFill" style="width:0%"></div></div>
+      <ul class="step-summary" id="stepSummary">
+        <li class="active">学习背景</li><li>C语言基础</li><li>指针理解</li><li>数据结构</li><li>学习目标</li>
+      </ul>
+    </div>
+    <div class="dx-summary" id="dxSummary">
+      <h3 id="summaryTitle">✅ 诊断完成</h3>
+      <p style="color:var(--muted);margin:8px 0;font-size:13px" id="summaryDesc"></p>
+      <div class="tags" id="summaryTags"></div>
+    </div>
+    <div class="next-step-bar" id="nextStepBar">
+      <button class="btn-solid btn-solid-lg" onclick="window.location.href='/student/resources'">进入学习空间 →</button>
+      <p style="color:var(--muted);font-size:12px;margin-top:8px" id="nextStepHint"></p>
+    </div>
+  </div>
+  <div>
+    <div class="chat-card">
+      <div class="chat-card-header"><div class="chat-avatar">🤖</div><div><div style="font-weight:600;font-size:14px">小容 AI</div><div style="font-size:11px;color:var(--muted)">C语言学习助手 · 多智能体</div></div></div>
+      <div class="chat-card-body" id="chatBody"></div>
+      <div class="chat-card-footer">
+        <input id="chatInput" placeholder="输入你的回答..." autocomplete="off">
+        <button id="sendBtn">发送</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ PAGE 2: 学习空间 ═══ -->
+<div class="page" id="page-learn">
+  <section id="profile">
+    <h2 class="section-title">🧬 我的画像</h2>
+    <div class="profile-layout">
+      <div class="student-card" id="studentCard">
+        <div class="sc-avatar">👩‍🎓</div>
+        <div class="sc-name" id="scName">张小泉</div>
+        <div class="sc-meta" id="scMeta">计算机科学与技术 · 大一</div>
+        <div class="sc-grade" id="scGrade"><span class="g-icon">⚡</span><span>初级探索者</span></div>
+        <div class="sc-summary" id="scSummary">C语言基础中等偏上，指针和数据结构是重点提升方向。偏好视频+实战练习，目标是通过期末考试。</div>
+      </div>
+      <div class="dimensions-panel">
+        <div class="radar-card">
+          <h3>📊 知识基础 · 六维雷达</h3>
+          <div class="radar-wrap">
+            <canvas id="radarCanvas" width="300" height="300"></canvas>
+            <div class="radar-legend" id="radarLegend"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+  <section class="path-section" id="path"><h2 class="section-title">🗺️ 学习路径</h2><div class="game-map" id="gameMap"></div></section>
+  <section class="lite" id="practice"><h2 class="section-title">📝 刷题速览</h2><p style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:1.5rem">以下是推荐练习题，完整题库请进入 <strong>刷题房</strong> 页面</p><div class="practice-grid" id="practiceGrid"></div></section>
+  <section class="lite" id="evaluation"><h2 class="section-title">📊 学习评估</h2><div class="eval-grid-full" id="evalFull"></div></section>
+  <section class="resource-section" id="resources">
+    <h2 class="section-title">📚 学习资源</h2>
+    <p class="subtitle">点击卡片查看详情，按需学习</p>
+    <div class="resource-sort" id="resourceSort"></div>
+    <div class="resource-grid" id="resourceGrid"></div>
+  </section>
+  <footer>© 2026 从容应对 — 让每一次学习都有方向</footer>
+</div>
+
+<!-- ═══ PAGE 3: 刷题房 ═══ -->
+<div class="page" id="page-practice-room">
+<div class="pr-layout">
+  <div class="pr-sidebar" id="prSidebar"></div>
+  <div class="pr-main" id="prMain">
+    <div class="pr-empty"><div class="big-icon">📝</div><p>👈 左侧选择题号开始刷题</p></div>
+  </div>
+  <div class="pr-right" id="prRight">
+    <h3>📊 答题统计</h3>
+    <div class="pr-stat-item"><span>总题数</span><span class="v" id="prStatTotal">0</span></div>
+    <div class="pr-stat-item"><span>已作答</span><span class="v" id="prStatDone">0</span></div>
+    <div class="pr-stat-item"><span>正确</span><span class="v" style="color:var(--accent2)" id="prStatCorrect">0</span></div>
+    <div class="pr-stat-item"><span>错误</span><span class="v" style="color:var(--accent4)" id="prStatWrong">0</span></div>
+    <h3 style="margin-top:1.2rem">🏷️ 知识点</h3>
+    <div class="pr-kptags" id="prKpTags"></div>
+    <h3 style="margin-top:1.2rem">🔧 过滤</h3>
+    <div class="pr-filter-row" id="prDifficultyFilter"></div>
+    <button class="pr-reset" onclick="resetPracticeRoom()">🔄 重置刷题进度</button>
+  </div>
+</div>
+</div>
+
+<script>
+/* ═══ API CONFIG & AUTH ═══ */
+const API_BASE = 'http://localhost:8080';
+
+// Token & user management
+const Auth = {
+  getToken() { return localStorage.getItem('cryd_token'); },
+  setToken(t) { localStorage.setItem('cryd_token', t); },
+  clearToken() { localStorage.removeItem('cryd_token'); },
+  getUser() { try { return JSON.parse(localStorage.getItem('cryd_user')); } catch { return null; } },
+  setUser(u) { localStorage.setItem('cryd_user', JSON.stringify(u)); },
+  clearUser() { localStorage.removeItem('cryd_user'); },
+  getSysUserId() { const u = this.getUser(); return u ? (u.id || u.sysUserId || u.userId) : null; },
+  getStudentId() { const u = this.getUser(); return u ? (u.studentId || u.id) : null; },
+  isLoggedIn() { return !!this.getToken(); },
+  isDemoMode() { return localStorage.getItem('cryd_demo') === 'true'; },
+  setDemoMode(v) { if(v) localStorage.setItem('cryd_demo','true'); else localStorage.removeItem('cryd_demo'); }
+};
+
+// Generic API wrapper with auto-token and fallback
+async function api(method, path, body, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = Auth.getToken();
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const fetchOpts = { method, headers };
+  if (body && method !== 'GET') fetchOpts.body = JSON.stringify(body);
+  try {
+    const res = await fetch(API_BASE + path, fetchOpts);
+    if (res.status === 401) {
+      Auth.clearToken(); Auth.clearUser();
+      showLoginModal();
+      throw new Error('Unauthorized');
+    }
+    if (!res.ok) throw new Error('API ' + res.status);
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) return await res.json();
+    return res;
+  } catch (e) {
+    if (opts.silent) return null;
+    console.warn('[API]', method, path, e.message);
+    return null;
+  }
+}
+
+// SSE stream reader for chat endpoints
+async function apiSSE(path, body, onChunk, onDone) {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = Auth.getToken();
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  try {
+    const res = await fetch(API_BASE + path, { method: 'POST', headers, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error('SSE ' + res.status);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep incomplete line
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(':')) continue; // skip comments
+        if (trimmed.startsWith('data:')) {
+          const data = trimmed.slice(5).trim();
+          if (data === '[DONE]') { if (onDone) onDone(); return; }
+          try {
+            const parsed = JSON.parse(data);
+            if (onChunk) onChunk(parsed);
+          } catch {
+            // Plain text chunk
+            if (onChunk) onChunk({ content: data });
+          }
+        }
+      }
+    }
+    if (buffer.trim()) {
+      const data = buffer.trim().startsWith('data:') ? buffer.trim().slice(5).trim() : buffer.trim();
+      if (data !== '[DONE]') {
+        try { if (onChunk) onChunk(JSON.parse(data)); } catch { if (onChunk) onChunk({ content: data }); }
+      }
+    }
+    if (onDone) onDone();
+  } catch (e) {
+    console.warn('[SSE]', path, e.message);
+    if (onDone) onDone();
+  }
+}
+
+// Login handlers
+function showLoginModal() {
+  document.getElementById('loginOverlay').classList.add('show');
+}
+function hideLoginModal() {
+  document.getElementById('loginOverlay').classList.remove('show');
+}
+async function handleLogin() {
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginErr');
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  if (!username || !password) { errEl.textContent = '请输入用户名和密码'; return; }
+  btn.disabled = true; errEl.textContent = '';
+  const res = await api('POST', '/api/auth/login', { username, password }, { silent: true });
+  btn.disabled = false;
+  if (res && (res.token || res.data)) {
+    const data = res.data || res;
+    if (data.token) Auth.setToken(data.token);
+    if (data.user || data.id) Auth.setUser(data.user || data);
+    Auth.setDemoMode(false);
+    hideLoginModal();
+    onAuthReady();
+  } else {
+    errEl.textContent = '登录失败，请检查用户名和密码';
+  }
+}
+function handleSkipLogin() {
+  Auth.setDemoMode(true);
+  hideLoginModal();
+  onAuthReady();
+}
+// Enter key on login form
+document.addEventListener('DOMContentLoaded', () => {
+  ['loginUsername','loginPassword'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+  });
+});
+
+// Called after auth (login or demo mode)
+async function onAuthReady() {
+  // Update nav username
+  const user = Auth.getUser();
+  const navActions = document.querySelector('.nav-actions');
+  if (navActions) {
+    if (user && (user.name || user.username)) navActions.textContent = '👤 ' + (user.name || user.username);
+    else if (Auth.isDemoMode()) navActions.textContent = '👤 演示模式';
+  }
+
+  // If logged in, fetch student ID from API
+  const sysUserId = Auth.getSysUserId();
+  if (sysUserId && !Auth.isDemoMode() && !Auth.getStudentId()) {
+    const res = await api('GET', '/api/student/by-sysuser/' + sysUserId, null, { silent: true });
+    if (res) {
+      const d = res.data || res;
+      if (d.id || d.studentId) {
+        // Merge studentId into stored user
+        const existing = Auth.getUser() || {};
+        Auth.setUser({ ...existing, studentId: d.id || d.studentId });
+      }
+    }
+  }
+}
+
+/* ═══ DATA ═══ */
+// 六维雷达图维度定义
+const radarDims=[
+  {key:'grammar',name:'语法掌握力',color:'#b15311'},
+  {key:'logic',name:'逻辑推理',color:'#4a7c4e'},
+  {key:'coding',name:'代码实践',color:'#a78bfa'},
+  {key:'debug',name:'调试能力',color:'#c97930'},
+  {key:'abstract',name:'抽象思维',color:'#c0564a'},
+  {key:'selfLearn',name:'自主学习',color:'#38bdf8'},
+];
+
+// 学生画像数据（随学随新）
+const studentProfile={
+  name:'张小泉',major:'计算机科学与技术',grade:'大一',level:'初级探索者',levelIdx:1,
+  cognitiveStyle:{visual:75,textual:25,practical:80,theoretical:20}, // 视觉+实践型
+  learningStrategy:{sequential:60,jump:30,review:20,challenge:25}, // 学习策略
+  thinkingLevel:2, // 1-3: 入门→进阶→高手
+  engagement:{days:5,avgMin:32,streak:3,exploreRate:65,focusRate:72},
+};
+
+// 三轮学习能力雷达分值
+const radarByRound=[
+  {grammar:85,logic:72,coding:68,debug:40,abstract:35,selfLearn:55},
+  {grammar:88,logic:78,coding:75,debug:55,abstract:45,selfLearn:60},
+  {grammar:92,logic:85,coding:82,debug:68,abstract:58,selfLearn:70},
+];
+
+const flows = [
+  { questions:[
+    { ask:'同学你好！👋 我是小容。先简单了解一下——你之前学过 C 语言吗？大概到什么程度？', hint:'比如：学过一学期 / 自学过一点 / 完全零基础...' },
+    { ask:'基础部分：下面哪些你能熟练写出来？\n① for/while 循环 ② if/switch ③ 数组遍历 ④ 函数定义与调用', hint:'说你会哪些就行' },
+    { ask:'指针这块很多同学觉得难——`int *p = &a; printf("%d",*p);` 这行代码，你能解释它干了什么吗？', hint:'简单描述就行' },
+    { ask:'数据结构和动态内存呢？malloc/free、struct、链表，这些接触过吗？', hint:'可以说 "学过但忘了" "没学过"...' },
+    { ask:'最后一个小问题～你这次想重点提升什么？考试 / 比赛 / 找工作？', hint:'随便说' },
+  ]},
+  { questions:[
+    { ask:'欢迎回来！现在检验一下：二级指针 `int **pp` 是什么？什么时候会用到？', hint:'能说多少说多少' },
+    { ask:'`malloc(sizeof(int)*10)` 返回的指针和普通指针有什么区别？不 free 会怎样？', hint:'堆内存相关' },
+    { ask:'`int arr[5]; int *p = arr;` 那么 `p[2]` 和 `*(arr+2)` 等价吗？', hint:'想想数组名是什么' },
+    { ask:'函数指针见过吗？`int (*f)(int,int)` 这行代码是什么意思？', hint:'比如回调函数、qsort' },
+    { ask:'`char *s = "hello";` sizeof(s) 和 strlen(s) 分别是多少？', hint:'指针大小 vs 字符串长度' },
+  ]},
+  { questions:[
+    { ask:'用 C 语言实现一个链表节点 struct，包含数据域和指针域，怎么写？', hint:'struct Node { ... };' },
+    { ask:'malloc 失败会返回什么？不检查就直接用会有什么后果？', hint:'NULL 和段错误' },
+    { ask:'栈和堆的区别：局部变量 `int a[1000000]` 放哪？改为 malloc 呢？', hint:'栈溢出 vs 堆分配' },
+    { ask:'`free(ptr)` 之后 ptr 还指向原来的地址，叫什么问题？怎么避免？', hint:'悬垂指针 + 置 NULL' },
+    { ask:'文件 I/O：`fopen` 打开文件失败返回什么？', hint:'NULL 和资源泄漏' },
+  ]},
+];
+
+const masteryByRound = [
+  { data_types:88, branches:82, arrays:75, pointers:38, structs:0, files:0 },
+  { data_types:90, branches:85, arrays:78, pointers:55, structs:10, files:0 },
+  { data_types:92, branches:88, arrays:82, pointers:68, structs:40, files:15 },
+];
+
+const pathByRound = [
+  [{n:'变量与类型',s:'done'},{n:'分支与循环',s:'done'},{n:'数组与函数',s:'done'},{n:'指针入门',s:'current'},{n:'结构体',s:'next'},{n:'文件操作',s:'next'},{n:'基础算法',s:'next'}],
+  [{n:'变量与类型',s:'done'},{n:'分支与循环',s:'done'},{n:'数组与函数',s:'done'},{n:'指针入门',s:'done'},{n:'指针进阶',s:'current'},{n:'结构体',s:'next'},{n:'文件操作',s:'next'},{n:'基础算法',s:'next'}],
+  [{n:'变量与类型',s:'done'},{n:'分支与循环',s:'done'},{n:'数组与函数',s:'done'},{n:'指针入门',s:'done'},{n:'指针进阶',s:'done'},{n:'动态内存',s:'current'},{n:'结构体',s:'next'},{n:'文件操作',s:'next'},{n:'基础算法',s:'next'}],
+];
+
+const practiceByRound = [
+  [{d:'★ 基础',n:'#1',q:'下列哪个运算符用于获取变量地址？',o:['A. *','B. &','C. #','D. @'],a:1,t:['指针','基础']}],
+  [{d:'★★ 进阶',n:'#2',q:'int *p; int a=10; p=&a; 则 *p 的值是？',o:['A. &a 的地址','B. 10','C. p 的地址','D. 未定义'],a:1,t:['指针','变量']},
+   {d:'★★ 进阶',n:'#3',q:'二级指针 int **pp 存储的是什么？',o:['A. 整数','B. 普通变量的地址','C. 一级指针的地址','D. NULL'],a:2,t:['指针','内存']}],
+  [{d:'★★ 进阶',n:'#4',q:'malloc(sizeof(int)*10) 分配的内存在哪个区域？',o:['A. 栈','B. 全局区','C. 堆','D. 代码区'],a:2,t:['内存','动态分配']},
+   {d:'★★★ 挑战',n:'#5',q:'free(ptr) 后 ptr 应该做什么？',o:['A. 什么也不做','B. 把 ptr 置为 NULL','C. 再次 free(ptr)','D. 会自动变 NULL'],a:1,t:['内存','安全']},
+   {d:'★★★ 挑战',n:'#6',q:'下面哪个是正确的函数指针声明？',o:['A. int *f();','B. int (*f)(int,int)','C. int f*(int,int)','D. *int f(int,int)'],a:1,t:['指针','函数指针']}],
+];
+
+const evalByRound=[
+  {
+    trend:[{label:'R1',score:45}],
+    errors:[{name:'概念混淆',pct:55},{name:'逻辑错误',pct:40},{name:'内存问题',pct:25},{name:'语法陷阱',pct:15},{name:'粗心失误',pct:10}],
+    weakTop3:[{kp:'指针基础',err:8,rec:'指针入门讲解'},{kp:'函数调用',err:5,rec:'函数参数传递精讲'},{kp:'数组遍历',err:3,rec:'数组与指针对比练习'}],
+    aiSummary:'首次诊断完成，基础语法掌握不错。指针和数据结构是重点提升方向，建议先打牢指针基础再推进。偏好视频+实战练习。',
+    compare:{up:['基础语法 +5','流程控制 +3'],down:['指针概念混淆较多']}
+  },
+  {
+    trend:[{label:'R1',score:45},{label:'R2',score:58}],
+    errors:[{name:'概念混淆',pct:45},{name:'逻辑错误',pct:38},{name:'内存问题',pct:30},{name:'语法陷阱',pct:18},{name:'粗心失误',pct:12}],
+    weakTop3:[{kp:'二级指针',err:6,rec:'多级指针知识图谱'},{kp:'malloc/free',err:5,rec:'动态内存分配深入讲解'},{kp:'函数指针',err:4,rec:'回调函数实战案例'}],
+    aiSummary:'指针掌握进步明显（38→55），结构体初步接触。继续保持实战学习风格，注意内存管理相关概念还需加强。',
+    compare:{up:['指针 +17','语法 +2','流程控制 +3'],down:['内存错误占比上升']}
+  },
+  {
+    trend:[{label:'R1',score:45},{label:'R2',score:58},{label:'R3',score:72}],
+    errors:[{name:'概念混淆',pct:35},{name:'逻辑错误',pct:32},{name:'内存问题',pct:28},{name:'语法陷阱',pct:20},{name:'粗心失误',pct:15}],
+    weakTop3:[{kp:'链表实现',err:5,rec:'链表完整实现与内存图解'},{kp:'动态内存',err:4,rec:'动态内存管理全解'},{kp:'未定义行为',err:3,rec:'C语言UB大全'}],
+    aiSummary:'六维能力趋于均衡（语法92、逻辑85、代码82），可以挑战更复杂的项目了。数据结构是最后一关。',
+    compare:{up:['指针 +13','数据结构 +25','文件IO +15'],down:['链表细节还需打磨']}
+  }
+];
+
+const resourcesByRound = [
+  [ {t:'doc',h:'C语言指针快速入门',p:'什么是指针？& 和 * 操作符图文详解',d:'课程设计师',author:'课程设计师',level:'入门',tags:['指针','基础']},
+    {t:'mindmap',h:'指针核心概念脑图',p:'地址→指针变量→解引用→指针运算',d:'思维导图师',author:'思维导图师',level:'入门',tags:['脑图','结构']},
+    {t:'code',h:'C指针必知必会20题',p:'分级练习，每道含详细解析',d:'代码示例师',author:'代码示例师',level:'入门',tags:['练习','指针']},
+    {t:'article',h:'指针的前世今生',p:'从内存模型到指针的底层原理',d:'知识讲解师',author:'知识讲解师',level:'入门',tags:['科普','内存']},
+    {t:'exercise',h:'指针入门自测卷',p:'15道选择题+5道编程',d:'出题专家',author:'出题专家',level:'入门',tags:['测试','入门']} ],
+  [ {t:'doc',h:'C语言指针完全指南',p:'一级→二级→函数指针→动态内存',d:'课程设计师',author:'课程设计师',level:'进阶',tags:['指针','全面']},
+    {t:'mindmap',h:'多级指针知识图谱',p:'二级指针、指针数组、函数指针',d:'思维导图师',author:'思维导图师',level:'进阶',tags:['脑图','进阶']},
+    {t:'code',h:'指针经典实战100行',p:'swap/数组指针/字符串指针完整实现',d:'代码示例师',author:'代码示例师',level:'进阶',tags:['练习','指针']},
+    {t:'article',h:'动态内存分配深度解析',p:'malloc/free 内部机制与常见陷阱',d:'知识讲解师',author:'知识讲解师',level:'进阶',tags:['内存','深度']},
+    {t:'exercise',h:'指针与内存综合测验',p:'30题覆盖二级指针到函数指针',d:'出题专家',author:'出题专家',level:'进阶',tags:['测试','全面']} ],
+  [ {t:'doc',h:'动态内存管理全解',p:'malloc/free/realloc 最佳实践',d:'课程设计师',author:'课程设计师',level:'高级',tags:['内存','实战']},
+    {t:'mindmap',h:'链表与内存管理脑图',p:'节点结构→增删查改→内存泄漏排查',d:'思维导图师',author:'思维导图师',level:'高级',tags:['脑图','链表']},
+    {t:'code',h:'链表完整实现与内存图解',p:'单链表+双向链表，含valgrind验证',d:'代码示例师',author:'代码示例师',level:'高级',tags:['链表','完整']},
+    {t:'article',h:'C语言未定义行为大全',p:'数组越界、悬垂指针、缓冲区溢出',d:'知识讲解师',author:'知识讲解师',level:'高级',tags:['UB','安全']},
+    {t:'exercise',h:'数据结构与内存综合卷',p:'15道中高难度综合题+链表设计',d:'出题专家',author:'出题专家',level:'高级',tags:['综合','挑战']},
+    {t:'doc',h:'从零实现数据结构',p:'手写链表与栈，含内存可视化',d:'课程设计师',author:'课程设计师',level:'高级',tags:['数据结构','手写']},
+    {t:'code',h:'链表与内存综合练习',p:'15道中高难度综合题',d:'代码示例师',author:'代码示例师',level:'高级',tags:['练习','综合']} ],
+];
+
+const statByRound = [
+  { q:5, rate:80, weak:3 },
+  { q:23, rate:78, weak:2 },
+  { q:47, rate:82, weak:1 },
+];
+
+/* ═══ GLOBAL STATE ═══ */
+const ST = {
+  round: 0, mode: 'onboard', step: 0, messages: [],
+  mastery: {}, sections: { profile:false, path:false, practice:false, resources:false },
+  prAnswers: {}, prFilters: { diff:null, tag:null },
+};
+let currentFlow = flows[0], allResources = [];
+
+/* ═══ INIT ═══ */
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('cryd_round');
+  if (saved !== null) { ST.round = Math.min(parseInt(saved), flows.length-1); ST.mode = 'normal'; ST.mastery = masteryByRound[ST.round]; }
+  else { ST.round = 0; ST.mode = 'onboard'; ST.mastery = {}; }
+  ST.sections = { profile:false, path:false, practice:false, resources:false };
+
+  // Auth check: show login if no token and not in demo mode
+  if (!Auth.isLoggedIn() && !Auth.isDemoMode()) {
+    showLoginModal();
+  } else {
+    onAuthReady();
+  }
+
+  if (ST.mode === 'normal') setupNormalMode();
+  else setupOnboardMode();
+
+  document.getElementById('sendBtn').addEventListener('click', sendMessage);
+  document.getElementById('chatInput').addEventListener('keydown', e=>{if(e.key==='Enter')sendMessage();});
+
+  // Nav clicks
+  document.querySelectorAll('#navLinks a').forEach(a=>{
+    a.addEventListener('click',e=>{
+      e.preventDefault();
+      const page = a.dataset.page;
+      switchPage(page);
+      document.querySelectorAll('#navLinks a').forEach(x=>x.classList.remove('active'));
+      a.classList.add('active');
+    });
+  });
+
+  // Resource sort setup — 5 agent-aligned types
+  document.getElementById('resourceSort').innerHTML = `
+    <button class="resource-sort-btn active" data-sort="all">📋 全部</button>
+    <button class="resource-sort-btn" data-sort="doc">📖 课程讲解</button>
+    <button class="resource-sort-btn" data-sort="mindmap">🧠 思维导图</button>
+    <button class="resource-sort-btn" data-sort="exercise">📝 练习题</button>
+    <button class="resource-sort-btn" data-sort="article">📄 拓展阅读</button>
+    <button class="resource-sort-btn" data-sort="code">💻 代码示例</button>
+    <button class="btn-ghost" id="generateResBtn" style="margin-left:auto" onclick="generateResources()">✨ AI 生成资源</button>`;
+  document.querySelectorAll('.resource-sort-btn').forEach(btn=>{
+    btn.addEventListener('click',async function(){
+      document.querySelectorAll('.resource-sort-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      const s=this.dataset.sort;
+      const studentId = Auth.getStudentId();
+      const isDemo = Auth.isDemoMode() || !studentId;
+      // If logged in and specific type, try API filter
+      if (!isDemo && studentId && s !== 'all') {
+        const typeMap = { doc:'doc', mindmap:'mindmap', exercise:'exercise', article:'article', code:'code' };
+        const res = await api('GET', '/api/resources/student/' + studentId + '/type/' + (typeMap[s]||s), null, { silent: true });
+        if (res) {
+          const d = res.data || res;
+          const list = d.resources || d.list || (Array.isArray(d) ? d : null);
+          if (list && list.length > 0) {
+            const typeMap2 = { 'doc':'doc', 'mindmap':'mindmap', 'exercise':'exercise', 'article':'article', 'code':'code' };
+            const cards = list.map(r => ({
+              t: typeMap2[r.type] || r.t || 'doc',
+              h: r.title || r.name || r.h || '未命名资源',
+              p: r.description || r.summary || r.p || '',
+              d: r.author || r.source || r.d || 'AI 生成',
+              author: r.author || r.source || 'AI 生成',
+              level: r.level || '通用',
+              tags: r.tags || r.topics || []
+            }));
+            _renderResourceCardsDirect(cards);
+            return;
+          }
+        }
+      }
+      // Fallback to client-side filter
+      _renderResourceCardsDirect(s==='all'?allResources:allResources.filter(r=>r.t===s));
+    });
+  });
+
+  // Practice room diff filter
+  document.getElementById('prDifficultyFilter').innerHTML = `
+    <button class="pr-filter-chip active" data-diff="all">全部</button>
+    <button class="pr-filter-chip" data-diff="★">★ 基础</button>
+    <button class="pr-filter-chip" data-diff="★★">★★ 进阶</button>
+    <button class="pr-filter-chip" data-diff="★★★">★★★ 挑战</button>`;
+  document.querySelectorAll('#prDifficultyFilter .pr-filter-chip').forEach(c=>{
+    c.addEventListener('click',function(){
+      document.querySelectorAll('#prDifficultyFilter .pr-filter-chip').forEach(x=>x.classList.remove('active'));
+      this.classList.add('active');
+      ST.prFilters.diff = this.dataset.diff==='all'?null:this.dataset.diff;
+      renderPRSidebar();
+    });
+  });
+
+  // Pr kp tags
+  renderPRKpTags();
+
+  // Floating progress ring
+  initFloatProgress();
+
+  // Scroll reveals for learning space
+  setTimeout(animateStats,300);
+});
+
+/* ═══ PAGE SWITCHING ═══ */
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const fp = document.getElementById('floatProgress');
+  const toc = document.getElementById('sectionToc');
+  if (page==='daoxue') {
+    document.getElementById('page-daoxue').classList.add('active');
+    fp.style.display='none'; toc.classList.remove('visible');
+    window.scrollTo({top:0,behavior:'smooth'});
+  } else if (page==='learn' || page==='learn-link') {
+    document.getElementById('page-learn').classList.add('active');
+    fp.style.display='';
+    enterLearningSpace();
+  } else if (page==='practice-room') {
+    document.getElementById('page-practice-room').classList.add('active');
+    fp.style.display=''; toc.classList.remove('visible');
+    enterPracticeRoom();
+  }
+}
+
+/* ═══ FLOATING PROGRESS ═══ */
+function initFloatProgress() {
+  const el = document.getElementById('floatProgress');
+  el.style.display = 'none';
+  let dragging=false, ox,oy,ex,ey;
+
+  el.addEventListener('mousedown', e => {
+    if (e.target.closest('.tooltip button')) return;
+    dragging=true; el.classList.add('dragging');
+    ox=e.clientX-el.offsetLeft; oy=e.clientY-el.offsetTop;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const nx=e.clientX-ox, ny=e.clientY-oy;
+    el.style.left=nx+'px'; el.style.top=ny+'px'; el.style.right='auto';
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging=false; el.classList.remove('dragging');
+    const r=el.getBoundingClientRect(), ww=window.innerWidth;
+    if (r.left+r.width/2 < ww/2) { el.style.left='24px'; el.style.right='auto'; }
+    else { el.style.left='auto'; el.style.right='24px'; }
+    if (r.top<70) el.style.top='70px';
+    if (r.top+r.height>window.innerHeight-20) el.style.top=(window.innerHeight-r.height-20)+'px';
+    localStorage.setItem('fp_pos',JSON.stringify({left:el.style.left,right:el.style.right,top:el.style.top}));
+  });
+  // Restore position
+  const saved = localStorage.getItem('fp_pos');
+  if (saved) try { const p=JSON.parse(saved); el.style.left=p.left||'auto'; el.style.right=p.right||'24px'; el.style.top=p.top||'120px'; } catch {}
+}
+
+function updateFloatProgress() {
+  const done = Object.values(ST.sections).filter(Boolean).length;
+  const total = 4, pct = Math.round((done/total)*100);
+  const circ = 131.95;
+  document.getElementById('fgCirc').style.strokeDashoffset = circ - (pct/100)*circ;
+  document.getElementById('fpLabel').textContent = pct+'%';
+  const el = document.getElementById('floatProgress');
+  if (pct >= 75) el.classList.add('ready');
+  else el.classList.remove('ready');
+}
+
+/* ═══ CHAT ═══ */
+async function setupNormalMode() {
+  const sysUserId = Auth.getSysUserId();
+  const isDemo = Auth.isDemoMode() || !sysUserId;
+  const user = Auth.getUser();
+  const displayName = user ? (user.name || user.username || '张小泉') : '张小泉';
+
+  document.getElementById('dxBadge').style.borderColor='rgba(74,124,78,.25)'; document.getElementById('dxBadge').style.color='var(--accent2)';
+  document.getElementById('badgeText').textContent='AI 自由对话';
+  document.getElementById('dxTitle').innerHTML=`Hi，<span>${displayName}</span> 👋<br>欢迎回来`;
+  document.getElementById('dxSub').textContent='随时问我 C 语言问题，或直接开始新一轮挑战。';
+  document.getElementById('dxProgress').style.opacity='0';
+  document.getElementById('dxSummary').classList.remove('show');
+  document.getElementById('nextStepBar').classList.remove('show');
+
+  // Check onboarding status
+  let isOnboarded = false;
+  if (!isDemo && sysUserId) {
+    const statusRes = await api('GET', '/api/onboarding/status/' + sysUserId, null, { silent: true });
+    if (statusRes) {
+      const d = statusRes.data || statusRes;
+      isOnboarded = d.completed || d.finished || d.done || false;
+    }
+  }
+
+  if (isOnboarded) {
+    // User has completed onboarding, go to free chat mode
+    ST.messages=[{role:'bot',text:`Hi ${displayName} 👋 欢迎回来！有什么C语言问题随时问我～`,label:'小容'}];
+    renderChat();
+    ST.mode='normal';
+    document.getElementById('chatInput').placeholder='输入你的 C 语言问题...';
+
+    // Load chat history
+    if (!isDemo && sysUserId) {
+      const studentId = Auth.getStudentId();
+      if (studentId) {
+        const histRes = await api('GET', '/api/chat/history/' + studentId, null, { silent: true });
+        if (histRes) {
+          const d = histRes.data || histRes;
+          const msgs = d.messages || d.history || (Array.isArray(d) ? d : null);
+          if (msgs && msgs.length > 0) {
+            ST.messages = msgs.map(m => ({
+              role: m.role === 'assistant' || m.role === 'bot' ? 'bot' : 'user',
+              text: m.content || m.text || m.message || '',
+              label: m.role === 'assistant' ? '小容' : undefined
+            }));
+            renderChat();
+          }
+        }
+      }
+    }
+  } else {
+    // Still in onboarding
+    const flow=flows[ST.round];
+    ST.messages=[{role:'bot',text:`Hi ${displayName} 👋 欢迎回来！准备好了吗？`,label:'小容'}];
+    renderChat();
+    setTimeout(()=>{botSay('那我们开始吧——'+flow.questions[0].ask,null,600);},2000);
+    document.getElementById('chatInput').placeholder=flow.questions[0].hint;
+    ST.mode='onboard';ST.step=0;currentFlow=flow;
+  }
+}
+
+async function setupOnboardMode() {
+  const sysUserId = Auth.getSysUserId();
+  const isDemo = Auth.isDemoMode() || !sysUserId;
+
+  // Check if user already completed onboarding
+  if (!isDemo && sysUserId) {
+    const statusRes = await api('GET', '/api/onboarding/status/' + sysUserId, null, { silent: true });
+    if (statusRes) {
+      const d = statusRes.data || statusRes;
+      if (d.completed || d.finished || d.done) {
+        ST.mode = 'normal';
+        await setupNormalMode();
+        return;
+      }
+    }
+  }
+
+  currentFlow=flows[0];
+  document.getElementById('chatInput').placeholder=currentFlow.questions[0].hint;
+  botSay(currentFlow.questions[0].ask,null,200);
+  updateProgress();
+}
+
+function renderChat(){
+  const body=document.getElementById('chatBody');
+  body.innerHTML=ST.messages.map(m=>
+    m.role==='bot'?`<div class="msg-bot"><div class="bubble"><div class="label">🤖 ${m.label||'小容'}</div>${m.text}</div></div>`
+    :`<div class="msg-user"><div class="bubble">${m.text}</div></div>`
+  ).join('');
+  body.scrollTop=body.scrollHeight;
+}
+
+function botSay(text,label,delay){
+  const body=document.getElementById('chatBody');
+  const typing=document.createElement('div');
+  typing.className='msg-bot';
+  typing.innerHTML=`<div class="bubble" style="min-width:60px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)">正在输入...<div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  body.appendChild(typing);body.scrollTop=body.scrollHeight;
+  setTimeout(()=>{
+    typing.remove();ST.messages.push({role:'bot',text,label});renderChat();
+    if(ST.mode==='onboard'){ST.step++;updateProgress();if(ST.step>=currentFlow.questions.length)completeOnboarding();}
+  },delay||1400);
+}
+
+function updateProgress(){
+  const total=currentFlow.questions.length,s=ST.step;
+  document.getElementById('progLabel').textContent=`诊断进度 ${s} / ${total}`;
+  document.getElementById('progFill').style.width=`${(s/total)*100}%`;
+  const items=document.querySelectorAll('#stepSummary li');
+  items.forEach((li,i)=>{li.className='';if(i<s)li.className='done';else if(i===s&&s<total)li.className='active';});
+}
+
+async function completeOnboarding(){
+  ST.mode='done';ST.mastery=masteryByRound[Math.min(ST.round,masteryByRound.length-1)];
+  const r=ST.round;
+  document.getElementById('dxProgress').style.opacity='0';
+  document.getElementById('dxSummary').classList.add('show');
+  document.getElementById('nextStepBar').classList.add('show');
+
+  // Trigger onboarding generation if logged in
+  const sysUserId = Auth.getSysUserId();
+  const isDemo = Auth.isDemoMode() || !sysUserId;
+  if (!isDemo && sysUserId) {
+    await api('POST', '/api/onboarding/generate/' + sysUserId, null, { silent: true });
+  }
+
+  if(r===0){
+    document.getElementById('summaryTitle').textContent='✅ 诊断完成';
+    document.getElementById('summaryDesc').textContent='基础部分掌握不错，指针和数据结构是重点提升方向。';
+    document.getElementById('summaryTags').innerHTML='<span class="tag tag-strong">✅ 数据类型</span><span class="tag tag-strong">✅ 分支循环</span><span class="tag tag-weak">⚠ 指针</span><span class="tag tag-strong">✅ 函数</span><span class="tag tag-weak">⚠ 动态内存</span><span class="tag tag-new">🆕 结构体</span>';
+  }else{
+    buildRoundSummary(r);
+    document.getElementById('summaryTitle').textContent='✅ 考核完成';
+    document.getElementById('summaryDesc').textContent='你的 C 语言能力在持续提升！';
+  }
+  document.getElementById('nextStepHint').textContent=r===0?'预计 5 分钟学完指针入门，再回来考核':'进入学习空间继续学习，完成后来 AI 导学进入下一轮';
+  document.getElementById('badgeText').textContent='诊断完成';
+}
+
+function buildRoundSummary(r){
+  const m=masteryByRound[r];
+  const names={data_types:'数据类型',branches:'分支循环',arrays:'数组函数',pointers:'指针',structs:'结构体',files:'文件操作'};
+  let html='';
+  for(const[k,v]of Object.entries(m)){
+    if(v===0)continue;
+    if(v>=70)html+=`<span class="tag tag-strong">✅ ${names[k]}</span>`;
+    else if(v>=30)html+=`<span class="tag tag-weak">⚠ ${names[k]}</span>`;
+    else html+=`<span class="tag tag-new">🆕 ${names[k]}</span>`;
+  }
+  document.getElementById('summaryTags').innerHTML=html;
+}
+
+let _chatStreaming = false; // guard against concurrent sends
+
+function sendMessage(){
+  if (_chatStreaming) return;
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();if(!text)return;
+  input.value='';ST.messages.push({role:'user',text});renderChat();
+
+  const sysUserId = Auth.getSysUserId();
+  const isDemo = Auth.isDemoMode() || !sysUserId;
+
+  // Determine which endpoint to use
+  const isOnboarding = ST.mode === 'onboard' && ST.step < currentFlow.questions.length;
+  const chatPath = isOnboarding ? '/api/onboarding/chat' : '/api/chat/send';
+  const chatBody = isOnboarding ? { sysUserId, message: text } : { sysUserId, message: text };
+
+  if (isDemo) {
+    // Demo mode: use original mock flow
+    if(ST.mode==='onboard'&&ST.step<currentFlow.questions.length-1){
+      botSay(currentFlow.questions[ST.step+1].ask,null,1000);
+    }else if(ST.mode==='onboard'&&ST.step===currentFlow.questions.length-1){
+      botSay('好的！信息收集完毕——','分析中',800);
+      setTimeout(()=>completeOnboarding(),1200);
+    }else{botSay('收到！还有什么 C 语言问题随时问我～ 😊',null,600);}
+    if(ST.mode==='onboard'&&ST.step<currentFlow.questions.length){
+      input.placeholder=currentFlow.questions[ST.step]?.hint||'输入你的回答...';
+    }else{input.placeholder='输入你的 C 语言问题...';}
+    return;
+  }
+
+  // Real API mode: SSE streaming
+  _chatStreaming = true;
+  const body=document.getElementById('chatBody');
+  const streamingMsg=document.createElement('div');
+  streamingMsg.className='msg-bot';
+  streamingMsg.innerHTML=`<div class="bubble" style="min-width:60px"><div class="label">🤖 小容</div><span id="streamContent"></span><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  body.appendChild(streamingMsg);body.scrollTop=body.scrollHeight;
+  let fullText = '';
+
+  apiSSE(chatPath, chatBody,
+    (chunk) => {
+      // Accumulate text from SSE chunks
+      const content = chunk.content || chunk.text || chunk.message || (typeof chunk === 'string' ? chunk : '');
+      if (content) fullText += content;
+      const contentEl = streamingMsg.querySelector('#streamContent');
+      if (contentEl) contentEl.textContent = fullText;
+      body.scrollTop = body.scrollHeight;
+    },
+    () => {
+      // Stream done
+      _chatStreaming = false;
+      // Remove typing dots
+      const dots = streamingMsg.querySelector('.typing-dots');
+      if (dots) dots.remove();
+      // Fix the id (avoid duplicate IDs)
+      const contentEl = streamingMsg.querySelector('#streamContent');
+      if (contentEl) contentEl.removeAttribute('id');
+      ST.messages.push({role:'bot', text: fullText, label: '小容'});
+      if (ST.mode === 'onboard') {
+        ST.step++;
+        updateProgress();
+        if (ST.step >= currentFlow.questions.length) completeOnboarding();
+      }
+      // After onboarding chat, trigger profile extraction
+      if (isOnboarding && sysUserId) {
+        api('GET', '/api/onboarding/dimensions/' + sysUserId, null, { silent: true });
+      }
+    }
+  );
+
+  // Update placeholder
+  if(ST.mode==='onboard'&&ST.step<currentFlow.questions.length){
+    input.placeholder=currentFlow.questions[ST.step]?.hint||'输入你的回答...';
+  }else{input.placeholder='输入你的 C 语言问题...';}
+}
+
+/* ═══ LEARNING SPACE ═══ */
+async function enterLearningSpace(){
+  document.getElementById('page-daoxue').classList.remove('active');
+  document.getElementById('page-learn').classList.add('active');
+  ST.sections={profile:false,path:false,practice:false,resources:false};
+  // Reset per-session progress counters
+  ST._prAnswered=0; ST._prCorrect=0; ST._resClicked=0; ST._sessionStart=Date.now();
+  localStorage.setItem('cryd_round',String(ST.round));
+  const r=Math.min(ST.round,radarByRound.length-1);
+  await renderStudentCard(r);
+  await renderRadarChart(r);
+  await renderGameMap(r);
+  renderPracticeCards(practiceByRound[r]);
+  await renderEval(evalByRound[r]);
+  allResources=resourcesByRound[r];
+  await _renderResourceCards(allResources);
+  const statWrap=document.getElementById('statWrap');
+  if(statWrap){
+    const s=statByRound[r];
+    statWrap.querySelectorAll('.stat-box .val')[0]?.setAttribute('data-count',String(s.q));
+    statWrap.querySelectorAll('.stat-box .val')[1]?.setAttribute('data-count',String(s.rate));
+    statWrap.querySelectorAll('.stat-box .val')[2]?.setAttribute('data-count',String(s.weak));
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+  updateFloatProgress();
+  trackSectionEngagement();
+}
+
+function trackSectionEngagement(){
+  // Show section TOC
+  const toc=document.getElementById('sectionToc');
+  toc.classList.add('visible');
+  // TOC click handlers
+  toc.querySelectorAll('.toc-dot').forEach(dot=>{
+    dot.addEventListener('click',()=>{
+      const target=document.getElementById(dot.dataset.target);
+      if(!target)return;
+      const navH=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'))||58;
+      const y=target.getBoundingClientRect().top+window.scrollY-navH-12;
+      window.scrollTo({top:y,behavior:'smooth'});
+      setActiveToc(dot.dataset.target);
+    });
+  });
+  // Hook section click events to global engageSection
+  ['profile','path','practice','evaluation','resources'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('click',()=>engageSection(id));
+  });
+}
+
+/* ═══ RENDER: 学习空间 ═══ */
+
+// 学生信息卡
+async function renderStudentCard(r){
+  const sysUserId = Auth.getSysUserId();
+  const isDemo = Auth.isDemoMode() || !sysUserId;
+  let profile = studentProfile; // fallback
+
+  if (!isDemo) {
+    // Try fetching profile from API
+    const res = await api('GET', '/api/profile/' + sysUserId, null, { silent: true });
+    if (res) {
+      const d = res.data || res;
+      profile = {
+        name: d.name || d.username || studentProfile.name,
+        major: d.className || d.department || studentProfile.major,
+        grade: d.grade || d.level || studentProfile.grade,
+        levelIdx: d.levelIdx || d.thinkingLevel || studentProfile.levelIdx,
+        cognitiveStyle: d.cognitiveStyle || studentProfile.cognitiveStyle,
+        learningStrategy: d.learningStrategy || studentProfile.learningStrategy,
+        thinkingLevel: d.thinkingLevel || studentProfile.thinkingLevel,
+        engagement: d.engagement || studentProfile.engagement,
+      };
+    }
+  }
+
+  const levels=['⚡ 初级探索者','🔥 进阶挑战者','👑 高手程序员'];
+  document.getElementById('scName').textContent=profile.name;
+  document.getElementById('scMeta').textContent=profile.major+' · '+profile.grade;
+  document.getElementById('scGrade').innerHTML=`<span class="g-icon">${['⚡','🔥','👑'][profile.levelIdx-1]||'⚡'}</span><span>${levels[profile.levelIdx-1]||levels[0]}</span>`;
+  const summaries=[
+    'C语言基础中等偏上，指针和数据结构是重点提升方向。偏好视频+实战练习，目标是通过期末考试。建议从指针入门开始，每天30分钟。',
+    '指针掌握有进步，结构体还需加强。继续保持实战风格！',
+    '六维知识趋于均衡，可以挑战更复杂的项目了。',
+  ];
+  document.getElementById('scSummary').textContent=summaries[Math.min(r,summaries.length-1)];
+}
+
+// 六维雷达图 (Canvas)
+async function renderRadarChart(r){
+  const sysUserId = Auth.getSysUserId();
+  const isDemo = Auth.isDemoMode() || !sysUserId;
+  let data=radarByRound[Math.min(r,radarByRound.length-1)]; // fallback
+
+  if (!isDemo) {
+    const res = await api('GET', '/api/profile/' + sysUserId, null, { silent: true });
+    if (res) {
+      const d = res.data || res;
+      // Try to extract radar dimensions from API response
+      if (d.dimensions || d.scores || d.radar) {
+        const dims = d.dimensions || d.scores || d.radar;
+        // Fill in whatever keys we can, default 0 for missing
+        const newData = {};
+        radarDims.forEach(dim => {
+          newData[dim.key] = (dims[dim.key] != null) ? dims[dim.key] : (data[dim.key] || 0);
+        });
+        data = newData;
+      }
+    }
+  }
+  const canvas=document.getElementById('radarCanvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width, h=canvas.height;
+  const cx=w/2, cy=h/2, radius=110;
+  const n=radarDims.length;
+  const angleStep=(Math.PI*2)/n;
+  ctx.clearRect(0,0,w,h);
+
+  // Grid rings
+  for(let i=1;i<=4;i++){
+    const r=radius*i/4;
+    ctx.beginPath();
+    for(let j=0;j<=n;j++){
+      const a=j*angleStep-Math.PI/2;
+      const x=cx+r*Math.cos(a), y=cy+r*Math.sin(a);
+      j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle='rgba(52,36,24,.08)';
+    ctx.lineWidth=1;
+    ctx.stroke();
+  }
+  // Axes
+  for(let i=0;i<n;i++){
+    const a=i*angleStep-Math.PI/2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+radius*Math.cos(a),cy+radius*Math.sin(a));
+    ctx.strokeStyle='rgba(52,36,24,.05)';
+    ctx.stroke();
+  }
+  // Data polygon
+  const points=[];
+  for(let i=0;i<n;i++){
+    const val=data[radarDims[i].key]||0;
+    const r=(val/100)*radius;
+    const a=i*angleStep-Math.PI/2;
+    points.push({x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)});
+  }
+  ctx.beginPath();
+  points.forEach((p,i)=>{i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});
+  ctx.closePath();
+  ctx.fillStyle='rgba(177,83,17,.12)';
+  ctx.fill();
+  ctx.strokeStyle='rgba(177,83,17,.5)';
+  ctx.lineWidth=2;
+  ctx.stroke();
+  // Points
+  points.forEach(p=>{
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,4,0,Math.PI*2);
+    ctx.fillStyle='#b15311';
+    ctx.fill();
+    ctx.strokeStyle='#fff';
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+  });
+  // Labels
+  ctx.fillStyle='var(--muted)';
+  ctx.font='11px "Inter","SF Pro",-apple-system,sans-serif';
+  ctx.textAlign='center';
+  for(let i=0;i<n;i++){
+    const val=data[radarDims[i].key]||0;
+    const r=radius+22;
+    const a=i*angleStep-Math.PI/2;
+    ctx.fillStyle=n?'rgba(255,255,255,.7)':'#6b7280';
+    ctx.fillText(radarDims[i].name,cx+r*Math.cos(a),cy+r*Math.sin(a)+4);
+    ctx.fillStyle='#b15311';
+    ctx.font='bold 10px "Inter","SF Pro",-apple-system,sans-serif';
+    ctx.fillText(val+'%',cx+(r-14)*Math.cos(a),cy+(r-14)*Math.sin(a)+3);
+    ctx.font='11px "Inter","SF Pro",-apple-system,sans-serif';
+  }
+  // Legend
+  const legend=document.getElementById('radarLegend');
+  if(legend){
+    legend.innerHTML=radarDims.map(d=>`<div class="legend-item"><span class="legend-dot" style="background:${d.color}"></span>${d.name}<span class="legend-val" style="color:${d.color}">${data[d.key]||0}%</span></div>`).join('');
+  }
+}
+
+// 六维画像卡片组
+function renderDimCards(r){
+  const p=studentProfile;
+  const data=radarByRound[Math.min(r,radarByRound.length-1)];
+  const dims=[
+    {icon:'🧠',title:'认知风格',val:`视觉型 ${p.cognitiveStyle.visual}% · 实践型 ${p.cognitiveStyle.practical}%<br><span style="font-size:11px;color:var(--accent)">你是 <b>视觉+实践型</b> 学习者</span>`},
+    {icon:'🌱',title:'成长轨迹',val:`<div class="growth-track"><div class="gt-round"><span class="gt-num">R1</span><span class="gt-desc">语法入门<br>${radarByRound[0].grammar}分</span></div><div class="gt-arrow">→</div><div class="gt-round"><span class="gt-num">R2</span><span class="gt-desc">指针进阶<br>${radarByRound[1].grammar}分</span></div><div class="gt-arrow">→</div><div class="gt-round active"><span class="gt-num">R3</span><span class="gt-desc">数据结构<br>${radarByRound[2].grammar}分</span></div></div><p style="font-size:11px;color:var(--muted);margin-top:10px">📈 三轮语法掌握力：85→88→92</p>`},
+    {icon:'🎯',title:'学习策略',val:`顺序型 ${p.learningStrategy.sequential}% · 跳跃型 ${p.learningStrategy.jump}%<br><span style="font-size:11px;color:var(--accent)">倾向于 <b>稳扎稳打</b> 按顺序学习</span>`},
+    {icon:'💡',title:'思维能力',val:(()=>{
+      const lv=p.thinkingLevel;
+      return `<div class="thinking-badge lv-${lv}">${['🧱 入门','🔧 进阶','🚀 高手'][lv-1]}</div><p style="font-size:12px;color:var(--muted);margin-top:6px">${['逻辑推理基础扎实，抽象概念还需积累','指针和内存理解加深，可以挑战算法题','思维能力全面，可以参与竞赛级别训练'][lv-1]}</p>`;
+    })()},
+    {icon:'📈',title:'学习投入',val:(()=>{
+      const e=p.engagement;
+      return `<div class="engagement-stats"><div class="eg-stat"><div class="eg-val">${e.days}</div><div class="eg-lbl">活跃天数</div></div><div class="eg-stat"><div class="eg-val">${e.avgMin}min</div><div class="eg-lbl">日均时长</div></div><div class="eg-stat"><div class="eg-val">${e.streak}天</div><div class="eg-lbl">最长连续</div></div></div><div class="eg-bar-wrap"><div class="eg-label"><span>主动探索率</span><span>${e.exploreRate}%</span></div><div class="eg-track"><div class="eg-fill" style="width:${e.exploreRate}%"></div></div></div><div class="eg-bar-wrap"><div class="eg-label"><span>刷题专注度</span><span>${e.focusRate}%</span></div><div class="eg-track"><div class="eg-fill" style="width:${e.focusRate}%"></div></div></div>`;
+    })()},
+    {icon:'📊',title:'学习统计',val:`<div class="stats-row" id="statWrap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:.5rem"><div class="stat-box"><div class="val" data-count="0" id="statQ">${statByRound[r]?statByRound[r].q:0}</div><div class="lbl">总题数</div></div><div class="stat-box"><div class="val" data-count="0" id="statRate">${statByRound[r]?statByRound[r].rate:0}%</div><div class="lbl">正确率</div></div><div class="stat-box"><div class="val" data-count="0" id="statWeak">${statByRound[r]?statByRound[r].weak:0}</div><div class="lbl">薄弱项</div></div></div>`},
+  ];
+  const grid=document.getElementById('dimGrid');
+  if(grid){
+    grid.innerHTML=dims.map(d=>`<div class="dim-card"><div class="dim-icon">${d.icon}</div><div class="dim-title">${d.title}</div><div class="dim-value">${d.val}</div></div>`).join('');
+  }
+}
+
+// 游戏地图学习路径
+async function renderGameMap(r){
+  const sysUserId = Auth.getSysUserId();
+  const studentId = Auth.getStudentId();
+  const isDemo = Auth.isDemoMode() || !sysUserId;
+  let mastery = masteryByRound[Math.min(r,masteryByRound.length-1)]; // fallback
+  let pathNodes = null; // if API returns path nodes
+
+  if (!isDemo && studentId) {
+    const res = await api('GET', '/api/learning-path/student/' + studentId, null, { silent: true });
+    if (res) {
+      const d = res.data || res;
+      if (d.nodes || d.pathNodes) {
+        pathNodes = d.nodes || d.pathNodes;
+      }
+      // Also try to update mastery from path data
+      if (d.mastery) mastery = { ...mastery, ...d.mastery };
+    }
+  }
+
+  // If API returned path nodes, use them; otherwise use the original mock-based rendering
+  if (pathNodes && pathNodes.length > 0) {
+    const stars=n=>{let s='';for(let i=0;i<5;i++)s+=`<span${i<Math.round(n/20)?' class="on"':''}>★</span>`;return s;};
+    let html='<div class="map-row">';
+    const halfLen = Math.ceil(pathNodes.length / 2);
+    pathNodes.slice(0, halfLen).forEach((nd, i) => {
+      const status = nd.status || (nd.completed ? 'done' : nd.current ? 'current' : 'next');
+      html+=`<div class="map-node mn-${status}" data-node="${nd.id||i}" onclick="scrollToSection('path')">
+        <div class="mn-circle">${nd.icon||'📦'}</div>
+        <div class="mn-stars">${stars(nd.progress||0)}</div>
+        <div class="mn-label">${nd.name||nd.title||'环节'+(i+1)}</div>
+        <div class="mn-pct">${status==='locked'?'🔒 未解锁':(nd.progress||0)+'%'}</div>
+      </div>`;
+      if(i<halfLen-1) html+=`<div class="map-connector mc-${status==='locked'?'locked':status==='done'?'done':'active'}"></div>`;
+    });
+    html+='</div><div class="map-branch"><div class="map-branch-down"></div></div><div class="map-row">';
+    pathNodes.slice(halfLen).forEach((nd, i) => {
+      const status = nd.status || (nd.completed ? 'done' : nd.current ? 'current' : 'next');
+      html+=`<div class="map-node mn-${status}" data-node="${nd.id||halfLen+i}" onclick="scrollToSection('path')">
+        <div class="mn-circle">${nd.icon||'📦'}</div>
+        <div class="mn-stars">${stars(nd.progress||0)}</div>
+        <div class="mn-label">${nd.name||nd.title||'环节'+(halfLen+i+1)}</div>
+        <div class="mn-pct">${status==='locked'?'🔒 未解锁':(nd.progress||0)+'%'}</div>
+      </div>`;
+      if(i<pathNodes.slice(halfLen).length-1) html+=`<div class="map-connector mc-${status==='locked'?'locked':status==='done'?'done':'active'}"></div>`;
+    });
+    html+='</div>';
+    document.getElementById('gameMap').innerHTML=html;
+    return;
+  }
+
+  // Original mock-based rendering
+  const mastery=masteryByRound[Math.min(r,masteryByRound.length-1)];
+  const radar=radarByRound[Math.min(r,radarByRound.length-1)];
+  const nodes=[
+    {id:'data_types',icon:'📦',name:'变量与类型',pct:mastery.data_types,status:mastery.data_types>=70?'done':r>=0?'current':'next'},
+    {id:'branches',icon:'🔀',name:'分支与循环',pct:mastery.branches,status:mastery.branches>=70?'done':r>=1?'current':'next'},
+    {id:'arrays',icon:'📊',name:'数组与函数',pct:mastery.arrays,status:mastery.arrays>=70?'done':r>=2?'current':'next'},
+    {id:'pointers',icon:'🎯',name:'指针与内存',pct:mastery.pointers,status:mastery.pointers>=70?'done':r>=0?'current':'locked'},
+    {id:'structs',icon:'🏗️',name:'结构体',pct:mastery.structs,status:mastery.structs>=70?'done':r>=1?'current':'locked'},
+    {id:'files',icon:'📁',name:'文件操作',pct:mastery.files,status:mastery.files>=70?'done':r>=2?'current':'locked'},
+  ];
+  const stars=n=>{let s='';for(let i=0;i<5;i++)s+=`<span${i<Math.round(n/20)?' class="on"':''}>★</span>`;return s;};
+  // Row 1: first 3 nodes
+  let html='<div class="map-row">';
+  nodes.slice(0,3).forEach((nd,i)=>{
+    html+=`<div class="map-node mn-${nd.status}" data-node="${nd.id}" onclick="scrollToSection('path')">
+      <div class="mn-circle">${nd.icon}</div>
+      <div class="mn-stars">${stars(nd.pct)}</div>
+      <div class="mn-label">${nd.name}</div>
+      <div class="mn-pct">${nd.status==='locked'?'🔒 未解锁':nd.pct+'%'}</div>
+    </div>`;
+    if(i<2) html+=`<div class="map-connector mc-${nd.status==='locked'?'locked':nd.status==='done'?'done':'active'}"></div>`;
+  });
+  html+='</div>';
+  // Branch down
+  html+='<div class="map-branch"><div class="map-branch-down"></div></div>';
+  // Row 2: last 3 nodes
+  html+='<div class="map-row">';
+  nodes.slice(3,6).forEach((nd,i)=>{
+    html+=`<div class="map-node mn-${nd.status}" data-node="${nd.id}" onclick="scrollToSection('path')">
+      <div class="mn-circle">${nd.icon}</div>
+      <div class="mn-stars">${stars(nd.pct)}</div>
+      <div class="mn-label">${nd.name}</div>
+      <div class="mn-pct">${nd.status==='locked'?'🔒 未解锁':nd.pct+'%'}</div>
+    </div>`;
+    if(i<2) html+=`<div class="map-connector mc-${nd.status==='locked'?'locked':nd.status==='done'?'done':'active'}"></div>`;
+  });
+  html+='</div>';
+  document.getElementById('gameMap').innerHTML=html;
+}
+
+// AI-driven 进度计算 (真实使用判定)
+function recalcProgress(){
+  // Weights: 诊断完成(15) + 画像查看(10) + 路径探索(10) + 刷题≥3(25) + 正确率≥60(10) + 资源浏览(15) + 考核完成(15)
+  let score=0;
+  const s=ST.sections;
+  // Completed diagnosis → 15
+  if(ST.round>0||(s.profile&&s.path&&s.practice&&s.resources)) score+=15;
+  // Profile viewed → 10
+  if(s.profile) score+=10;
+  // Path explored (clicked nodes) → 10
+  if(s.path) score+=10;
+  // Practice room answered ≥3 questions → 25
+  if(ST._prAnswered>=3) score+=25;
+  // Correct rate ≥60% → 10
+  if(ST._prAnswered>=3&&ST._prAnswered>0&&(ST._prCorrect/ST._prAnswered)>=.6) score+=10;
+  // Resources clicked ≥2 → 15
+  if(ST._resClicked>=2) score+=15;
+  // Round completed (all 4 sections engaged) → 15
+  if(s.profile&&s.path&&s.practice&&s.resources) score+=15;
+  ST._aiProgress=Math.min(100,score);
+  updateFloatProgress();
+}
+
+// Hook into answer flow for progress tracking
+function notifyAnswer(correct){
+  ST._prAnswered=(ST._prAnswered||0)+1;
+  if(correct) ST._prCorrect=(ST._prCorrect||0)+1;
+  recalcProgress();
+}
+
+function notifyResourceClick(){
+  ST._resClicked=(ST._resClicked||0)+1;
+  recalcProgress();
+}
+
+function scrollToSection(id){ engageSection(id); }
+
+function updateFloatProgress(){
+  const pct=ST._aiProgress||0;
+  const circ=131.95;
+  const fgCirc=document.getElementById('fgCirc');
+  if(fgCirc) fgCirc.style.strokeDashoffset=circ-(pct/100)*circ;
+  const fpLabel=document.getElementById('fpLabel');
+  if(fpLabel) fpLabel.textContent=pct+'%';
+  const el=document.getElementById('floatProgress');
+  if(el){
+    if(pct>=75) el.classList.add('ready');
+    else el.classList.remove('ready');
+    if(pct>0) el.style.display='';
+  }
+}
+
+// Global TOC state
+let _tocEl=null;
+function setActiveToc(id){
+  if(!_tocEl) _tocEl=document.getElementById('sectionToc');
+  if(_tocEl) _tocEl.querySelectorAll('.toc-dot').forEach(d=>d.classList.toggle('active',d.dataset.target===id));
+}
+function engageSection(id){
+  if(!ST.sections[id]){
+    ST.sections[id]=true;
+    recalcProgress();
+  }
+  setActiveToc(id);
+}
+
+function backToDaoxue(){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-daoxue').classList.add('active');
+  document.getElementById('floatProgress').style.display='none';
+  document.getElementById('sectionToc').classList.remove('visible');
+  window.scrollTo({top:0,behavior:'smooth'});
+  document.querySelectorAll('#navLinks a').forEach(x=>x.classList.remove('active'));
+  document.querySelector('#navLinks a[data-page="daoxue"]').classList.add('active');
+  const done=Object.values(ST.sections).filter(Boolean).length;
+  if(done>=4){
+    ST.round=Math.min(ST.round+1,flows.length-1);
+    localStorage.setItem('cryd_round',String(ST.round));
+    ST.mode='onboard';ST.step=0;ST.messages=[];
+    currentFlow=flows[ST.round];
+    document.getElementById('dxProgress').style.opacity='1';
+    document.getElementById('dxSummary').classList.remove('show');
+    document.getElementById('nextStepBar').classList.remove('show');
+    document.getElementById('dxTitle').innerHTML=`准备好了吗？<span>开始挑战</span> 🔥`;
+    document.getElementById('dxSub').textContent='难度升级！';
+    document.getElementById('progFill').style.width='0%';
+    document.getElementById('progLabel').textContent=`考核进度 0 / ${currentFlow.questions.length}`;
+    document.getElementById('stepSummary').innerHTML=currentFlow.questions.map((_,i)=>`<li${i===0?' class="active"':''}>环节 ${i+1}</li>`).join('');
+    document.getElementById('chatInput').placeholder=currentFlow.questions[0].hint;
+    botSay(currentFlow.questions[0].ask,null,500);
+    document.getElementById('badgeText').textContent='智能考核中';
+  }else{
+    ST.messages=[];ST.mode='normal';
+    botSay('回来了～ 还有一些章节没看完，要不要先回去转转？',null,400);
+    document.getElementById('chatInput').placeholder='输入你的 C 语言问题...';
+  }
+}
+
+function renderPracticeCards(items){
+  document.getElementById('practiceGrid').innerHTML=items.map(p=>`
+    <div class="practice-card"><span class="pc-diff">${p.d}</span><h3>${p.q}</h3><p class="pc-stat">${p.t.join(' · ')}</p></div>`).join('');
+}
+
+async function renderEval(e){
+  const sysUserId = Auth.getSysUserId();
+  const studentId = Auth.getStudentId();
+  const isDemo = Auth.isDemoMode() || !studentId;
+
+  // Try to fetch real evaluation data
+  if (!isDemo && studentId) {
+    const [weakRes, errorRes] = await Promise.all([
+      api('GET', '/api/evaluation/weakness/' + studentId, null, { silent: true }),
+      api('GET', '/api/evaluation/errors/student/' + studentId, null, { silent: true })
+    ]);
+    if (weakRes) {
+      const d = weakRes.data || weakRes;
+      if (d.weakPoints || d.weakTop3) {
+        const weak = d.weakPoints || d.weakTop3 || [];
+        if (weak.length > 0) {
+          e = { ...e, weakTop3: weak.map((w, i) => ({
+            kp: w.name || w.knowledgePoint || w.kp || '未知',
+            err: w.errorCount || w.err || w.count || 0,
+            rec: w.recommendation || w.rec || '复习相关知识点'
+          }))};
+        }
+      }
+      if (d.aiSummary || d.summary) {
+        e = { ...e, aiSummary: d.aiSummary || d.summary };
+      }
+    }
+    if (errorRes) {
+      const d = errorRes.data || errorRes;
+      if (d.errors || d.errorTypes) {
+        const errs = d.errors || d.errorTypes || [];
+        if (errs.length > 0) {
+          e = { ...e, errors: errs.map(er => ({
+            name: er.name || er.type || '其他',
+            pct: er.percentage || er.pct || er.ratio || 0
+          }))};
+        }
+      }
+    }
+  }
+
+  const evalSection=document.getElementById('evaluation');
+  if(!evalSection)return;
+  // 1. 阶段成绩趋势 (sparkline bar)
+  const maxScore=100;
+  const trendHTML=e.trend.map((t,i)=>`
+    <div class="trend-bar-col">
+      <div class="trend-bar" style="height:${(t.score/maxScore)*100}%;background:var(--accent);opacity:${0.5+0.25*i}"></div>
+      <span class="trend-label">${t.label}</span>
+      <span class="trend-score">${t.score}</span>
+    </div>`).join('');
+  // 2. 易错类型热力条
+  const errHTML=e.errors.map(err=>`
+    <div class="err-bar"><div class="err-label"><span>${err.name}</span><span class="err-tag">${err.pct}%</span></div><div class="err-track"><div class="err-fill ${err.pct>40?'hot':err.pct>25?'warm':'cool'}" style="width:${err.pct}%"></div></div></div>`).join('');
+  // 3. 薄弱知识点 Top3
+  const weakHTML=e.weakTop3.map((w,i)=>`
+    <div class="weak-card">
+      <span class="weak-rank">#${i+1}</span>
+      <div class="weak-info"><strong>${w.kp}</strong><span class="weak-err">${w.err}道错题</span></div>
+      <span class="weak-rec">📖 ${w.rec}</span>
+    </div>`).join('');
+  // 4. 本轮vs上轮对比
+  const upHTML=e.compare.up.map(u=>`<li class="cmp-up">↑ ${u}</li>`).join('');
+  const downHTML=e.compare.down.map(d=>`<li class="cmp-down">↓ ${d}</li>`).join('');
+
+  evalSection.innerHTML=`
+    <h2 class="section-title">📊 学习评估</h2>
+    <div class="eval-grid-full">
+      <div class="eval-mod mod-trend"><h3>📈 阶段成绩趋势</h3><div class="trend-chart">${trendHTML}</div></div>
+      <div class="eval-mod mod-errors"><h3>🔴 易错类型分布</h3>${errHTML}</div>
+      <div class="eval-mod mod-weak"><h3>⚠️ 薄弱知识点 Top3</h3>${weakHTML}</div>
+      <div class="eval-mod mod-compare"><h3>📊 本轮 vs 上轮</h3><div class="cmp-grid"><div class="cmp-col"><h4 style="color:var(--accent2)">进步项</h4><ul>${upHTML}</ul></div><div class="cmp-col"><h4 style="color:var(--accent4)">待改进</h4><ul>${downHTML}</ul></div></div></div>
+      <div class="eval-mod mod-ai"><h3>🧠 AI 诊断建议</h3><p>${e.aiSummary}</p></div>
+    </div>`;
+}
+
+async function _renderResourceCards(items){
+  const sysUserId = Auth.getSysUserId();
+  const studentId = Auth.getStudentId();
+  const isDemo = Auth.isDemoMode() || !studentId;
+
+  let apiResources = null;
+  if (!isDemo && studentId) {
+    const res = await api('GET', '/api/resources/student/' + studentId, null, { silent: true });
+    if (res) {
+      const d = res.data || res;
+      const list = d.resources || d.list || (Array.isArray(d) ? d : null);
+      if (list && list.length > 0) {
+        const typeMap = { 'doc':'doc', 'mindmap':'mindmap', 'exercise':'exercise', 'article':'article', 'code':'code',
+          '课程':'doc', '视频':'doc', '脑图':'mindmap', '练习':'exercise', '阅读':'article', '代码':'code' };
+        apiResources = list.map(r => ({
+          t: typeMap[r.type] || r.t || 'doc',
+          h: r.title || r.name || r.h || '未命名资源',
+          p: r.description || r.summary || r.p || '',
+          d: r.author || r.source || r.d || 'AI 生成',
+          author: r.author || r.source || 'AI 生成',
+          level: r.level || '通用',
+          tags: r.tags || r.topics || []
+        }));
+      }
+    }
+  }
+
+  const displayItems = apiResources || items;
+  allResources = displayItems;
+
+  const typeLabels={doc:'📖 课程讲解',mindmap:'🧠 思维导图',exercise:'📝 练习题',article:'📄 拓展阅读',code:'💻 代码示例'};
+  _renderResourceCardsDirect(displayItems, typeLabels);
+}
+
+// Direct render without API call (used by both _renderResourceCards and sort filter)
+function _renderResourceCardsDirect(displayItems, typeLabels){
+  if(!typeLabels) typeLabels={doc:'📖 课程讲解',mindmap:'🧠 思维导图',exercise:'📝 练习题',article:'📄 拓展阅读',code:'💻 代码示例'};
+  const grid=document.getElementById('resourceGrid');
+  grid.innerHTML=displayItems.map(r=>`
+    <div class="resource-card scroll-reveal" onclick="notifyResourceClick()">
+      <div class="rc-header"><span class="rc-type ${r.t}">${typeLabels[r.t]||r.t}</span><span class="rc-dur">${r.author}</span></div>
+      <h3>${r.h}</h3><p class="rc-desc">${r.p}</p>
+      <div class="rc-meta"><span>🏷️ ${r.d}</span><span class="rc-tag">${r.level}</span></div>
+      <div class="rc-tags">${(r.tags||[]).map(t=>`<span class="rc-tag">${t}</span>`).join('')}</div>
+    </div>`).join('');
+  setTimeout(()=>{
+    const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});},{threshold:.1});
+    grid.querySelectorAll('.scroll-reveal').forEach(el=>obs.observe(el));
+  },100);
+}
+
+// Generate resources via AI
+async function generateResources(){
+  const studentId = Auth.getStudentId();
+  const isDemo = Auth.isDemoMode() || !studentId;
+  const btn = document.getElementById('generateResBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 生成中...'; }
+
+  if (!isDemo && studentId) {
+    const res = await api('POST', '/api/resources/generate/' + studentId, null, { silent: true });
+    if (res) {
+      // Refresh resource list
+      const listRes = await api('GET', '/api/resources/student/' + studentId, null, { silent: true });
+      if (listRes) {
+        const d = listRes.data || listRes;
+        const list = d.resources || d.list || (Array.isArray(d) ? d : null);
+        if (list && list.length > 0) {
+          const typeMap = { 'doc':'doc', 'mindmap':'mindmap', 'exercise':'exercise', 'article':'article', 'code':'code' };
+          allResources = list.map(r => ({
+            t: typeMap[r.type] || r.t || 'doc',
+            h: r.title || r.name || r.h || '未命名资源',
+            p: r.description || r.summary || r.p || '',
+            d: r.author || r.source || r.d || 'AI 生成',
+            author: r.author || r.source || 'AI 生成',
+            level: r.level || '通用',
+            tags: r.tags || r.topics || []
+          }));
+          _renderResourceCardsDirect(allResources);
+        }
+      }
+    }
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = '✨ AI 生成资源'; }
+}
+
+/* ═══ RENDER: 刷题房独立页 ═══ */
+let prQuestions=[];
+let _realQuizSession = null; // track API quiz session
+async function enterPracticeRoom(){
+  const sysUserId = Auth.getSysUserId();
+  const studentId = Auth.getStudentId();
+  const isDemo = Auth.isDemoMode() || !studentId;
+  let realQuestions = null;
+
+  if (!isDemo && studentId) {
+    const res = await api('POST', '/api/practice/ai-quiz/' + studentId, null, { silent: true });
+    if (res && res.questions) {
+      realQuestions = res.questions.map((q, i) => ({
+        d: q.difficulty || '★★ 进阶',
+        n: '#' + (i+1),
+        q: q.q || q.question,
+        o: q.opts || q.options || [],
+        a: q.ans != null ? q.ans : (q.answer != null ? q.answer : 0),
+        t: q.tags || q.topics || ['综合'],
+        explanation: q.explanation || q.explain || ''
+      }));
+      _realQuizSession = res.sessionId || res.id || null;
+    }
+  }
+
+  if (realQuestions && realQuestions.length > 0) {
+    prQuestions = realQuestions;
+  } else {
+    const r=Math.min(ST.round,practiceByRound.length-1);
+    prQuestions=[...practiceByRound[r]];
+    // Add more demo questions
+    prQuestions.push(
+      {d:'★★ 进阶',n:'#7',q:'sizeof(char*) 在 64 位系统上通常是？',o:['A. 1','B. 4','C. 8','D. 16'],a:2,t:['指针','内存'],explanation:'在 64 位系统上所有指针大小均为 8 字节。'},
+      {d:'★★★ 挑战',n:'#8',q:'void *ptr 是什么？能直接解引用吗？',o:['A. 万能指针，可直接解引用','B. 万能指针，需先转换类型','C. 空指针，值为NULL','D. 无类型函数指针'],a:1,t:['指针','类型转换'],explanation:'void* 是通用指针不能直接解引用，需先 cast 为具体类型指针。'},
+      {d:'★ 基础',n:'#9',q:'if(a=5) 这个表达式在 C 中合法吗？',o:['A. 不合法，编译报错','B. 合法，总是为真','C. 合法，a 被赋值为 5 后判断','D. 合法但警告'],a:2,t:['基础','运算符'],explanation:'= 是赋值运算符，a=5 返回 5（非零即为 true）。通常用 -Wall 会警告。'}
+    );
+  }
+  // Load saved answers
+  const saved=localStorage.getItem('cryd_pr_answers');
+  if(saved) try{ST.prAnswers=JSON.parse(saved);}catch{}
+  renderPRSidebar();
+  renderPRKpTags();
+  updatePRStats();
+  selectPRQuestion(0);
+  updateFloatProgress();
+}
+
+function getFilteredQuestions(){
+  return prQuestions.filter(q=>{
+    if(ST.prFilters.diff&&!q.d.includes(ST.prFilters.diff))return false;
+    if(ST.prFilters.tag&&!q.t.includes(ST.prFilters.tag))return false;
+    return true;
+  });
+}
+
+function renderPRSidebar(){
+  const sidebar=document.getElementById('prSidebar');
+  const items=getFilteredQuestions();
+  const diffColors={'★ 基础':'var(--accent2)','★★ 进阶':'var(--accent3)','★★★ 挑战':'var(--accent4)'};
+  sidebar.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+      <h3 style="margin-bottom:0">📋 题号列表 (${items.length})</h3>
+      <button class="pr-filter-chip done-chip" data-diff="done" style="font-size:10px">✅ 已做</button>
+    </div>
+    <div class="pr-qlist">${items.map((q,i)=>{
+      const globalIdx = prQuestions.indexOf(q);
+      const done = ST.prAnswers[globalIdx]!==undefined;
+      return `<div class="pr-qitem${done?' done':''}" data-idx="${globalIdx}" onclick="selectPRQuestion(${globalIdx})">
+        <span class="q-num">${q.n}</span><span style="flex:1">${q.q.substring(0,20)}...</span>${done?`<span class="q-done-mark">✓</span>`:''}
+      </div>`;
+    }).join('')}</div>`;
+  // Highlight active
+  const active = sidebar.querySelector('.pr-qitem[data-idx="'+ST._prActiveIdx+'"]');
+  if(active) active.classList.add('active');
+}
+
+let prSelectedOption = null;
+
+function selectPRQuestion(idx){
+  ST._prActiveIdx = idx;
+  const q = prQuestions[idx];
+  prSelectedOption = null;
+  const main = document.getElementById('prMain');
+  const diffColors = {'★ 基础':'var(--accent2)','★★ 进阶':'var(--accent3)','★★★ 挑战':'var(--accent4)'};
+  const answered = ST.prAnswers[idx]!==undefined;
+  const userAns = ST.prAnswers[idx];
+  const correct = q.a;
+
+  main.innerHTML = `
+    <div class="pr-question">
+      <div class="pr-qmeta">
+        <span class="pr-qdiff" style="color:${diffColors[q.d]||'var(--muted)'}">${q.d}</span>
+        <span style="color:var(--muted);font-size:12px">${q.n}</span>
+        ${answered?`<span style="color:${userAns===correct?'var(--accent2)':'var(--accent4)'};font-size:12px">${userAns===correct?'✅ 正确':'❌ 错误'}</span>`:''}
+      </div>
+      <div class="pr-qtags">${q.t.map(t=>`<span class="pr-qtag">${t}</span>`).join('')}</div>
+      <div class="pr-qtitle">${q.q}</div>
+      <div class="pr-options">${q.o.map((o,i)=>{
+        let cls = '';
+        if (answered) {
+          if (i === correct) cls = 'correct';
+          else if (i === userAns && i !== correct) cls = 'wrong';
+        } else if (prSelectedOption === i) cls = 'chosen';
+        return `<div class="pr-opt ${cls}" data-opt="${i}" onclick="submitAnswer(${idx},${i})">${o}</div>`;
+      }).join('')}</div>
+      ${answered?'':`<div class="pr-actions"><button class="btn-solid" onclick="submitAnswer(${idx},${prSelectedOption!==null?prSelectedOption:'-1'})">提交答案</button></div>`}
+    </div>
+    <div class="pr-explanation${answered?' show':''}">
+      <h4>${answered?(userAns===correct?'✅ 正确！':'❌ 正确答案是：'+q.o[correct]):'💡 解析'}</h4>
+      <p>${q.explanation||'选对了吗？'+(userAns===correct?' 你已经掌握了这个知识点。':' 再看看解析，理解后再试一次。')}</p>
+    </div>
+    <div class="pr-nav-btns">
+      <button class="btn-ghost" onclick="navigatePRQuestion(-1)" ${idx===0?'disabled':''}>← 上一题</button>
+      <span style="color:var(--muted);font-size:13px;align-self:center">${idx+1} / ${prQuestions.length}</span>
+      <button class="btn-ghost" onclick="navigatePRQuestion(1)" ${idx===prQuestions.length-1?'disabled':''}>下一题 →</button>
+    </div>`;
+  renderPRSidebar();
+}
+
+async function submitAnswer(idx, optIdx) {
+  if (optIdx < 0) return;
+  const correct = prQuestions[idx].a === optIdx;
+  ST.prAnswers[idx] = optIdx;
+  localStorage.setItem('cryd_pr_answers', JSON.stringify(ST.prAnswers));
+  ST.sections.practice = true;
+  notifyAnswer(correct);
+
+  // Submit to API if logged in
+  const studentId = Auth.getStudentId();
+  const isDemo = Auth.isDemoMode() || !studentId;
+  if (!isDemo && studentId) {
+    await api('POST', '/api/practice/ai-quiz/' + studentId + '/submit', {
+      questionId: prQuestions[idx].id || idx,
+      answer: optIdx,
+      sessionId: _realQuizSession
+    }, { silent: true });
+  }
+
+  selectPRQuestion(idx);
+  updatePRStats();
+}
+
+function navigatePRQuestion(dir) {
+  const cur = ST._prActiveIdx || 0;
+  const next = cur + dir;
+  if (next >= 0 && next < prQuestions.length) selectPRQuestion(next);
+}
+
+function updatePRStats() {
+  const total = prQuestions.length;
+  const done = Object.keys(ST.prAnswers).length;
+  let correct = 0, wrong = 0;
+  Object.entries(ST.prAnswers).forEach(([k,v])=>{if(prQuestions[k]&&v===prQuestions[k].a)correct++;else if(prQuestions[k])wrong++;});
+  document.getElementById('prStatTotal').textContent = total;
+  document.getElementById('prStatDone').textContent = done;
+  document.getElementById('prStatCorrect').textContent = correct;
+  document.getElementById('prStatWrong').textContent = wrong;
+}
+
+function renderPRKpTags() {
+  const tags = [...new Set(prQuestions.flatMap(q=>q.t))];
+  document.getElementById('prKpTags').innerHTML = tags.map(t=>
+    `<span class="pr-kptag${ST.prFilters.tag===t?' active':''}" onclick="togglePRKpTag('${t}')">${t}</span>`
+  ).join('');
+}
+
+function togglePRKpTag(tag) {
+  ST.prFilters.tag = ST.prFilters.tag===tag?null:tag;
+  renderPRKpTags();
+  renderPRSidebar();
+  const items = getFilteredQuestions();
+  if (items.length>0) selectPRQuestion(prQuestions.indexOf(items[0]));
+}
+
+function resetPracticeRoom() {
+  ST.prAnswers = {};
+  localStorage.removeItem('cryd_pr_answers');
+  updatePRStats();
+  renderPRSidebar();
+  if (prQuestions.length>0) selectPRQuestion(0);
+}
+
+/* ═══ ANIMATIONS ═══ */
+function animateStats(){
+  document.querySelectorAll('.bar-fill[data-width]').forEach(el=>{
+    if(el.dataset.animated)return;el.dataset.animated='1';el.style.width='0%';
+    const o=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){el.style.width=el.dataset.width+'%';o.unobserve(el);}});},{threshold:.3});
+    o.observe(el);
+  });
+  document.querySelectorAll('[data-count]').forEach(el=>{
+    if(el.dataset.counted)return;el.dataset.counted='1';
+    const o=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){const target=parseInt(e.target.dataset.count)||0;let cur=0;const step=target/(1400/16);const t=setInterval(()=>{cur+=step;if(cur>=target){cur=target;clearInterval(t)}e.target.textContent=Math.floor(cur);},16);o.unobserve(el);}});},{threshold:.5});
+    o.observe(el);
+  });
+}
+</script>
+</body>
+</html>

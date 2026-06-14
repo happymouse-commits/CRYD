@@ -10,40 +10,47 @@
 
     <!-- Tab栏 -->
     <div class="tab-bar">
-      <button :class="['tab-btn', { active: activeTab === 'assignments' }]" @click="activeTab = 'assignments'">📝 教师作业</button>
+      <button :class="['tab-btn', { active: activeTab === 'ai-quiz' }]" @click="activeTab = 'ai-quiz'; loadAiQuiz()">🤖 AI出题</button>
       <button :class="['tab-btn', { active: activeTab === 'errors' }]" @click="activeTab = 'errors'; loadErrors()">❌ 错题回练</button>
       <button :class="['tab-btn', { active: activeTab === 'insights' }]" @click="activeTab = 'insights'; loadInsights()">🤖 AI错题解析</button>
     </div>
 
-    <!-- Tab 1: 教师作业 -->
-    <div v-if="activeTab === 'assignments'" class="tab-content">
-      <div v-if="assignmentsByCourse.length" class="course-groups">
-        <div v-for="group in assignmentsByCourse" :key="group.courseName" class="course-group">
-          <h3 class="course-name">📘 {{ group.courseName }}</h3>
-          <div class="chapter-cards">
-            <div v-for="item in group.chapters" :key="item.id"
-                 :class="['chapter-card', cardClass(item)]"
-                 @click="openAssignment(item)">
-              <div class="card-header">
-                <span class="chapter-order">第{{ item.orderNum || '?' }}章</span>
-                <span :class="['status-tag', item.status]">{{ statusLabel(item) }}</span>
-              </div>
-              <h4 class="chapter-name">{{ item.name }}</h4>
-              <p class="chapter-desc" v-if="item.description">{{ truncate(item.description, 30) }}</p>
-              <div class="card-footer">
-                <span>📝 {{ item.questionCount || 0 }}题</span>
-                <span v-if="item.score !== null && item.score !== undefined" class="score-text">
-                  得分: <strong>{{ item.score }}</strong>
-                </span>
-                <el-button :type="item.status === 'completed' ? 'default' : 'primary'" size="small">
-                  {{ item.status === 'completed' ? '查看详情' : item.status === 'pending' ? '开始答题' : '继续做题' }}
-                </el-button>
-              </div>
+    <!-- Tab 1: AI出题 -->
+    <div v-if="activeTab === 'ai-quiz'" class="tab-content">
+      <div v-if="!onboardingDone" class="quiz-locked">
+        <el-empty description="请先完成AI导学，我才能根据你的情况出题哦～">
+          <el-button type="primary" @click="$router.push('/student/chat')">去AI辅导</el-button>
+        </el-empty>
+      </div>
+      <div v-else>
+        <div style="text-align:right; margin-bottom:16px">
+          <el-button type="primary" @click="generateAiQuiz" :loading="generatingQuiz">
+            🤖 出一套题
+          </el-button>
+        </div>
+        <!-- AI生成的题目列表 -->
+        <div v-if="aiQuizQuestions.length" class="ai-quiz-list">
+          <div v-for="(q, idx) in aiQuizQuestions" :key="idx" class="quiz-question-card">
+            <div class="quiz-q-header">
+              <el-tag size="small" type="primary">第{{ idx + 1 }}题</el-tag>
+              <el-tag v-if="q.knowledgePoint" size="small" type="info">{{ q.knowledgePoint }}</el-tag>
+              <el-tag v-if="q.difficulty" size="small" :type="q.difficulty === 'easy' ? 'success' : q.difficulty === 'hard' ? 'danger' : 'warning'">{{ q.difficulty === 'easy' ? '简单' : q.difficulty === 'hard' ? '困难' : '中等' }}</el-tag>
             </div>
+            <p class="quiz-q-text">{{ q.content || q.q }}</p>
+            <el-radio-group v-if="q.options || q.opts" v-model="aiQuizAnswers[idx]" class="options-group">
+              <el-radio v-for="opt in (q.options || q.opts)" :key="opt.key || opt" :value="opt.key || opt" class="option-item">
+                {{ opt.value || opt }}
+              </el-radio>
+            </el-radio-group>
+          </div>
+          <div style="text-align:center; margin-top:20px">
+            <el-button type="primary" size="large" @click="submitAiQuiz" :loading="submittingAiQuiz">
+              提交答案
+            </el-button>
           </div>
         </div>
+        <el-empty v-else-if="!generatingQuiz" description="点击上方按钮，AI根据你的薄弱点出题" :image-size="80" />
       </div>
-      <el-empty v-else description="暂无作业，等待老师布置" />
     </div>
 
     <!-- Tab 2: 错题回练 -->
@@ -190,9 +197,14 @@ import api from '../../api'
 
 const store = useUserStore()
 
-const activeTab = ref('assignments')
+const activeTab = ref('ai-quiz')
 const summary = ref(null)
 const assignmentsByCourse = ref([])
+const onboardingDone = computed(() => store.onboardingDone)
+const aiQuizQuestions = ref([])
+const aiQuizAnswers = reactive({})
+const generatingQuiz = ref(false)
+const submittingAiQuiz = ref(false)
 const errors = ref([])
 const courses = ref([])
 const chapterNames = ref([])
@@ -231,21 +243,56 @@ function renderMarkdown(text) {
   return marked.parse(text)
 }
 
-async function loadAssignments() {
+async function loadAiQuiz() {
+  // 切换到AI出题tab时的初始化
+}
+
+async function generateAiQuiz() {
+  generatingQuiz.value = true
+  aiQuizQuestions.value = []
+  Object.keys(aiQuizAnswers).forEach(k => delete aiQuizAnswers[k])
   try {
-    const res = await api.get('/practice/assignments/' + store.id)
+    const res = await api.post('/practice/ai-quiz/' + store.id)
     const data = res.data || {}
-    summary.value = data.summary || null
-    const all = [...(data.pending || []), ...(data.completed || []), ...(data.graded || [])]
-    // 按课程分组
-    const groups = {}
-    for (const item of all) {
-      const cn = item.courseName || '未分类'
-      if (!groups[cn]) groups[cn] = []
-      groups[cn].push(item)
+    const questions = data.questions || []
+    if (questions.length) {
+      aiQuizQuestions.value = questions
+    } else {
+      ElMessage.info(data.message || '暂无题目，请先多和AI聊聊你的学习情况')
     }
-    assignmentsByCourse.value = Object.entries(groups).map(([courseName, chapters]) => ({ courseName, chapters }))
-  } catch (e) { console.error('加载作业失败', e) }
+  } catch (e) {
+    ElMessage.error('AI出题失败，请重试')
+  } finally {
+    generatingQuiz.value = false
+  }
+}
+
+async function submitAiQuiz() {
+  submittingAiQuiz.value = true
+  try {
+    const res = await api.post('/practice/ai-quiz/' + store.id + '/submit', {
+      answers: aiQuizAnswers
+    })
+    const data = res.data || {}
+    // 显示结果
+    if (data.score !== undefined) {
+      ElMessage.success(`得分：${data.score}分！正确 ${data.correctCount}/${data.totalCount} 题`)
+    }
+    if (data.errors && data.errors.length) {
+      // 有错题，刷新错题列表
+      await loadErrors()
+    }
+    aiQuizQuestions.value = []
+    Object.keys(aiQuizAnswers).forEach(k => delete aiQuizAnswers[k])
+  } catch (e) {
+    ElMessage.error('提交失败，请重试')
+  } finally {
+    submittingAiQuiz.value = false
+  }
+}
+
+async function loadAssignments() {
+  // 保留为空函数，教师作业已移除
 }
 
 async function loadErrors() {
@@ -363,7 +410,11 @@ async function refreshAll() {
   await Promise.all([loadAssignments(), loadErrors()])
 }
 
-onMounted(() => { loadAssignments() })
+onMounted(() => {
+  if (onboardingDone.value) {
+    loadErrors()
+  }
+})
 </script>
 
 <style scoped>

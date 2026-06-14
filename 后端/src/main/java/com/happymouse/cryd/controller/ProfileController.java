@@ -3,6 +3,7 @@ package com.happymouse.cryd.controller;
 import com.happymouse.cryd.common.Result;
 import com.happymouse.cryd.model.entity.Student;
 import com.happymouse.cryd.repository.StudentRepository;
+import com.happymouse.cryd.service.OnboardingService;
 import com.happymouse.cryd.service.spark.SparkClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,10 +19,20 @@ public class ProfileController {
 
     private final StudentRepository studentRepository;
     private final SparkClient sparkClient;
+    private final OnboardingService onboardingService;
 
-    public ProfileController(StudentRepository studentRepository, SparkClient sparkClient) {
+    public ProfileController(StudentRepository studentRepository, SparkClient sparkClient,
+                              OnboardingService onboardingService) {
         this.studentRepository = studentRepository;
         this.sparkClient = sparkClient;
+        this.onboardingService = onboardingService;
+    }
+
+    /** 监控：未完成AI导学画像数据不完整 */
+    private boolean isOnboardingDone(Long sysUserId) {
+        Student s = studentRepository.findByUsername("student_" + sysUserId).orElse(null);
+        if (s == null) return false;
+        return onboardingService.calcCompleteness(s) >= 80;
     }
 
     private Student findOrCreateStudent(Long sysUserId) {

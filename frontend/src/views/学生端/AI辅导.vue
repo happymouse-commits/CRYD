@@ -4,6 +4,13 @@
     <div class="chat-toolbar">
       <div class="toolbar-left">
         <span class="toolbar-title">AI 辅导</span>
+        <!-- 导学进度条 -->
+        <div v-if="!onboardingDone" class="onboarding-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: profileCompleteness + '%' }"></div>
+          </div>
+          <span class="progress-text">{{ profileCompleteness }}%</span>
+        </div>
       </div>
       <div class="toolbar-right">
         <el-button v-if="ttsPlaying" class="stop-tts-btn" @click="stopTts" size="small" text>
@@ -13,6 +20,15 @@
     </div>
 
     <div class="chat-messages" ref="msgBox">
+      <!-- 导学未完成提示横幅 -->
+      <div v-if="!onboardingDone && messages.length === 0" class="onboarding-banner">
+        <div class="banner-icon">👋</div>
+        <div class="banner-text">
+          <h3>欢迎来到 CRYD！</h3>
+          <p>先和AI聊几句，让我了解你的学习情况，这样我才能为你定制专属学习方案～</p>
+        </div>
+      </div>
+
       <div v-for="msg in messages" :key="msg.id" :class="['msg', msg.role === 'user' ? 'msg-user' : 'msg-ai']">
         <div class="msg-bubble">
           <div v-if="msg.agentName" class="agent-tag">{{ msg.agentName }}</div>
@@ -21,6 +37,12 @@
           </div>
           <div class="msg-text" v-html="renderMd(msg.typing ? msg.displayContent : msg.content)"></div>
           <span v-if="msg.typing" class="cursor">▌</span>
+          <!-- 答题选项（导学测评阶段） -->
+          <div v-if="msg.quizOptions && !msg.typing" class="quiz-options">
+            <button v-for="(opt, idx) in msg.quizOptions" :key="idx" class="quiz-opt-btn" @click="answerQuiz(opt)">
+              {{ opt }}
+            </button>
+          </div>
           <div class="msg-footer">
             <span class="msg-time">{{ formatTime(msg.createdAt) }}</span>
             <!-- AI消息播放按钮 -->
@@ -44,13 +66,20 @@
       </div>
     </div>
 
+    <!-- 导学完成通知 -->
+    <div v-if="showOnboardingDone" class="onboarding-done-banner">
+      <span>🎉 导学完成！所有功能已解锁，快去探索吧～</span>
+      <el-button type="primary" size="small" @click="goHome">回到首页</el-button>
+      <el-button size="small" @click="showOnboardingDone = false">继续聊天</el-button>
+    </div>
+
     <!-- 输入区域 -->
     <div class="chat-input-wrapper">
       <div class="chat-input-container">
         <div class="input-wrapper">
           <el-input
             v-model="input"
-            placeholder="发消息或输入/选择技能"
+            :placeholder="onboardingDone ? '发消息或输入/选择技能' : '回答问题，让我更了解你...'"
             @keyup.enter="send"
             :disabled="loading"
             class="chat-input"
@@ -102,12 +131,14 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '../../store/user'
 import { marked } from 'marked'
 import api from '../../api'
 import { ElMessage } from 'element-plus'
 import { Plus, Microphone, CircleClose, Picture, VideoPlay, VideoPause, CircleCloseFilled } from '@element-plus/icons-vue'
 
+const router = useRouter()
 const store = useUserStore()
 const messages = ref([])
 const input = ref('')
@@ -122,6 +153,12 @@ const imageInput = ref(null)
 let mediaRecorder = null
 let audioChunks = []
 
+// ========== 导学状态 ==========
+const onboardingDone = computed(() => store.onboardingDone)
+const profileCompleteness = ref(0)
+const currentPhase = ref('profile')  // profile → quiz → generate → done
+const showOnboardingDone = ref(false)
+
 // ========== TTS 朗读状态 ==========
 const ttsPlaying = ref(false)
 let currentAudio = null
@@ -131,12 +168,123 @@ const hasTyping = computed(() => messages.value.some(m => m.typing))
 // ========== 初始化 ==========
 onMounted(async () => {
   checkPermission()
-  try {
-    const res = await api.get('/chat/history/' + store.id)
-    messages.value = res.data || []
-    scrollToBottom()
-  } catch (e) {}
+
+  if (!onboardingDone.value) {
+    // 新用户：走导学流程
+    await startOnboarding()
+  } else {
+    // 老用户：加载聊天历史
+    try {
+      const res = await api.get('/chat/history/' + store.id)
+      messages.value = res.data || []
+      scrollToBottom()
+    } catch (e) {}
+  }
 })
+
+// ========== 导学流程 ==========
+async function startOnboarding() {
+  try {
+    const res = await api.get('/onboarding/status/' + store.id)
+    const data = res.data || {}
+    profileCompleteness.value = data.completeness || 0
+    currentPhase.value = data.phase || 'profile'
+
+    if (profileCompleteness.value >= 80) {
+      // 已经完成画像采集，直接进入正常聊天
+      store.setOnboardingDone(true)
+      onboardingDone.value = true
+      return
+    }
+
+    // 发送初始空消息，触发导学智能体打招呼+提问
+    await sendOnboardingMessage('')
+  } catch (e) {
+    // 降级：直接发普通欢迎消息
+    messages.value.push({
+      id: Date.now(), role: 'assistant', content: 'Hi！我是小容，你的AI学习助手～跟我聊聊，让我了解你的学习情况吧！',
+      agentName: '导学智能体', createdAt: new Date().toISOString()
+    })
+  }
+}
+
+async function sendOnboardingMessage(text) {
+  loading.value = true
+  try {
+    const res = await api.post('/onboarding/chat', {
+      studentId: store.id,
+      message: text,
+      phase: currentPhase.value
+    })
+    const data = res.data || {}
+
+    // 更新画像完整度
+    if (data.completeness !== undefined) {
+      profileCompleteness.value = data.completeness
+    }
+
+    // 处理阶段切换
+    if (data.phase) {
+      currentPhase.value = data.phase
+    }
+
+    // 添加AI消息
+    const aiMsg = {
+      id: Date.now() + 1, role: 'assistant',
+      content: data.message || '',
+      displayContent: '', agentName: data.agentName || '导学智能体',
+      createdAt: new Date().toISOString(), typing: false
+    }
+
+    // 测评阶段：解析选项
+    if (data.phase === 'quiz' && data.question) {
+      const q = data.question
+      aiMsg.content = data.message || `第${data.questionIndex}/${data.questionTotal}题：${q.q}`
+      if (q.opts && q.opts.length) {
+        aiMsg.quizOptions = q.opts
+      }
+    }
+
+    // 导学完成
+    if (data.phase === 'done' || data.phase === 'generate') {
+      handleOnboardingComplete(data)
+    }
+
+    messages.value.push(aiMsg)
+    await nextTick()
+    scrollToBottom()
+    if (aiMsg.content) typewriterEffect(aiMsg, aiMsg.content, 20)
+
+  } catch (e) {
+    console.error('导学消息失败', e)
+    ElMessage.error('发送失败，请重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+/** 答题快捷按钮 */
+function answerQuiz(option) {
+  // 提取选项字母（如 "A. xxx" → "A"）
+  const letter = option.trim().charAt(0)
+  input.value = letter
+  send()
+}
+
+/** 导学完成处理 */
+function handleOnboardingComplete(data) {
+  store.setOnboardingDone(true)
+  showOnboardingDone.value = true
+
+  // 如果后端已生成资源，显示摘要
+  if (data.resourcesGenerated > 0) {
+    ElMessage.success(`已为你生成 ${data.resourcesGenerated} 项个性化学习资源！`)
+  }
+}
+
+function goHome() {
+  router.push('/student/home')
+}
 
 // ========== TTS 相关 ==========
 function stopTts() {
@@ -148,7 +296,6 @@ function stopTts() {
 }
 
 async function playMessage(msg) {
-  // 如果正在播放，则停止
   if (msg._playing) {
     stopTts()
     msg._playing = false
@@ -191,13 +338,10 @@ async function speakText(text, msgRef) {
   }
 }
 
-// 监听打字机完成 → 自动朗读
 watch(
   () => messages.value.filter(m => m.typing).length,
   (typingCount, oldCount) => {
-    // 打字结束 → 自动朗读
     if (typingCount === 0 && oldCount > 0 && !ttsPlaying.value) {
-      // 找到刚完成的最后一条AI消息
       const lastAi = [...messages.value].reverse().find(m => m.role === 'assistant' && m.content && !m.typing)
       if (lastAi) {
         speakText(lastAi.content, lastAi)
@@ -209,8 +353,8 @@ watch(
 // ========== 语音输入（讯飞STT）—— 自适应采样率 PCM WAV ==========
 const TARGET_RATE = 16000
 let audioCtx = null
-let pcmBuffer = []       // Float32 chunks at native sample rate
-let nativeSampleRate = 0 // actual device sample rate
+let pcmBuffer = []
+let nativeSampleRate = 0
 
 async function checkPermission() {
   try {
@@ -232,11 +376,9 @@ async function startRecording() {
   nativeSampleRate = 0
 
   try {
-    // 不强制采样率，让浏览器选设备原生支持的
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     audioCtx = new AudioContext()
     nativeSampleRate = audioCtx.sampleRate
-    console.log('录音采样率:', nativeSampleRate, 'Hz')
 
     const source = audioCtx.createMediaStreamSource(stream)
     const processor = audioCtx.createScriptProcessor(4096, 1, 1)
@@ -266,28 +408,22 @@ function stopRecording() {
 
   try {
     processor.disconnect()
-    if (processor._stream) {
-      processor._stream.getTracks().forEach(t => t.stop())
-    }
+    if (processor._stream) processor._stream.getTracks().forEach(t => t.stop())
     if (audioCtx) { audioCtx.close(); audioCtx = null }
   } catch (e) {}
 
   if (pcmBuffer.length === 0) return
 
-  // 合并所有 PCM 块
   const totalLen = pcmBuffer.reduce((s, a) => s + a.length, 0)
   const merged = new Float32Array(totalLen)
   let off = 0
   for (const c of pcmBuffer) { merged.set(c, off); off += c.length }
 
-  // 如果原生采样率不是 16000，降采样
   let samples = merged
   if (nativeSampleRate !== TARGET_RATE) {
     samples = resample(merged, nativeSampleRate, TARGET_RATE)
-    console.log(`重采样: ${nativeSampleRate} -> ${TARGET_RATE} Hz, ${merged.length} -> ${samples.length} samples`)
   }
 
-  // Float32[-1,1] → Int16
   const int16 = new Int16Array(samples.length)
   for (let i = 0; i < samples.length; i++) {
     const s = Math.max(-1, Math.min(1, samples[i]))
@@ -298,7 +434,6 @@ function stopRecording() {
   sendVoiceToServer(new Blob([wav], { type: 'audio/wav' }))
 }
 
-/** 线性插值重采样 */
 function resample(data, fromRate, toRate) {
   const ratio = fromRate / toRate
   const newLen = Math.floor(data.length / ratio)
@@ -409,21 +544,26 @@ async function send() {
   scrollToBottom()
 
   try {
-    const res = await api.post('/chat/send', { studentId: store.id, message: text })
-    // 兼容两种返回格式：res.data.data.message 或 res.data.message
-    const payload = res.data?.data || res.data
-    const reply = payload?.message || ''
-    const agent = payload?.agentName || '辅导老师'
+    // 根据导学状态选择不同接口
+    if (!onboardingDone.value) {
+      await sendOnboardingMessage(text)
+    } else {
+      // 正常聊天
+      const res = await api.post('/chat/send', { studentId: store.id, message: text })
+      const payload = res.data?.data || res.data
+      const reply = payload?.message || ''
+      const agent = payload?.agentName || '辅导老师'
 
-    const aiMsg = {
-      id: Date.now() + 1, role: 'assistant', content: reply,
-      displayContent: '', agentName: agent,
-      createdAt: new Date().toISOString(), typing: false
+      const aiMsg = {
+        id: Date.now() + 1, role: 'assistant', content: reply,
+        displayContent: '', agentName: agent,
+        createdAt: new Date().toISOString(), typing: false
+      }
+      messages.value.push(aiMsg)
+      await nextTick()
+      scrollToBottom()
+      if (reply) typewriterEffect(aiMsg, reply, 20)
     }
-    messages.value.push(aiMsg)
-    await nextTick()
-    scrollToBottom()
-    if (reply) typewriterEffect(aiMsg, reply, 20)
   } catch (e) {
     console.error('发送失败', e)
     ElMessage.error('发送失败，请重试')
@@ -478,10 +618,56 @@ function typewriterEffect(msg, fullText, speed = 20) {
   padding: 8px 20px; background: var(--t-surface); border-bottom: 1px solid var(--t-wash);
   flex-shrink: 0;
 }
-.toolbar-left { display: flex; align-items: center; gap: 8px; }
+.toolbar-left { display: flex; align-items: center; gap: 12px; }
 .toolbar-title { font-size: 16px; font-weight: 600; color: var(--t-line); }
 .toolbar-right { display: flex; align-items: center; gap: 12px; }
 .stop-tts-btn { color: #a14a3d; }
+
+/* 导学进度条 */
+.onboarding-progress {
+  display: flex; align-items: center; gap: 8px;
+}
+.progress-bar {
+  width: 120px; height: 6px; background: var(--t-wash); border-radius: 3px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: var(--t-accent); border-radius: 3px; transition: width 0.3s ease;
+}
+.progress-text { font-size: 12px; color: var(--t-accent); font-weight: 600; }
+
+/* 导学欢迎横幅 */
+.onboarding-banner {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 20px; margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(177,83,17,0.06), rgba(177,83,17,0.02));
+  border-radius: 12px; border: 1px solid rgba(177,83,17,0.15);
+}
+.banner-icon { font-size: 32px; }
+.banner-text h3 { margin: 0 0 4px; font-size: 15px; color: var(--t-line); }
+.banner-text p { margin: 0; font-size: 13px; color: var(--t-line-dim); line-height: 1.5; }
+
+/* 导学完成横幅 */
+.onboarding-done-banner {
+  display: flex; align-items: center; gap: 12px; justify-content: center;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(52,211,153,0.1), rgba(52,211,153,0.04));
+  border-top: 1px solid rgba(52,211,153,0.2);
+  font-size: 14px; color: #059669; font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* 答题选项按钮 */
+.quiz-options {
+  display: flex; flex-direction: column; gap: 6px; margin-top: 8px;
+}
+.quiz-opt-btn {
+  padding: 8px 14px; text-align: left; border: 1px solid var(--t-wash);
+  border-radius: 8px; background: var(--t-surface); cursor: pointer;
+  font-size: 13px; color: var(--t-line); transition: all 0.2s;
+}
+.quiz-opt-btn:hover {
+  border-color: var(--t-accent); background: rgba(177,83,17,0.04); color: var(--t-accent);
+}
 
 .chat-messages { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 20px; background: var(--t-ground); min-height: 0; }
 .chat-messages::-webkit-scrollbar { display: none; }

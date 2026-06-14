@@ -45,8 +45,15 @@
     <!-- 主内容 -->
     <el-container class="main-area">
       <el-header class="topbar">
-        <div class="greeting">Hi，<em>{{ store.nickname || store.username }}同学</em> 👋 今天学得怎么样？</div>
-        <button class="exit-btn" @click="handleLogout">退出</button>
+        <div class="brand">
+          <span class="brand-dot"></span>
+          <span class="brand-name">从容应对</span>
+        </div>
+        <GooeyNav :items="navItems" />
+        <div class="user-area">
+          <span class="user-avatar">🧑</span>
+          <span class="user-name">{{ store.nickname || store.username }}</span>
+        </div>
       </el-header>
 
       <el-main class="content">
@@ -63,9 +70,16 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../../store/user'
+import GooeyNav from '../../components/GooeyNav.vue'
 
 const router = useRouter()
 const store = useUserStore()
+
+const navItems = [
+  { label: 'AI导学', href: '/student/chat' },
+  { label: '学习空间', href: '/student/home' },
+  { label: '刷题房', href: '/student/practice' }
+]
 
 function handleLogout() {
   store.logout()
@@ -178,16 +192,37 @@ function handleLogout() {
   height: 50px; padding: 0 22px;
   background: var(--t-surface);
   border-bottom: 1px solid var(--t-wash);
+  gap: 16px;
 }
-.greeting { font-size: 14px; font-weight: 600; color: var(--t-line); }
-.greeting em { font-style: normal; color: var(--t-accent); }
-.exit-btn {
-  background: transparent; color: var(--t-line-subtle);
-  border: 1px solid var(--t-wash); padding: 5px 14px;
-  border-radius: 10px; font-size: 12px; cursor: pointer;
-  transition: all 0.18s;
+.brand {
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
 }
-.exit-btn:hover { color: #c0392b; border-color: rgba(192,57,43,0.25); background: var(--t-surface-muted); }
+.brand-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #b15311;
+  box-shadow: 0 0 6px rgba(177,83,17,0.5);
+}
+.brand-name {
+  font-size: 16px; font-weight: 700;
+  color: var(--t-line); letter-spacing: 1px;
+}
+.user-area {
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.user-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--t-accent-soft);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+.user-name {
+  font-size: 13px; font-weight: 500;
+  color: var(--t-line-dim);
+}
 
 .content {
   padding: 16px 18px 18px 14px;

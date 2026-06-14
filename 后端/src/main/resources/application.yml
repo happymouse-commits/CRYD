@@ -67,7 +67,7 @@ mimo:
 llm:
   api:
     url: ${LLM_API_URL:https://api.deepseek.com/v1/chat/completions}
-    key: sk-37eab57deb084a09b4a3d8bb44fe7c6c
+    key: sk-0c28e23250ab4d4aaf7b553ed2c6ed1a
     model: ${LLM_API_MODEL:deepseek-chat}
 
 # ===== 多智能体配置 =====

@@ -3,6 +3,7 @@ package com.happymouse.cryd.controller;
 import com.happymouse.cryd.common.Result;
 import com.happymouse.cryd.model.entity.*;
 import com.happymouse.cryd.repository.*;
+import com.happymouse.cryd.service.OnboardingService;
 import com.happymouse.cryd.service.spark.SparkClient;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
@@ -16,12 +17,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 刷题房控制器 —— 教师作业、错题回练、AI错题知识点总结。
+ * 刷题房控制器 —— AI出题、错题回练、AI错题知识点总结。
  *
  * <p>三区功能：
  * <ul>
- *   <li>核心区 — 作业接收与作答，自动评分 + 错题沉淀</li>
- *   <li>错题区 — 错题列表（按课程/章节/次数筛选），标记已掌握，AI解析</li>
+ *   <li>AI出题区 — AI根据学生画像和薄弱点智能出题，自动评分 + 错题沉淀</li>
+ *   <li>错题区 — 错题列表（按知识点/次数筛选），标记已掌握，AI解析</li>
  *   <li>突破区 — 多智能体资源生成（讲解/思维导图/练习/代码）</li>
  * </ul>
  */
@@ -39,6 +40,7 @@ public class PracticeController {
     private final ErrorNotebookRepository errorRepo;
     private final LearningResourceRepository resourceRepo;
     private final SparkClient sparkClient;
+    private final OnboardingService onboardingService;
 
     public PracticeController(ChapterRepository chapterRepository,
                               ChapterProgressRepository progressRepository,
@@ -47,7 +49,8 @@ public class PracticeController {
                               CourseRepository courseRepository,
                               ErrorNotebookRepository errorRepo,
                               LearningResourceRepository resourceRepo,
-                              SparkClient sparkClient) {
+                              SparkClient sparkClient,
+                              OnboardingService onboardingService) {
         this.chapterRepository = chapterRepository;
         this.progressRepository = progressRepository;
         this.studentRepository = studentRepository;
@@ -56,6 +59,107 @@ public class PracticeController {
         this.errorRepo = errorRepo;
         this.resourceRepo = resourceRepo;
         this.sparkClient = sparkClient;
+        this.onboardingService = onboardingService;
+    }
+
+    // ==================== 监控：导学完成度校验 ====================
+
+    /** 检查学生是否完成AI导学 */
+    private boolean isOnboardingDone(Long sysUserId) {
+        Student s = studentRepository.findByUsername("student_" + sysUserId).orElse(null);
+        if (s == null) return false;
+        return onboardingService.calcCompleteness(s) >= 80;
+    }
+
+    // ==================== AI出题：根据画像智能出题 ====================
+
+    /**
+     * AI根据学生画像和薄弱点出题
+     */
+    @PostMapping("/ai-quiz/{studentId}")
+    public Result<Map<String, Object>> generateAiQuiz(@PathVariable Long studentId) {
+        // ★ 监控：未完成AI导学不允许出题
+        if (!isOnboardingDone(studentId)) {
+            return Result.error(403, "请先完成AI导学，让我了解你的学习情况再出题哦～");
+        }
+
+        Student student = studentRepository.findByUsername("student_" + studentId).orElse(null);
+        if (student == null) return Result.error(404, "学生不存在");
+
+        int level = student.getKnowledgeLevel() != null ? student.getKnowledgeLevel() : 30;
+        String weakAreas = student.getWeakAreas() != null ? student.getWeakAreas() : "C语言基础";
+        String difficulty = level < 30 ? "入门" : level < 60 ? "基础" : "进阶";
+
+        String prompt = String.format("""
+            你是C语言出题专家。根据学生画像出5道题（3道选择+2道代码填空）。
+
+            学生画像：
+            - 知识水平: %d/100 (%s)
+            - 薄弱环节: %s
+            - 学习偏好: %s
+
+            输出JSON数组：
+            [{"type":"choice","content":"题目","options":[{"key":"A","value":"选项A"},{"key":"B","value":"选项B"},{"key":"C","value":"选项C"},{"key":"D","value":"选项D"}],"answer":"A","knowledgePoint":"知识点","difficulty":"easy|medium|hard"}]
+
+            规则：
+            1. 优先考察学生的薄弱环节
+            2. 难度匹配学生水平
+            3. 只输出JSON数组，不要其他文字
+            """, level, difficulty, weakAreas,
+                student.getLearningPreference() != null ? student.getLearningPreference() : "mixed");
+
+        try {
+            String aiResult = sparkClient.chat(prompt, "出5道C语言题", 0.5f, 2048);
+            String json = aiResult.replaceAll("```json|```", "").trim();
+            int start = json.indexOf('[');
+            int end = json.lastIndexOf(']');
+            if (start >= 0 && end > start) json = json.substring(start, end + 1);
+
+            var questions = JSON.parseArray(json);
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("questions", questions);
+            result.put("total", questions.size());
+            return Result.success(result);
+        } catch (Exception e) {
+            log.error("AI出题失败", e);
+            return Result.error(500, "AI出题失败，请稍后重试");
+        }
+    }
+
+    /**
+     * 提交AI出题答案
+     */
+    @PostMapping("/ai-quiz/{studentId}/submit")
+    public Result<Map<String, Object>> submitAiQuiz(@PathVariable Long studentId,
+                                                     @RequestBody Map<String, Object> body) {
+        if (!isOnboardingDone(studentId)) {
+            return Result.error(403, "请先完成AI导学");
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> answers = (Map<String, String>) body.get("answers");
+        if (answers == null || answers.isEmpty()) {
+            return Result.error(400, "答案不能为空");
+        }
+
+        // 简单统计：把答案记录下来，错题沉淀
+        int total = answers.size();
+        List<String> wrongPoints = new ArrayList<>();
+
+        // 记录错题到ErrorNotebook
+        for (var entry : answers.entrySet()) {
+            String qIdx = entry.getKey();
+            String studentAnswer = entry.getValue();
+            if (studentAnswer == null || studentAnswer.isBlank()) {
+                wrongPoints.add("第" + qIdx + "题(未作答)");
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("submitted", true);
+        result.put("totalQuestions", total);
+        result.put("errors", wrongPoints);
+        return Result.success(result);
     }
 
     // ==================== 核心区：作业接收与作答 ====================

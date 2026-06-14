@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI导学 — 提取代码</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#ebe2d7; --border:rgba(52,36,24,.08); --text:#342618; --muted:#6a6054;
+  --accent:#b15311; --accent2:#4a7c4e; --accent3:#c97930; --accent4:#c0564a;
+  --nav-h:3.6rem; --radius:14px;
+  --font:'Manrope','HarmonyOS Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased;padding-top:var(--nav-h)}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:#c4b9a8;border-radius:3px}
+
+/* ── NAVBAR (保留，用于页面切换上下文) ── */
+.navbar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--nav-h);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2rem;padding:0 2.5rem;backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);background:rgba(235,226,215,.82);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.3px}
+.nav-logo .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.nav-links{display:flex;justify-content:center;gap:4px;list-style:none;padding:4px}
+.nav-links a{color:rgba(52,36,24,.6);text-decoration:none;font-size:13px;font-weight:500;letter-spacing:.4px;padding:8px 16px;border-radius:10px;transition:all .25s cubic-bezier(.16,1,.3,1);white-space:nowrap;border:1px solid transparent}
+.nav-links a:hover{color:#342618;background:rgba(52,36,24,.06);border-color:rgba(255,255,255,.1);transform:translateY(-1px)}
+.nav-links a.active{color:#342618;background:rgba(177,83,17,.1);border-color:rgba(177,83,17,.2);box-shadow:0 0 16px rgba(177,83,17,.06)}
+.nav-actions{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+
+/* ── BUTTONS ── */
+.btn-solid{position:relative;background:var(--accent);border:none;color:#342618;padding:7px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s;font-family:var(--font);box-shadow:0 0 0 0 rgba(177,83,17,.4)}
+.btn-solid:hover{transform:translateY(-2px);box-shadow:0 0 24px 4px rgba(177,83,17,.35),0 4px 12px rgba(0,0,0,.3)}
+.btn-solid:active{transform:translateY(0)}
+.btn-solid-lg{padding:12px 28px;font-size:15px}
+.btn-ghost{background:transparent;color:var(--accent);border:1px solid rgba(177,83,17,.25);padding:7px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s;font-family:var(--font)}
+
+/* ═══ AI导学页面样式 ═══ */
+#page-daoxue{min-height:100vh;padding-top:2rem}
+.dx-layout{max-width:1400px;margin:0 auto;padding:0 2.5rem 3rem;display:grid;grid-template-columns:1fr 580px;gap:3rem;align-items:start}
+.dx-left{padding-top:2rem}
+
+/* 左侧：标题+进度 */
+.dx-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px;margin-bottom:1.5rem;border:1px solid rgba(74,124,78,.25);color:var(--accent2);background:rgba(74,124,78,.06);transition:all .4s}
+.dx-badge .pulse{width:7px;height:7px;border-radius:50%;background:var(--accent2);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(74,124,78,.4)}50%{opacity:.6;box-shadow:0 0 0 6px rgba(74,124,78,0)}}
+.dx-left h1{font-size:clamp(2rem,4vw,2.6rem);font-weight:800;line-height:1.2;letter-spacing:-1px}
+.dx-left h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.dx-left .sub{color:var(--muted);font-size:15px;margin-top:1rem;max-width:420px}
+
+/* 进度条 */
+.dx-progress{margin-top:2rem;transition:opacity .3s}
+.dx-progress .prog-label{font-size:12px;color:var(--muted);letter-spacing:.5px;margin-bottom:8px}
+.prog-bar{height:4px;border-radius:2px;background:rgba(52,36,24,.08);overflow:hidden;max-width:320px}
+.prog-bar .fill{height:100%;border-radius:2px;background:var(--accent);transition:width .4s}
+.step-summary{margin-top:1rem;list-style:none}
+.step-summary li{font-size:13px;padding:4px 0;display:flex;align-items:center;gap:8px;transition:color .3s;color:var(--muted)}
+.step-summary li::before{content:'';width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.1)}
+.step-summary li.done{color:var(--accent2)}.step-summary li.done::before{background:var(--accent2)}
+.step-summary li.active{color:var(--text);font-weight:500}.step-summary li.active::before{background:var(--accent);box-shadow:0 0 6px rgba(177,83,17,.5)}
+
+/* 诊断完成摘要 */
+.dx-summary{display:none;text-align:center;background:rgba(244,239,231,.85);border:1px solid rgba(74,124,78,.15);border-radius:var(--radius);padding:28px 32px;margin-top:2rem;max-width:460px}
+.dx-summary.show{display:block}
+.dx-summary h3{font-size:18px;font-weight:700;color:var(--accent2)}
+.dx-summary .tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.tag-strong{border-color:rgba(74,124,78,.3)!important;color:var(--accent2)!important}
+.tag-weak{border-color:rgba(201,121,48,.3)!important;color:var(--accent3)!important}
+.tag-new{border-color:rgba(167,139,250,.3)!important;color:#a78bfa!important}
+.tag{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid}
+
+/* 下一步按钮区 */
+.next-step-bar{display:none;text-align:center;padding:1.5rem 0 2rem}
+.next-step-bar.show{display:block}
+
+/* ═══ 聊天卡片（核心） ═══ */
+.chat-card{background:rgba(244,239,231,.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;height:clamp(520px,70vh,680px);box-shadow:0 24px 80px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.03)}
+.chat-card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.chat-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;box-shadow:0 0 14px rgba(177,83,17,.3)}
+.chat-card-body{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+
+/* 消息气泡 */
+.msg-bot{display:flex;gap:10px;align-items:flex-start;max-width:88%}
+.msg-bot .bubble{background:rgba(52,36,24,.06);border-radius:0 14px 14px 14px;padding:12px 16px;font-size:14px;line-height:1.6}
+.msg-bot .bubble .label{color:var(--accent);font-weight:600;font-size:12px;margin-bottom:4px;letter-spacing:.5px}
+.msg-user{display:flex;justify-content:flex-end}
+.msg-user .bubble{background:var(--accent);border-radius:14px 0 14px 14px;padding:10px 16px;font-size:14px;max-width:70%}
+
+/* 输入区域 */
+.chat-card-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px}
+.chat-card-footer input{flex:1;background:rgba(52,36,24,.05);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;transition:border-color .2s}
+.chat-card-footer input:focus{border-color:var(--accent)}
+.chat-card-footer input::placeholder{color:#4a5568}
+.chat-card-footer button{background:var(--accent);border:none;border-radius:10px;padding:10px 16px;color:#342618;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--font);transition:all .3s}
+.chat-card-footer button:hover{box-shadow:0 0 20px 3px rgba(177,83,17,.35)}
+
+/* 打字动画 */
+.typing-dots{display:flex;gap:4px;padding:4px 0}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:typing 1.4s infinite}
+.typing-dots span:nth-child(2){animation-delay:.2s}.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes typing{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+
+@media (max-width:900px){
+  .dx-layout{grid-template-columns:1fr}
+  .nav-links a{font-size:11px;padding:6px 10px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAVBAR ═══ -->
+<nav class="navbar">
+  <div class="nav-logo"><span class="dot"></span>从容应对</div>
+  <ul class="nav-links">
+    <li><a href="#" class="active">AI导学</a></li>
+    <li><a href="#">学习空间</a></li>
+    <li><a href="#">刷题房</a></li>
+  </ul>
+  <div class="nav-actions">👤 张小泉</div>
+</nav>
+
+<!-- ═══ PAGE: AI导学 ═══ -->
+<div id="page-daoxue">
+<div class="dx-layout">
+  <!-- 左侧：标题 + 进度 + 摘要 -->
+  <div class="dx-left">
+    <div class="dx-badge" id="dxBadge"><span class="pulse"></span><span id="badgeText">新用户 · 智能诊断中</span></div>
+    <h1 id="dxTitle">Hi，我是<span>小容</span> 👋<br>帮你搞定C语言</h1>
+    <p class="sub" id="dxSub">通过AI对话了解你的C语言水平，自动生成个性化学习画像、路径和资源，持续追踪成长。</p>
+    <div class="dx-progress" id="dxProgress">
+      <div class="prog-label" id="progLabel">诊断进度 0 / 5</div>
+      <div class="prog-bar"><div class="fill" id="progFill" style="width:0%"></div></div>
+      <ul class="step-summary" id="stepSummary">
+        <li class="active">学习背景</li><li>C语言基础</li><li>指针理解</li><li>数据结构</li><li>学习目标</li>
+      </ul>
+    </div>
+    <!-- 诊断完成后的摘要卡片 -->
+    <div class="dx-summary" id="dxSummary">
+      <h3 id="summaryTitle">✅ 诊断完成</h3>
+      <p style="color:var(--muted);margin:8px 0;font-size:13px" id="summaryDesc"></p>
+      <div class="tags" id="summaryTags"></div>
+    </div>
+    <!-- 进入学习空间按钮 -->
+    <div class="next-step-bar" id="nextStepBar">
+      <button class="btn-solid btn-solid-lg" onclick="enterLearningSpace()">进入学习空间 →</button>
+      <p style="color:var(--muted);font-size:12px;margin-top:8px" id="nextStepHint"></p>
+    </div>
+  </div>
+
+  <!-- 右侧：聊天卡片 -->
+  <div>
+    <div class="chat-card">
+      <div class="chat-card-header">
+        <div class="chat-avatar">🤖</div>
+        <div>
+          <div style="font-weight:600;font-size:14px">小容 AI</div>
+          <div style="font-size:11px;color:var(--muted)">C语言学习助手 · 多智能体</div>
+        </div>
+      </div>
+      <div class="chat-card-body" id="chatBody"></div>
+      <div class="chat-card-footer">
+        <input id="chatInput" placeholder="输入你的回答..." autocomplete="off">
+        <button id="sendBtn">发送</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+/* ================================================================
+   AI 导学对话模块 — 完整提取代码
+   包含：API工具函数、登录覆盖、状态管理、聊天逻辑、SSE流式
+   ================================================================ */
+
+/* ═══ API 工具函数 ═══ */
+const API = '';
+function apiFetch(path, opts={}) {
+  const token = localStorage.getItem('cryd_token');
+  const headers = {'Content-Type':'application/json',...(opts.headers||{})};
+  if(token) headers['Authorization'] = 'Bearer '+token;
+  return fetch(API+path, {...opts, headers}).then(r=>{
+    if(r.status===403) { showOnboarding(); return {code:403}; }
+    return r.json();
+  });
+}
+function getUserId() { return localStorage.getItem('cryd_userId'); }
+function showOnboarding() {
+  localStorage.setItem('cryd_onboardingDone','false');
+  switchPage('daoxue');
+  ST.mode='onboard'; ST.step=0; ST.messages=[];
+  setupOnboardMode();
+}
+
+/* ═══ 诊断问题流（3轮×5题） ═══ */
+const flows = [
+  { questions:[
+    { ask:'同学你好！👋 我是小容。先简单了解一下——你之前学过 C 语言吗？大概到什么程度？', hint:'比如：学过一学期 / 自学过一点 / 完全零基础...' },
+    { ask:'基础部分：下面哪些你能熟练写出来？\n① for/while 循环 ② if/switch ③ 数组遍历 ④ 函数定义与调用', hint:'说你会哪些就行' },
+    { ask:'指针这块很多同学觉得难——`int *p = &a; printf("%d",*p);` 这行代码，你能解释它干了什么吗？', hint:'简单描述就行' },
+    { ask:'数据结构和动态内存呢？malloc/free、struct、链表，这些接触过吗？', hint:'可以说 "学过但忘了" "没学过"...' },
+    { ask:'最后一个小问题～你这次想重点提升什么？考试 / 比赛 / 找工作？', hint:'随便说' },
+  ]},
+  { questions:[
+    { ask:'欢迎回来！现在检验一下：二级指针 `int **pp` 是什么？什么时候会用到？', hint:'能说多少说多少' },
+    { ask:'`malloc(sizeof(int)*10)` 返回的指针和普通指针有什么区别？不 free 会怎样？', hint:'堆内存相关' },
+    { ask:'`int arr[5]; int *p = arr;` 那么 `p[2]` 和 `*(arr+2)` 等价吗？', hint:'想想数组名是什么' },
+    { ask:'函数指针见过吗？`int (*f)(int,int)` 这行代码是什么意思？', hint:'比如回调函数、qsort' },
+    { ask:'`char *s = "hello";` sizeof(s) 和 strlen(s) 分别是多少？', hint:'指针大小 vs 字符串长度' },
+  ]},
+  { questions:[
+    { ask:'用 C 语言实现一个链表节点 struct，包含数据域和指针域，怎么写？', hint:'struct Node { ... };' },
+    { ask:'malloc 失败会返回什么？不检查就直接用会有什么后果？', hint:'NULL 和段错误' },
+    { ask:'栈和堆的区别：局部变量 `int a[1000000]` 放哪？改为 malloc 呢？', hint:'栈溢出 vs 堆分配' },
+    { ask:'`free(ptr)` 之后 ptr 还指向原来的地址，叫什么问题？怎么避免？', hint:'悬垂指针 + 置 NULL' },
+    { ask:'文件 I/O：`fopen` 打开文件失败返回什么？', hint:'NULL 和资源泄漏' },
+  ]},
+];
+
+/* ═══ 全局状态 ═══ */
+const ST = {
+  round: 0,
+  mode: 'onboard',     // 'onboard' | 'normal' | 'done'
+  step: 0,             // 当前第几步（0-based）
+  messages: [],         // [{role:'bot'|'user', text, label?}]
+};
+let currentFlow = flows[0];
+
+/* ═══ 初始化 ═══ */
+window.addEventListener('DOMContentLoaded', () => {
+  // 检查登录状态
+  const savedRound = localStorage.getItem('cryd_round');
+  if (savedRound !== null) {
+    ST.round = Math.min(parseInt(savedRound), flows.length - 1);
+    ST.mode = 'normal';
+  }
+
+  const onboardingDone = localStorage.getItem('cryd_onboardingDone') === 'true';
+  const username = localStorage.getItem('cryd_username') || '同学';
+  document.querySelector('.nav-actions').textContent = '👤 ' + username;
+
+  if (!onboardingDone) {
+    setupOnboardMode();
+  } else {
+    setupNormalMode();
+  }
+
+  // 绑定发送事件
+  document.getElementById('sendBtn').addEventListener('click', sendMessage);
+  document.getElementById('chatInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendMessage();
+  });
+});
+
+/* ═══ 模式设置 ═══ */
+
+/** 新用户/未完成诊断 → 引导式诊断模式 */
+function setupOnboardMode() {
+  currentFlow = flows[ST.round] || flows[0];
+  document.getElementById('chatInput').placeholder = currentFlow.questions[0].hint;
+  botSay(currentFlow.questions[0].ask, null, 200);
+  updateProgress();
+
+  // 重置左侧UI为诊断状态
+  document.getElementById('dxBadge').style.borderColor = 'rgba(74,124,78,.25)';
+  document.getElementById('dxBadge').style.color = 'var(--accent2)';
+  document.getElementById('badgeText').textContent = '新用户 · 智能诊断中';
+  document.getElementById('dxTitle').innerHTML = 'Hi，我是<span>小容</span> 👋<br>帮你搞定C语言';
+  document.getElementById('dxSub').textContent = '通过AI对话了解你的C语言水平，自动生成个性化学习画像、路径和资源。';
+  document.getElementById('dxProgress').style.opacity = '1';
+  document.getElementById('dxSummary').classList.remove('show');
+  document.getElementById('nextStepBar').classList.remove('show');
+}
+
+/** 老用户/已完成诊断 → 自由对话+考核模式 */
+function setupNormalMode() {
+  const username = localStorage.getItem('cryd_username') || '同学';
+  const flow = flows[ST.round];
+  document.getElementById('dxBadge').style.borderColor = 'rgba(74,124,78,.25)';
+  document.getElementById('dxBadge').style.color = 'var(--accent2)';
+  document.getElementById('badgeText').textContent = 'AI 自由对话';
+  document.getElementById('dxTitle').innerHTML = `Hi，<span>${username}</span> 👋<br>欢迎回来`;
+  document.getElementById('dxSub').textContent = '随时问我 C 语言问题，或直接开始新一轮挑战。';
+  document.getElementById('dxProgress').style.opacity = '0';
+  document.getElementById('dxSummary').classList.remove('show');
+  document.getElementById('nextStepBar').classList.remove('show');
+
+  ST.messages = [{role:'bot', text:`Hi ${username} 👋 欢迎回来！准备好了吗？`, label:'小容'}];
+  renderChat();
+  setTimeout(() => { botSay('那我们开始吧——' + flow.questions[0].ask, null, 600); }, 2000);
+  document.getElementById('chatInput').placeholder = flow.questions[0].hint;
+  ST.mode = 'onboard'; ST.step = 0; currentFlow = flow;
+}
+
+/* ═══ 聊天渲染 ═══ */
+
+/** 渲染整个消息列表 */
+function renderChat() {
+  const body = document.getElementById('chatBody');
+  body.innerHTML = ST.messages.map(m =>
+    m.role === 'bot'
+      ? `<div class="msg-bot"><div class="bubble"><div class="label">🤖 ${m.label || '小容'}</div>${m.text}</div></div>`
+      : `<div class="msg-user"><div class="bubble">${m.text}</div></div>`
+  ).join('');
+  body.scrollTop = body.scrollHeight;
+}
+
+/** 模拟AI回复（带打字动画延迟） */
+function botSay(text, label, delay) {
+  const body = document.getElementById('chatBody');
+  // 显示打字中...
+  const typing = document.createElement('div');
+  typing.className = 'msg-bot';
+  typing.innerHTML = `<div class="bubble" style="min-width:60px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)">正在输入...<div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  body.appendChild(typing);
+  body.scrollTop = body.scrollHeight;
+
+  setTimeout(() => {
+    typing.remove();
+    ST.messages.push({role:'bot', text, label});
+    renderChat();
+
+    // onboard模式下自动推进步骤
+    if (ST.mode === 'onboard') {
+      ST.step++;
+      updateProgress();
+      if (ST.step >= currentFlow.questions.length) {
+        completeOnboarding();
+      }
+    }
+  }, delay || 1400);
+}
+
+/* ═══ 进度条更新 ═══ */
+function updateProgress() {
+  const total = currentFlow.questions.length;
+  const s = ST.step;
+  document.getElementById('progLabel').textContent = `诊断进度 ${s} / ${total}`;
+  document.getElementById('progFill').style.width = `${(s / total) * 100}%`;
+  const items = document.querySelectorAll('#stepSummary li');
+  items.forEach((li, i) => {
+    li.className = '';
+    if (i < s) li.className = 'done';
+    else if (i === s && s < total) li.className = 'active';
+  });
+}
+
+/* ═══ 诊断完成 ═══ */
+function completeOnboarding() {
+  ST.mode = 'done';
+
+  // 标记后端
+  const userId = getUserId();
+  if (userId) {
+    localStorage.setItem('cryd_onboardingDone', 'true');
+  }
+
+  const r = ST.round;
+
+  // 隐藏进度条，显示摘要
+  document.getElementById('dxProgress').style.opacity = '0';
+  document.getElementById('dxSummary').classList.add('show');
+  document.getElementById('nextStepBar').classList.add('show');
+
+  if (r === 0) {
+    // 首次诊断
+    document.getElementById('summaryTitle').textContent = '✅ 诊断完成';
+    document.getElementById('summaryDesc').textContent = '基础部分掌握不错，指针和数据结构是重点提升方向。';
+    document.getElementById('summaryTags').innerHTML =
+      '<span class="tag tag-strong">✅ 数据类型</span>' +
+      '<span class="tag tag-strong">✅ 分支循环</span>' +
+      '<span class="tag tag-weak">⚠ 指针</span>' +
+      '<span class="tag tag-strong">✅ 函数</span>' +
+      '<span class="tag tag-weak">⚠ 动态内存</span>' +
+      '<span class="tag tag-new">🆕 结构体</span>';
+  } else {
+    // 后续考核
+    buildRoundSummary(r);
+    document.getElementById('summaryTitle').textContent = '✅ 考核完成';
+    document.getElementById('summaryDesc').textContent = '你的 C 语言能力在持续提升！';
+  }
+
+  document.getElementById('nextStepHint').textContent = r === 0
+    ? '预计 5 分钟学完指针入门，再回来考核'
+    : '进入学习空间继续学习，完成后来 AI 导学进入下一轮';
+  document.getElementById('badgeText').textContent = '诊断完成';
+}
+
+function buildRoundSummary(r) {
+  // 根据round显示不同标签（实际应从后端获取）
+  document.getElementById('summaryTags').innerHTML =
+    '<span class="tag tag-strong">✅ 基础巩固</span>' +
+    '<span class="tag tag-weak">⚠ 指针进阶</span>' +
+    '<span class="tag tag-new">🆕 动态内存</span>';
+}
+
+/* ═══ 发送消息（核心交互逻辑） ═══ */
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  ST.messages.push({role:'user', text});
+  renderChat();
+
+  const userId = getUserId();
+
+  /* ── 场景A：onboard模式 + 有userId → 调后端onboarding API ── */
+  if (ST.mode === 'onboard' && userId) {
+    (async () => {
+      try {
+        const res = await apiFetch('/api/onboarding/chat', {
+          method: 'POST',
+          body: JSON.stringify({studentId: userId, message: text})
+        });
+        if (res.data && res.data.reply) {
+          botSay(res.data.reply, null, 600);
+        } else {
+          fallbackNextQuestion();
+        }
+      } catch (err) {
+        console.error('Onboarding chat error:', err);
+        fallbackNextQuestion();
+      }
+    })();
+  }
+
+  /* ── 场景B：onboard模式 + 无userId → 纯mock流 ── */
+  else if (ST.mode === 'onboard') {
+    fallbackNextQuestion();
+  }
+
+  /* ── 场景C：正常聊天 + 有userId → SSE流式 ── */
+  else if (userId) {
+    (async () => {
+      try {
+        const token = localStorage.getItem('cryd_token');
+        const headers = {'Content-Type': 'application/json'};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const response = await fetch(API + '/api/chat/send', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({studentId: userId, message: text})
+        });
+
+        if (response.status === 403) { showOnboarding(); return; }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '';
+
+        // 流式打字效果
+        const body = document.getElementById('chatBody');
+        const typing = document.createElement('div');
+        typing.className = 'msg-bot';
+        typing.innerHTML = `<div class="bubble" style="min-width:60px"><div class="label">🤖 小容</div><span id="sseStream"></span><span class="typing-dots"><span></span><span></span><span></span></span></div>`;
+        body.appendChild(typing);
+        body.scrollTop = body.scrollHeight;
+
+        const streamEl = typing.querySelector('#sseStream');
+        const dotsEl = typing.querySelector('.typing-dots');
+
+        while (true) {
+          const {done, value} = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, {stream: true});
+
+          chunk.split('\n').forEach(line => {
+            if (line.startsWith('data:')) {
+              try {
+                const d = JSON.parse(line.substring(5));
+                if (d.content) {
+                  fullText += d.content;
+                  if (streamEl) streamEl.textContent = fullText;
+                  body.scrollTop = body.scrollHeight;
+                } else if (d.reply) {
+                  fullText = d.reply;
+                  if (streamEl) streamEl.textContent = fullText;
+                  body.scrollTop = body.scrollHeight;
+                }
+              } catch (e) {
+                fullText += line.substring(5);
+                if (streamEl) streamEl.textContent = fullText;
+                body.scrollTop = body.scrollHeight;
+              }
+            }
+          });
+        }
+
+        // 移除打字动画，固化消息
+        if (dotsEl) dotsEl.remove();
+        typing.remove();
+        if (fullText) {
+          ST.messages.push({role:'bot', text: fullText, label: '小容'});
+          renderChat();
+        } else {
+          botSay('收到！还有什么 C 语言问题随时问我～ 😊', null, 600);
+        }
+      } catch (err) {
+        console.error('Chat SSE error:', err);
+        botSay('收到！还有什么 C 语言问题随时问我～ 😊', null, 600);
+      }
+    })();
+  }
+
+  /* ── 场景D：无userId的兜底 ── */
+  else {
+    botSay('收到！还有什么 C 语言问题随时问我～ 😊', null, 600);
+  }
+
+  // 更新输入框提示
+  if (ST.mode === 'onboard' && ST.step < currentFlow.questions.length) {
+    input.placeholder = currentFlow.questions[ST.step]?.hint || '输入你的回答...';
+  } else {
+    input.placeholder = '输入你的 C 语言问题...';
+  }
+}
+
+/** mock兜底：推进到下一题 */
+function fallbackNextQuestion() {
+  if (ST.step < currentFlow.questions.length - 1) {
+    botSay(currentFlow.questions[ST.step + 1].ask, null, 1000);
+  } else if (ST.step === currentFlow.questions.length - 1) {
+    botSay('好的！信息收集完毕——', '分析中', 800);
+    setTimeout(() => completeOnboarding(), 1200);
+  }
+}
+
+/* ═══ 页面跳转（占位） ═══ */
+function enterLearningSpace() {
+  alert('→ 跳转到学习空间页面（在其他AI修改后替换此函数）');
+}
+</script>
+</body>
+</html>

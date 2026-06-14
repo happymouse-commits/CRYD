@@ -5,6 +5,7 @@ import com.happymouse.cryd.model.entity.LearningResource;
 import com.happymouse.cryd.model.entity.ErrorNotebook;
 import com.happymouse.cryd.model.entity.Student;
 import com.happymouse.cryd.repository.*;
+import com.happymouse.cryd.service.OnboardingService;
 import com.happymouse.cryd.service.spark.SparkClient;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
@@ -28,19 +29,31 @@ public class ResourceController {
     private final ErrorNotebookRepository errorRepo;
     private final StudentRepository studentRepo;
     private final SparkClient sparkClient;
+    private final OnboardingService onboardingService;
 
     public ResourceController(LearningResourceRepository resourceRepo,
                                ErrorNotebookRepository errorRepo,
                                StudentRepository studentRepo,
-                               SparkClient sparkClient) {
+                               SparkClient sparkClient,
+                               OnboardingService onboardingService) {
         this.resourceRepo = resourceRepo;
         this.errorRepo = errorRepo;
         this.studentRepo = studentRepo;
         this.sparkClient = sparkClient;
+        this.onboardingService = onboardingService;
+    }
+
+    /** 监控：未完成AI导学不能查看资源 */
+    private boolean isOnboardingDone(Long sysUserId) {
+        Student s = studentRepo.findByUsername("student_" + sysUserId).orElse(null);
+        if (s == null) return false;
+        return onboardingService.calcCompleteness(s) >= 80;
     }
 
     @GetMapping("/student/{studentId}")
     public Result<List<LearningResource>> getByStudent(@PathVariable Long studentId) {
+        if (!isOnboardingDone(studentId))
+            return Result.error(403, "请先完成AI导学，让我了解你的学习情况再生成资源");
         return Result.success(resourceRepo.findByStudentIdOrderByCreatedAtDesc(studentId));
     }
 

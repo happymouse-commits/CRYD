@@ -17,10 +17,7 @@
                 <span v-else v-html="renderMd(msg.content)"></span>
               </div>
             </template>
-            <!-- ☆ 数字人 2D 虚拟形象 — 左下角 -->
-            <div class="digital-human-avatar">
-              <DigitalHumanPlaceholder :state="avatarState" avatarSrc="/tutor-body.png" />
-            </div>
+
           </div>
           <!-- 输入区 -->
           <div class="chat-input-row">
@@ -126,8 +123,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick, watch, computed } from 'vue'
-import { useDigitalHuman } from '../../composables/useDigitalHuman'
-import DigitalHumanPlaceholder from '../../components/DigitalHumanPlaceholder.vue'
+// 虚拟人组件已移至 F:\从容应对_虚拟人备份_20260614
 import { useUserStore } from '../../store/user'
 import { marked } from 'marked'
 import * as echarts from 'echarts'
@@ -136,13 +132,7 @@ import api from '../../api'
 const dh = useDigitalHuman()
 const store = useUserStore()
 
-// 数字人状态映射：录音→listening, 等待AI→thinking, AI回复→speaking, 其他→idle
-const avatarState = computed(() => {
-  if (dh.state.isRecording) return 'listening'
-  if (dh.loading.value) return 'thinking'
-  if (dh.state.mode === 'speaking') return 'speaking'
-  return 'idle'
-})
+
 
 // ===== 画像 =====
 const radarChartRef = ref(null)
@@ -651,14 +641,7 @@ window.addEventListener('resize', () => {
 .res-detail :deep(pre) { background: var(--t-surface-muted); padding: 10px; border-radius: 6px; overflow-x: auto; }
 .res-detail :deep(code) { font-family: var(--t-font-mono); font-size: 13px; background: var(--t-wash); padding: 1px 4px; border-radius: 3px; }
 
-/* ===== 数字人 2D 虚拟形象 — 左下角悬浮 ===== */
-.digital-human-avatar {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  z-index: 1;
-  pointer-events: none;
-}
+
 
 /* 滚动条 */
 ::-webkit-scrollbar { width: 3px; }

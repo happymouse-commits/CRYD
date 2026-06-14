@@ -222,7 +222,7 @@ function buildRadarOption() {
         data: [
           {
             value: scores,
-            name: '学习画像',
+            name: '',
             areaStyle: {
               color: {
                 type: 'radial',

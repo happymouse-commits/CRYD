@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRYD — 从容应对 · C语言智能学习平台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #010915;
+  --border:    rgba(255,255,255,.06);
+  --text:      #e8ecf4;
+  --muted:     #7c8aa0;
+  --accent:    #5b8def;
+  --accent2:   #34d399;
+  --accent3:   #f59e0b;
+  --accent4:   #f87171;
+  --nav-h:     3.6rem;
+  --radius:    14px;
+  --font:     'Manrope','HarmonyOS Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:var(--nav-h)}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(91,141,239,.08),transparent),radial-gradient(ellipse 40% 30% at 80% 70%,rgba(52,211,153,.05),transparent),radial-gradient(ellipse 30% 40% at 20% 40%,rgba(245,158,11,.04),transparent);pointer-events:none}
+body::after{content:'';position:fixed;inset:0;z-index:-1;opacity:.022;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");pointer-events:none}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:#2a3040;border-radius:3px}
+
+/* ── NAV ── */
+.navbar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--nav-h);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2rem;padding:0 2.5rem;backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);background:rgba(1,9,21,.72);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.3px}
+.nav-logo .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.nav-links{display:flex;justify-content:center;gap:4px;list-style:none;padding:4px}
+.nav-links a{color:rgba(255,255,255,.6);text-decoration:none;font-size:13px;font-weight:500;letter-spacing:.4px;padding:8px 16px;border-radius:12px;transition:all .25s cubic-bezier(.16,1,.3,1);white-space:nowrap;border:1px solid transparent}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);transform:translateY(-1px)}
+.nav-links a.active{color:#fff;background:rgba(91,141,239,.1);border-color:rgba(91,141,239,.2);box-shadow:0 0 16px rgba(91,141,239,.08)}
+.nav-links a.nav-daoxue{font-weight:600}
+.nav-links a.nav-daoxue:hover,.nav-links a.nav-daoxue.active{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.25);color:var(--accent3);box-shadow:0 0 16px rgba(245,158,11,.08)}
+.nav-actions{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.round-indicator{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.5px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:var(--accent3)}
+
+/* ── BUTTONS ── */
+.btn-solid{position:relative;background:var(--accent);border:none;color:#fff;padding:7px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s;font-family:var(--font);box-shadow:0 0 0 0 rgba(91,141,239,.4)}
+.btn-solid:hover{transform:translateY(-2px);box-shadow:0 0 24px 4px rgba(91,141,239,.35),0 4px 12px rgba(0,0,0,.3)}
+.btn-solid:active{transform:translateY(0)}
+.btn-solid-lg{padding:12px 28px;font-size:15px}
+
+/* ── SCROLL REVEAL ── */
+.scroll-reveal{opacity:0;transform:translateY(30px);filter:blur(8px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1),filter .8s cubic-bezier(.16,1,.3,1)}
+.scroll-reveal.visible{opacity:1;transform:translateY(0);filter:blur(0)}
+.sr-d1{transition-delay:0s}.sr-d2{transition-delay:.08s}.sr-d3{transition-delay:.16s}.sr-d4{transition-delay:.24s}.sr-d5{transition-delay:.32s}
+
+/* ═══ PAGE CONTAINERS ═══ */
+.page{display:none}
+.page.active{display:block}
+
+/* ═══ AI导学 PAGE ═══ */
+#page-daoxue{min-height:100vh;padding-top:calc(var(--nav-h) + 2rem)}
+.dx-layout{max-width:1400px;margin:0 auto;padding:0 2.5rem 3rem;display:grid;grid-template-columns:1fr 580px;gap:3rem;align-items:start}
+.dx-left{padding-top:2rem}
+.dx-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px;margin-bottom:1.5rem;border:1px solid rgba(52,211,153,.25);color:var(--accent2);background:rgba(52,211,153,.06);transition:all .4s}
+.dx-badge .pulse{width:7px;height:7px;border-radius:50%;background:var(--accent2);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,211,153,.4)}50%{opacity:.6;box-shadow:0 0 0 6px rgba(52,211,153,0)}}
+.dx-badge.round2{border-color:rgba(245,158,11,.25);color:var(--accent3);background:rgba(245,158,11,.06)}
+.dx-badge.round2 .pulse{background:var(--accent3);animation-duration:1.2s}
+.dx-left h1{font-size:clamp(2rem,4vw,2.6rem);font-weight:800;line-height:1.2;letter-spacing:-1px}
+.dx-left h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.dx-left .sub{color:var(--muted);font-size:15px;margin-top:1rem;max-width:420px}
+
+/* progress */
+.dx-progress{margin-top:2rem;transition:opacity .3s}
+.dx-progress .prog-label{font-size:12px;color:var(--muted);letter-spacing:.5px;margin-bottom:8px}
+.prog-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;max-width:320px}
+.prog-bar .fill{height:100%;border-radius:2px;background:var(--accent);transition:width .4s}
+.step-summary{margin-top:1rem;list-style:none}
+.step-summary li{font-size:13px;padding:4px 0;display:flex;align-items:center;gap:8px;transition:color .3s;color:var(--muted)}
+.step-summary li::before{content:'';width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.1)}
+.step-summary li.done{color:var(--accent2)}.step-summary li.done::before{background:var(--accent2)}
+.step-summary li.active{color:var(--text);font-weight:500}.step-summary li.active::before{background:var(--accent);box-shadow:0 0 6px rgba(91,141,239,.5)}
+
+.dx-summary{display:none;text-align:center;background:rgba(12,20,37,.5);border:1px solid rgba(52,211,153,.15);border-radius:var(--radius);padding:28px 32px;margin-top:2rem;max-width:460px}
+.dx-summary.show{display:block}
+.dx-summary h3{font-size:18px;font-weight:700;color:var(--accent2)}
+.dx-summary .tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.dx-summary .tag{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid}
+.tag-strong{border-color:rgba(52,211,153,.3)!important;color:var(--accent2)!important}
+.tag-weak{border-color:rgba(245,158,11,.3)!important;color:var(--accent3)!important}
+.tag-new{border-color:rgba(167,139,250,.3)!important;color:#a78bfa!important}
+
+/* ── Chat card ── */
+.chat-card{background:rgba(12,20,37,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;height:clamp(520px,70vh,680px);box-shadow:0 24px 80px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.03)}
+.chat-card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.chat-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;box-shadow:0 0 14px rgba(91,141,239,.3)}
+.chat-card-body{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.msg-bot{display:flex;gap:10px;align-items:flex-start;max-width:88%}
+.msg-bot .bubble{background:rgba(255,255,255,.05);border-radius:0 14px 14px 14px;padding:12px 16px;font-size:14px;line-height:1.6}
+.msg-bot .bubble .label{color:var(--accent);font-weight:600;font-size:12px;margin-bottom:4px;letter-spacing:.5px}
+.msg-user{display:flex;justify-content:flex-end}
+.msg-user .bubble{background:var(--accent);border-radius:14px 0 14px 14px;padding:10px 16px;font-size:14px;max-width:70%}
+.chat-card-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px}
+.chat-card-footer input{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;transition:border-color .2s}
+.chat-card-footer input:focus{border-color:var(--accent)}
+.chat-card-footer input::placeholder{color:#4a5568}
+.chat-card-footer button{background:var(--accent);border:none;border-radius:10px;padding:10px 16px;color:#fff;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--font);transition:all .3s}
+.chat-card-footer button:hover{box-shadow:0 0 20px 3px rgba(91,141,239,.35)}
+.typing-dots{display:flex;gap:4px;padding:4px 0}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:typing 1.4s infinite}
+.typing-dots span:nth-child(2){animation-delay:.2s}.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes typing{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+.next-step-bar{display:none;text-align:center;padding:1.5rem 0 2rem}
+.next-step-bar.show{display:block}
+
+/* ═══ 学习空间 ═══ */
+section{padding:5rem 2.5rem;min-height:100vh;display:flex;flex-direction:column}
+section.lite{min-height:auto;padding:4rem 2.5rem}
+.section-title{text-align:center;font-size:2rem;font-weight:700;margin-bottom:2.5rem;letter-spacing:-.5px}
+
+/* 画像 */
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;max-width:1100px;margin:0 auto;width:100%}
+.glass-card{background:rgba(12,20,37,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);padding:32px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:1.5rem 0}
+.stat-box{text-align:center;padding:20px 16px;background:rgba(255,255,255,.02);border-radius:12px;border:1px solid rgba(255,255,255,.04)}
+.stat-box .val{font-size:32px;font-weight:800;color:var(--accent)}
+.stat-box .lbl{font-size:12px;color:var(--muted);margin-top:4px}
+.radar-placeholder{width:100%;aspect-ratio:1;max-width:320px;margin:0 auto;background:radial-gradient(circle,rgba(91,141,239,.08),transparent 70%),conic-gradient(from 0deg,rgba(91,141,239,.06) 0deg 72deg,transparent 72deg 120deg,rgba(52,211,153,.06) 120deg 200deg,transparent 200deg 260deg,rgba(245,158,11,.06) 260deg 320deg,transparent 320deg);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid rgba(91,141,239,.12);position:relative}
+.radar-placeholder::before{content:'C语言能力雷达';color:var(--muted);font-size:14px;font-weight:500}
+.mastery-item{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:8px}
+.mastery-item .label{flex:0 0 140px}
+.mastery-item .bar-wrap{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.05);margin:0 12px;overflow:hidden}
+.mastery-item .bar-fill{height:100%;border-radius:3px;transition:width 1.5s cubic-bezier(.16,1,.3,1)}
+.bar-green{background:var(--accent2)}.bar-blue{background:var(--accent)}.bar-amber{background:var(--accent3)}.bar-red{background:var(--accent4)}
+.mastery-item .pct{flex:0 0 42px;text-align:right;font-weight:600;font-size:13px}
+
+/* 学习路径 */
+.path-section{min-height:auto;padding:4rem 2.5rem;max-width:1100px;margin:0 auto;width:100%}
+.path-timeline{display:flex;flex-wrap:wrap;justify-content:center}
+.path-step{display:flex;flex-direction:column;align-items:center;text-align:center;width:120px;position:relative}
+.path-step:not(:last-child)::after{content:'';position:absolute;top:24px;left:calc(50% + 28px);width:calc(120px - 56px);height:2px;background:linear-gradient(90deg,var(--accent),rgba(91,141,239,.15))}
+.path-step .circle{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;position:relative;z-index:1;transition:all .3s}
+.path-step.done .circle{background:var(--accent2);color:#000;box-shadow:0 0 16px rgba(52,211,153,.3)}
+.path-step.current .circle{background:var(--accent);color:#fff;box-shadow:0 0 20px rgba(91,141,239,.4)}
+.path-step.next .circle{background:rgba(255,255,255,.06);border:2px solid var(--border);color:var(--muted)}
+.path-step .step-title{font-size:12px;font-weight:600;margin-top:10px}
+.path-step .step-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* 刷题房 */
+.practice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:1100px;margin:0 auto;width:100%}
+.practice-card{background:rgba(12,20,37,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);padding:24px;transition:all .3s;position:relative;overflow:hidden}
+.practice-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--card-accent,var(--accent)),transparent);opacity:0;transition:opacity .3s}
+.practice-card:hover::before{opacity:1}
+.practice-card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.1);box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.practice-card:nth-child(1){--card-accent:var(--accent)}
+.practice-card:nth-child(2){--card-accent:var(--accent2)}
+.practice-card:nth-child(3){--card-accent:var(--accent3)}
+.practice-card:nth-child(4){--card-accent:var(--accent4)}
+.practice-card .pc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.practice-card .pc-diff{font-size:11px;padding:3px 10px;border-radius:10px;background:rgba(255,255,255,.04)}
+.practice-card h3{font-size:15px;font-weight:600;line-height:1.5}
+.practice-card .pc-opts{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.practice-card .pc-opt{font-size:13px;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);color:var(--muted);transition:all .2s}
+.practice-card .pc-opt:hover{border-color:var(--accent);color:var(--text);background:rgba(91,141,239,.06)}
+.practice-card .pc-opt.correct{border-color:var(--accent2)!important;color:var(--accent2)!important;background:rgba(52,211,153,.06)!important}
+
+/* 评估 */
+.eval-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:1100px;margin:0 auto;width:100%}
+.eval-card{background:rgba(12,20,37,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);padding:28px 24px;text-align:center}
+.eval-card h3{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--muted)}
+.eval-card .score{font-size:40px;font-weight:800;color:var(--accent);margin-bottom:6px;transition:all .6s}
+.eval-card .trend{font-size:12px}
+.t-up{color:var(--accent2)}.t-stable{color:var(--accent3)}.t-down{color:var(--accent4)}
+
+/* ═══ 学习资源 - 卡片网格 ═══ */
+.resource-section{padding:4rem 2.5rem;max-width:1100px;margin:0 auto;width:100%}
+.resource-section h2{font-size:2rem;font-weight:700;margin-bottom:.25rem}
+.resource-section p.subtitle{font-size:13px;color:var(--muted);margin-bottom:1.5rem}
+.resource-sort{display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap}
+.resource-sort-btn{padding:8px 18px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:500;transition:all .25s;font-family:var(--font)}
+.resource-sort-btn:hover,.resource-sort-btn.active{color:#fff;background:rgba(91,141,239,.1);border-color:rgba(91,141,239,.25)}
+.resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;max-width:1100px;margin:0 auto;width:100%}
+.resource-card{background:rgba(12,20,37,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);padding:24px;transition:all .3s;cursor:pointer;position:relative;overflow:hidden}
+.resource-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--card-accent,var(--accent)),transparent);opacity:0;transition:opacity .3s}
+.resource-card:hover::before{opacity:1}
+.resource-card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.1);box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.resource-card.selected{border-color:rgba(91,141,239,.2);background:rgba(91,141,239,.04)}
+.resource-card:nth-child(3n+1){--card-accent:var(--accent)}
+.resource-card:nth-child(3n+2){--card-accent:var(--accent2)}
+.resource-card:nth-child(3n+3){--card-accent:var(--accent3)}
+.resource-card .rc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.resource-card .rc-type{font-size:10px;font-weight:600;letter-spacing:.4px;padding:3px 10px;border-radius:4px;text-transform:uppercase}
+.resource-card .rc-type.video{background:rgba(245,158,11,.1);color:var(--accent3)}
+.resource-card .rc-type.doc{background:rgba(91,141,239,.1);color:var(--accent)}
+.resource-card .rc-type.code{background:rgba(52,211,153,.1);color:var(--accent2)}
+.resource-card .rc-dur{font-size:11px;color:var(--muted)}
+.resource-card h3{font-size:14px;font-weight:600;line-height:1.5;margin-bottom:6px}
+.resource-card .rc-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.resource-card .rc-meta{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted)}
+.resource-card .rc-label{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.04);color:var(--muted)}
+.resource-card .rc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.resource-card .rc-tag{font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.04)}
+
+/* Learn indicator */
+.learn-progress-indicator{display:none;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:all .4s}
+.learn-progress-indicator.visible{display:flex}
+.learn-progress-indicator .lpi-dot{width:7px;height:7px;border-radius:50%;background:#4a5568;transition:all .4s}
+.learn-progress-indicator.ready .lpi-dot{background:var(--accent3);box-shadow:0 0 8px rgba(245,158,11,.4);animation:pulse 1.2s infinite}
+.learn-progress-indicator.ready{color:var(--accent3);border-color:rgba(245,158,11,.2);background:rgba(245,158,11,.06)}
+footer{border-top:1px solid var(--border);padding:2rem 2.5rem;text-align:center;font-size:13px;color:var(--muted)}
+
+@media (max-width:900px){
+  .dx-layout{grid-template-columns:1fr}
+  .nav-logo{font-size:15px}
+  .nav-links a{font-size:11px;padding:6px 10px}
+  section{padding:3rem 1.2rem}
+  .profile-grid{grid-template-columns:1fr}
+  .practice-grid{grid-template-columns:1fr}
+  .resource-grid{grid-template-columns:1fr}
+  .path-step{width:80px}.path-step:not(:last-child)::after{width:calc(80px - 56px);left:calc(50% + 28px)}
+}
+@media (max-width:480px){
+  .dx-left h1{font-size:1.8rem}
+  .resource-sort-btn{font-size:11px;padding:6px 12px}
+  .nav-links a{font-size:10px;padding:4px 8px}
+  .path-step{width:70px}
+  .path-step:not(:last-child)::after{width:calc(70px - 48px);left:calc(50% + 24px)}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════
+     NAVBAR
+     ═══════════════════════════════ -->
+<nav class="navbar">
+  <div class="nav-logo"><span class="dot"></span>从容应对<span class="round-indicator" id="roundBadge">第1轮</span></div>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#" data-page="daoxue" class="nav-daoxue active">AI导学</a></li>
+    <li><a href="#profile" class="ls-link">我的画像</a></li>
+    <li><a href="#path" class="ls-link">学习路径</a></li>
+    <li><a href="#practice" class="ls-link">刷题房</a></li>
+    <li><a href="#evaluation" class="ls-link">学习评估</a></li>
+    <li><a href="#resources" class="ls-link">学习资源</a></li>
+  </ul>
+  <div class="nav-actions">
+    <div class="learn-progress-indicator" id="learnIndicator"><span class="lpi-dot"></span><span id="lpiText">浏览中</span></div>
+    👤 张小泉
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════
+     PAGE 1: AI导学
+     ═══════════════════════════════ -->
+<div class="page active" id="page-daoxue">
+<div class="dx-layout">
+  <div class="dx-left">
+    <div class="dx-badge" id="dxBadge"><span class="pulse"></span><span id="badgeText">新用户 · 智能诊断中</span></div>
+    <h1 id="dxTitle">Hi，我是<span>小容</span> 👋<br>帮你搞定C语言</h1>
+    <p class="sub" id="dxSub">通过AI对话了解你的C语言水平，自动生成个性化学习画像、路径和资源。一轮一轮学，越学越强。</p>
+    <div class="dx-progress" id="dxProgress">
+      <div class="prog-label" id="progLabel">诊断进度 0 / 5</div>
+      <div class="prog-bar"><div class="fill" id="progFill" style="width:0%"></div></div>
+      <ul class="step-summary" id="stepSummary">
+        <li class="active">学习背景</li><li>C语言基础</li><li>指针理解</li><li>数据结构</li><li>学习目标</li>
+      </ul>
+    </div>
+    <div class="dx-summary" id="dxSummary">
+      <h3 id="summaryTitle">✅ 诊断完成</h3>
+      <p style="color:var(--muted);margin:8px 0;font-size:13px" id="summaryDesc"></p>
+      <div class="tags" id="summaryTags"></div>
+    </div>
+    <div class="next-step-bar" id="nextStepBar">
+      <button class="btn-solid btn-solid-lg" id="nextStepBtn">进入学习空间 →</button>
+      <p style="color:var(--muted);font-size:12px;margin-top:8px" id="nextStepHint"></p>
+    </div>
+  </div>
+  <div>
+    <div class="chat-card">
+      <div class="chat-card-header"><div class="chat-avatar">🤖</div><div><div style="font-weight:600;font-size:14px">小容 AI</div><div style="font-size:11px;color:var(--muted)">C语言学习助手 · 多智能体</div></div></div>
+      <div class="chat-card-body" id="chatBody"></div>
+      <div class="chat-card-footer">
+        <input id="chatInput" placeholder="输入你的回答..." autocomplete="off">
+        <button id="sendBtn">发送</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════
+     PAGE 2: 学习空间
+     ═══════════════════════════════ -->
+<div class="page" id="page-learn">
+  <section id="profile">
+    <h2 class="section-title">🧬 我的画像</h2>
+    <div class="profile-grid">
+      <div class="glass-card">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:1rem">C语言掌握度</h3>
+        <div id="masteryList"></div>
+      </div>
+      <div class="glass-card" style="display:flex;flex-direction:column;align-items:center">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:1rem">能力雷达</h3>
+        <div class="stats-row" style="width:100%">
+          <div class="stat-box"><div class="val" data-count="0" id="statQ">0</div><div class="lbl">总题数</div></div>
+          <div class="stat-box"><div class="val" data-count="0" id="statRate">0%</div><div class="lbl">正确率</div></div>
+          <div class="stat-box"><div class="val" data-count="0" id="statWeak">0</div><div class="lbl">薄弱项</div></div>
+        </div>
+        <div class="radar-placeholder" style="width:240px;height:240px;margin-top:1rem"></div>
+      </div>
+    </div>
+  </section>
+  <section class="path-section" id="path"><h2 class="section-title">🗺️ 学习路径</h2><div class="path-timeline" id="pathTimeline"></div></section>
+  <section class="lite" id="practice"><h2 class="section-title">📝 刷题房</h2><div class="practice-grid" id="practiceGrid"></div></section>
+  <section class="lite" id="evaluation"><h2 class="section-title">📊 学习评估</h2><div class="eval-grid" id="evalGrid"></div></section>
+  <section class="resource-section" id="resources">
+    <h2 class="section-title">📚 学习资源</h2>
+    <p class="subtitle" style="text-align:center">点击卡片查看详情，按类型筛选</p>
+    <div class="resource-sort" id="resourceSort">
+      <button class="resource-sort-btn active" data-sort="all">📋 全部</button>
+      <button class="resource-sort-btn" data-sort="video">🎬 视频</button>
+      <button class="resource-sort-btn" data-sort="doc">📄 文档</button>
+      <button class="resource-sort-btn" data-sort="code">💻 代码</button>
+    </div>
+    <div class="resource-grid" id="resourceGrid"></div>
+  </section>
+  <footer>© 2026 从容应对 — 让每一次学习都有方向</footer>
+</div>
+
+<script>
+/* ═══ State Machine ═══ */
+const ST = {
+  round: 0, mode: 'onboard', step: 0, messages: [],
+  mastery: {},
+  sections: { profile:false, path:false, practice:false, evaluation:false, resources:false },
+  resourceClicks: 0, practiceAttempts: 0,
+};
+
+const flows = [
+  { label:'第1轮 · 基础摸底', questions:[
+    { ask:'同学你好！👋 我是小容。\n\n先简单了解一下——你之前学过 C 语言吗？大概到什么程度？', hint:'比如：学过一学期 / 自学过一点 / 完全零基础...' },
+    { ask:'基础部分：下面哪些你能熟练写出来？\n① for/while 循环 ② if/switch ③ 数组遍历 ④ 函数定义与调用', hint:'说你会哪些就行' },
+    { ask:'指针这块很多同学觉得难——\n`int *p = &a; printf("%d",*p);` 这行代码，你能解释它干了什么吗？', hint:'简单描述就行' },
+    { ask:'数据结构和动态内存呢？\nmalloc/free、struct、链表，这些接触过吗？', hint:'可以说 "学过但忘了" "没学过"...' },
+    { ask:'最后一个小问题～\n你这次想重点提升什么？考试 / 比赛 / 找工作？', hint:'随便说' },
+  ]},
+  { label:'第2轮 · 指针专项', questions:[
+    { ask:'欢迎回来！上次学了指针基础——\n现在检验一下：二级指针 `int **pp` 是什么？什么时候会用到？', hint:'能说多少说多少' },
+    { ask:'`malloc(sizeof(int)*10)` 返回的指针和普通指针有什么区别？\n申请的内存存在哪？不 free 会怎样？', hint:'堆内存相关' },
+    { ask:'指针和数组的关系：`int arr[5]; int *p = arr;`\n那么 `p[2]` 和 `*(arr+2)` 等价吗？为什么？', hint:'想想数组名是什么' },
+    { ask:'函数指针见过吗？`int (*f)(int,int)` 这行代码是什么意思？\n什么场景下会用到函数指针？', hint:'比如回调函数、qsort' },
+    { ask:'给你一个字符串 `char *s = "hello";`\n`sizeof(s)` 和 `strlen(s)` 分别是多少？为什么不一样？', hint:'指针大小 vs 字符串长度' },
+  ]},
+  { label:'第3轮 · 数据结构综合', questions:[
+    { ask:'第三轮考核！难度又升级了——\n用 C 语言实现一个链表节点 struct，包含数据域和指针域，怎么写？', hint:'struct Node { ... };' },
+    { ask:'malloc 失败会返回什么？你写代码的时候会检查吗？\n如果不检查就直接用会有什么后果？', hint:'NULL 和段错误' },
+    { ask:'栈和堆的区别：局部变量 `int a[1000000]` 放在哪？\n为什么有时候程序会崩溃？改为 `int *a = malloc(...)` 有什么区别？', hint:'栈溢出 vs 堆分配' },
+    { ask:'`free(ptr)` 之后 ptr 还指向原来的地址，这叫什么问题？\n应该怎么避免？', hint:'悬垂指针 + 置 NULL' },
+    { ask:'文件 I/O：`fopen` 打开文件失败返回什么？\n你一般在什么情况下会忘记 `fclose`？', hint:'NULL 和资源泄漏' },
+  ]},
+];
+
+const masteryByRound = [
+  { data_types:88, branches:82, arrays:75, pointers:38, structs:0, files:0 },
+  { data_types:90, branches:85, arrays:78, pointers:55, structs:10, files:0 },
+  { data_types:92, branches:88, arrays:82, pointers:68, structs:40, files:15 },
+];
+
+const pathByRound = [
+  [{n:'变量与类型',s:'done'},{n:'分支与循环',s:'done'},{n:'数组与函数',s:'done'},{n:'指针入门',s:'current'},{n:'结构体',s:'next'},{n:'文件操作',s:'next'},{n:'基础算法',s:'next'}],
+  [{n:'变量与类型',s:'done'},{n:'分支与循环',s:'done'},{n:'数组与函数',s:'done'},{n:'指针入门',s:'done'},{n:'指针进阶',s:'current'},{n:'结构体',s:'next'},{n:'文件操作',s:'next'},{n:'基础算法',s:'next'}],
+  [{n:'变量与类型',s:'done'},{n:'分支与循环',s:'done'},{n:'数组与函数',s:'done'},{n:'指针入门',s:'done'},{n:'指针进阶',s:'done'},{n:'动态内存',s:'current'},{n:'结构体',s:'next'},{n:'文件操作',s:'next'},{n:'基础算法',s:'next'}],
+];
+
+const practiceByRound = [
+  [{d:'★ 基础',n:'#1',q:'下列哪个运算符用于获取变量地址？',o:['A. *','B. & ✓','C. #','D. @'],ci:1}],
+  [{d:'★★ 进阶',n:'#2',q:'int *p; int a=10; p=&a; 则 *p 的值是？',o:['A. &a 的地址','B. 10 ✓','C. p 的地址','D. 未定义'],ci:1},
+   {d:'★★ 进阶',n:'#3',q:'二级指针 int **pp 存储的是什么？',o:['A. 整数','B. 普通变量的地址','C. 一级指针的地址 ✓','D. NULL'],ci:2}],
+  [{d:'★★ 进阶',n:'#4',q:'malloc(sizeof(int)*10) 分配的内存在哪个区域？',o:['A. 栈','B. 全局区','C. 堆 ✓','D. 代码区'],ci:2},
+   {d:'★★★ 挑战',n:'#5',q:'free(ptr) 后 ptr 应该做什么？',o:['A. 什么也不做','B. 把 ptr 置为 NULL ✓','C. 再次 free(ptr)','D. 会自动变 NULL'],ci:1},
+   {d:'★★★ 挑战',n:'#6',q:'下面哪个是正确的函数指针声明？',o:['A. int *f();','B. int (*f)(int,int) ✓','C. int f*(int,int)','D. *int f(int,int)'],ci:1}],
+];
+
+const evalByRound = [
+  [{l:'C 语言综合',v:'—',t:'首次诊断',tc:'t-stable'}],
+  [{l:'C 语言综合',v:'52',t:'↑ 较上次 +14',tc:'t-up'},{l:'指针专项',v:'55',t:'↑ 明显提升',tc:'t-up'}],
+  [{l:'C 语言综合',v:'68',t:'↑ 较上次 +16',tc:'t-up'},{l:'指针专项',v:'70',t:'↑ 提高中',tc:'t-up'},{l:'数据结构',v:'40',t:'⚠ 初步接触',tc:'t-down'}],
+];
+
+const resourcesByRound = [
+  [ {t:'video',h:'C 语言指针快速入门',p:'什么是指针？& 和 * 操作符',d:'12 min',author:'从容应对团队',level:'入门',tags:['指针','基础']},
+    {t:'doc',h:'指针基础概念图解',p:'32幅插图理解指针与变量',d:'8 页',author:'从容应对团队',level:'入门',tags:['图解','基础']},
+    {t:'video',h:'指针从入门到理解',p:'一级指针、指针运算系统讲解',d:'25 min',author:'从容应对团队',level:'入门',tags:['指针','系统']},
+    {t:'code',h:'C 指针必知必会 20 题',p:'分级练习，含详细解析',d:'15 页',author:'从容应对团队',level:'入门',tags:['练习','指针']} ],
+  [ {t:'video',h:'C 语言指针完全指南',p:'一级→二级→函数指针→动态内存',d:'58 min',author:'从容应对团队',level:'进阶',tags:['指针','全面']},
+    {t:'code',h:'指针经典练习题',p:'swap/数组指针/字符串指针',d:'6 文件',author:'从容应对团队',level:'进阶',tags:['练习','指针']},
+    {t:'doc',h:'多级指针与函数指针详解',p:'回调函数、qsort 自定义比较',d:'22 页',author:'从容应对团队',level:'进阶',tags:['函数指针','回调']},
+    {t:'video',h:'二级指针与动态内存实战',p:'malloc/free 进阶用法',d:'38 min',author:'从容应对团队',level:'进阶',tags:['动态内存','实战']},
+    {t:'code',h:'指针易错题精选',p:'30道常见陷阱题',d:'3 文件',author:'从容应对团队',level:'进阶',tags:['练习','陷阱']} ],
+  [ {t:'video',h:'动态内存管理实战',p:'malloc/free/realloc 全流程',d:'32 min',author:'从容应对团队',level:'高级',tags:['动态内存','实战']},
+    {t:'code',h:'链表实现完整示例',p:'单链表增删改查+内存图解',d:'8 文件',author:'从容应对团队',level:'高级',tags:['链表','完整']},
+    {t:'doc',h:'C 语言内存管理深度剖析',p:'栈 vs 堆、内存泄漏、valgrind',d:'48 页',author:'从容应对团队',level:'高级',tags:['内存','深度']},
+    {t:'doc',h:'C 语言常见未定义行为',p:'数组越界、悬垂指针、缓冲区溢出',d:'22 页',author:'从容应对团队',level:'高级',tags:['UB','安全']},
+    {t:'video',h:'从零实现数据结构',p:'手写链表与栈+内存可视化',d:'45 min',author:'从容应对团队',level:'高级',tags:['数据结构','手写']},
+    {t:'code',h:'链表与内存综合练习',p:'15道中高难度综合题',d:'5 文件',author:'从容应对团队',level:'高级',tags:['练习','综合']} ],
+];
+
+const statByRound = [
+  { q:5, rate:80, weak:3 },
+  { q:23, rate:78, weak:2 },
+  { q:47, rate:82, weak:1 },
+];
+
+/* ═══ INIT ═══ */
+function initState() {
+  const saved = localStorage.getItem('cryd_round');
+  if (saved !== null) {
+    ST.round = parseInt(saved);
+    ST.mode = 'normal';
+    ST.mastery = masteryByRound[Math.min(ST.round, masteryByRound.length-1)];
+    document.getElementById('roundBadge').textContent = `第${ST.round+1}轮`;
+    if (ST.round >= 1) document.getElementById('roundBadge').style.color = 'var(--accent3)';
+  } else { ST.round = 0; ST.mode = 'onboard'; ST.mastery = {}; }
+  if (ST.mode === 'normal') setupNormalMode();
+  else setupOnboardMode();
+}
+
+function setupNormalMode() {
+  document.getElementById('dxBadge').classList.remove('round2');
+  document.getElementById('badgeText').textContent = 'AI 自由对话';
+  document.getElementById('dxTitle').innerHTML = `Hi，<span>张小泉</span> 👋<br>欢迎回来`;
+  document.getElementById('dxSub').textContent = '随时问我 C 语言问题，或直接开始新一轮挑战。';
+  document.getElementById('dxProgress').style.opacity = '0';
+  document.getElementById('dxSummary').classList.remove('show');
+  document.getElementById('nextStepBar').classList.remove('show');
+  const round = ST.round;
+  const flow = flows[Math.min(round, flows.length-1)];
+  ST.messages = [{ role:'bot', text:`Hi 张小泉 👋 欢迎回来！\n\n你目前是<strong>${flow.label}</strong>。准备好了吗？`, label:'小容' }];
+  renderChat();
+  setTimeout(() => { botSay('那我们开始吧——' + flow.questions[0].ask, null, 600); }, 2000);
+  document.getElementById('chatInput').placeholder = flow.questions[0].hint;
+  ST.mode = 'onboard'; ST.step = 0; ST.round = round; currentFlow = flow;
+}
+
+function setupOnboardMode() {
+  const f = flows[0]; currentFlow = f;
+  document.getElementById('chatInput').placeholder = f.questions[0].hint;
+  botSay(f.questions[0].ask, null, 200);
+  updateProgress();
+}
+
+let currentFlow = flows[0];
+
+function renderChat() {
+  const body = document.getElementById('chatBody');
+  body.innerHTML = ST.messages.map(m =>
+    m.role==='bot' ? `<div class="msg-bot"><div class="bubble"><div class="label">🤖 ${m.label||'小容'}</div>${m.text}</div></div>`
+    : `<div class="msg-user"><div class="bubble">${m.text}</div></div>`
+  ).join('');
+  body.scrollTop = body.scrollHeight;
+}
+
+function botSay(text, label, delay) {
+  const body = document.getElementById('chatBody');
+  const typing = document.createElement('div');
+  typing.className = 'msg-bot';
+  typing.innerHTML = `<div class="bubble" style="min-width:60px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)">正在输入...<div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  body.appendChild(typing); body.scrollTop = body.scrollHeight;
+  setTimeout(() => {
+    typing.remove(); ST.messages.push({role:'bot',text,label}); renderChat();
+    if (ST.mode==='onboard') {
+      ST.step++; updateProgress();
+      if (ST.step >= currentFlow.questions.length) completeOnboarding();
+    }
+  }, delay||1400);
+}
+
+function updateProgress() {
+  const total = currentFlow.questions.length, s = ST.step;
+  document.getElementById('progLabel').textContent = `诊断进度 ${s} / ${total}`;
+  document.getElementById('progFill').style.width = `${(s/total)*100}%`;
+  const items = document.querySelectorAll('#stepSummary li');
+  items.forEach((li,i) => { li.className=''; if(i<s) li.className='done'; else if(i===s&&s<total) li.className='active'; });
+}
+
+function completeOnboarding() {
+  ST.mode = 'done'; ST.mastery = masteryByRound[Math.min(ST.round, masteryByRound.length-1)];
+  const round = ST.round;
+  document.getElementById('dxProgress').style.opacity = '0';
+  document.getElementById('dxSummary').classList.add('show');
+  document.getElementById('nextStepBar').classList.add('show');
+  const label = flows[Math.min(round, flows.length-1)].label;
+  document.getElementById('summaryTitle').textContent = `✅ ${label} — 诊断完成`;
+  if (round === 0) {
+    document.getElementById('summaryDesc').textContent = '基础部分掌握不错，指针和数据结构是重点提升方向。';
+    document.getElementById('summaryTags').innerHTML = '<span class="tag tag-strong">✅ 数据类型</span><span class="tag tag-strong">✅ 分支循环</span><span class="tag tag-weak">⚠ 指针</span><span class="tag tag-strong">✅ 函数</span><span class="tag tag-weak">⚠ 动态内存</span><span class="tag tag-new">🆕 结构体</span>';
+    document.getElementById('nextStepHint').textContent = '预计 5 分钟学完指针入门，再回来 AI 会对你进行第2轮考核';
+  } else {
+    buildRoundSummary(round);
+    document.getElementById('summaryDesc').textContent = '你的 C 语言能力在持续提升！画像和路径已自动更新。';
+    document.getElementById('nextStepHint').textContent = `第${round+2}轮考核难度会继续升级`;
+  }
+  document.getElementById('badgeText').textContent = '诊断完成';
+}
+
+function buildRoundSummary(round) {
+  const m = masteryByRound[round]||masteryByRound[0];
+  const names = { data_types:'数据类型', branches:'分支循环', arrays:'数组函数', pointers:'指针', structs:'结构体', files:'文件操作' };
+  let html = '';
+  for (const [k,v] of Object.entries(m)) {
+    if (v===0) continue;
+    if (v>=70) html += `<span class="tag tag-strong">✅ ${names[k]}</span>`;
+    else if (v>=30) html += `<span class="tag tag-weak">⚠ ${names[k]} ↑${v}</span>`;
+    else html += `<span class="tag tag-new">🆕 ${names[k]}</span>`;
+  }
+  document.getElementById('summaryTags').innerHTML = html;
+}
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  ST.messages.push({role:'user',text}); renderChat();
+  if (ST.mode==='onboard' && ST.step < currentFlow.questions.length-1) {
+    botSay(currentFlow.questions[ST.step+1].ask, null, 1000);
+  } else if (ST.mode==='onboard' && ST.step === currentFlow.questions.length-1) {
+    botSay('好的！信息收集完毕——', '分析中', 800);
+    setTimeout(() => completeOnboarding(), 1200);
+  } else { botSay('收到！还有什么 C 语言问题随时问我～ 😊', null, 600); }
+  if (ST.mode==='onboard' && ST.step < currentFlow.questions.length) {
+    input.placeholder = currentFlow.questions[ST.step]?.hint || '输入你的回答...';
+  } else { input.placeholder = '输入你的 C 语言问题...'; }
+}
+
+/* ═══ Navigation ═══ */
+function enterLearningSpace() {
+  document.getElementById('page-daoxue').classList.remove('active');
+  document.getElementById('page-learn').classList.add('active');
+  ST.sections = { profile:false, path:false, practice:false, evaluation:false, resources:false };
+  ST.resourceClicks = 0; ST.practiceAttempts = 0;
+  localStorage.setItem('cryd_round', String(ST.round));
+  renderProfile(ST.mastery);
+  renderPath(pathByRound[Math.min(ST.round, pathByRound.length-1)]);
+  renderPractice(practiceByRound[Math.min(ST.round, practiceByRound.length-1)]);
+  renderEval(evalByRound[Math.min(ST.round, evalByRound.length-1)]);
+  renderResources(resourcesByRound[Math.min(ST.round, resourcesByRound.length-1)]);
+  const s = statByRound[Math.min(ST.round, statByRound.length-1)];
+  setTimeout(() => {
+    document.getElementById('statQ').setAttribute('data-count', String(s.q));
+    document.getElementById('statRate').setAttribute('data-count', String(s.rate));
+    document.getElementById('statWeak').setAttribute('data-count', String(s.weak));
+  }, 100);
+  window.scrollTo({top:0,behavior:'smooth'});
+  document.getElementById('learnIndicator').classList.add('visible');
+  updateLearnIndicator();
+  trackSectionEngagement();
+}
+
+function backToDaoxue() {
+  document.getElementById('page-learn').classList.remove('active');
+  document.getElementById('page-daoxue').classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  document.getElementById('learnIndicator').classList.remove('visible','ready');
+  const done = Object.values(ST.sections).filter(Boolean).length;
+  if (done >= 4) {
+    ST.round = Math.min(ST.round+1, flows.length-1);
+    localStorage.setItem('cryd_round', String(ST.round));
+    document.getElementById('roundBadge').textContent = `第${ST.round+1}轮`;
+    if (ST.round>=1) document.getElementById('roundBadge').style.color = 'var(--accent3)';
+    ST.mode='onboard'; ST.step=0; ST.messages=[];
+    const f = flows[Math.min(ST.round, flows.length-1)]; currentFlow = f;
+    document.getElementById('dxProgress').style.opacity='1';
+    document.getElementById('dxSummary').classList.remove('show');
+    document.getElementById('nextStepBar').classList.remove('show');
+    document.getElementById('dxBadge').classList.add('round2');
+    document.getElementById('badgeText').textContent = f.label;
+    document.getElementById('dxTitle').innerHTML = `第${ST.round+1}轮考核，<span>准备好了吗？</span> 🔥`;
+    document.getElementById('dxSub').textContent = '难度升级！';
+    document.getElementById('progFill').style.width='0%';
+    document.getElementById('progLabel').textContent = `考核进度 0 / ${f.questions.length}`;
+    document.getElementById('stepSummary').innerHTML = f.questions.map((_,i) => `<li${i===0?' class="active"':''}>${['知识回顾','理解检验','应用分析','综合评测','扩展思考'][i]||`环节${i+1}`}</li>`).join('');
+    document.getElementById('chatInput').placeholder = f.questions[0].hint;
+    botSay(`${f.label} — 准备好了吗？\n\n`+f.questions[0].ask, null, 500);
+  } else {
+    ST.messages=[]; ST.mode='normal';
+    botSay('回来了～ 还有一些章节没看完，要不要先回去转转？', null, 400);
+    document.getElementById('chatInput').placeholder = '输入你的 C 语言问题...';
+  }
+}
+
+/* ═══ Renderers ═══ */
+function renderProfile(mastery) {
+  const names = { data_types:'变量与数据类型', branches:'分支与循环', arrays:'数组与函数', pointers:'指针与内存', structs:'结构体与链表', files:'文件操作' };
+  const colors = ['var(--accent2)','var(--accent2)','var(--accent)','var(--accent3)','var(--accent4)','var(--accent4)'];
+  const bg = ['bar-green','bar-green','bar-blue','bar-amber','bar-red','bar-red'];
+  let html=''; let i=0;
+  for (const [k,v] of Object.entries(mastery)) {
+    if (v===0) continue;
+    html += `<div class="mastery-item"><span class="label">${names[k]||k}</span><div class="bar-wrap"><div class="bar-fill ${bg[i]}" data-width="${v}"></div></div><span class="pct" style="color:${colors[i]}">${v}%</span></div>`;
+    i++;
+  }
+  document.getElementById('masteryList').innerHTML = html||'<p style="color:var(--muted);font-size:13px">暂无数据</p>';
+}
+
+function renderPath(steps) {
+  document.getElementById('pathTimeline').innerHTML = steps.map((s,i) => {
+    let cls='next', inner=String(i+1);
+    if (s.s==='done'){cls='done';inner='✓';}
+    else if (s.s==='current'){cls='current';inner='▶';}
+    return `<div class="path-step ${cls}"><div class="circle">${inner}</div><div class="step-title">${s.n}</div><div class="step-sub">${s.s==='done'?'已完成':s.s==='current'?'进行中':'待解锁'}</div></div>`;
+  }).join('');
+}
+
+function renderPractice(items) {
+  document.getElementById('practiceGrid').innerHTML = items.map((p,i) => `
+    <div class="practice-card">
+      <div class="pc-header"><span class="pc-diff">${p.d}</span><span style="color:var(--muted);font-size:12px">${p.n}</span></div>
+      <h3>${p.q}</h3>
+      <div class="pc-opts">${p.o.map((o,j)=>`<div class="pc-opt" data-correct="${j===p.ci}">${o}</div>`).join('')}</div>
+    </div>`).join('');
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.pc-opt').forEach(opt => {
+      opt.addEventListener('click', function() {
+        if (this.dataset.clicked) return;
+        if (this.dataset.correct==='true') this.classList.add('correct');
+        else this.style.borderColor='var(--accent4)';
+        this.dataset.clicked='1'; ST.practiceAttempts++; ST.sections.practice=true; updateLearnIndicator();
+      });
+    });
+  });
+}
+
+function renderEval(items) {
+  document.getElementById('evalGrid').innerHTML = items.map((e,i) => `
+    <div class="eval-card"><h3>${e.l}</h3><div class="score">${e.v}</div><div class="trend ${e.tc}">${e.t}</div></div>`).join('');
+}
+
+/* ═══ 学习资源 - 卡片网格渲染 ═══ */
+let allResources = [];
+function renderResources(items) {
+  allResources = items;
+  _renderResourceCards(items);
+}
+function _renderResourceCards(items) {
+  const grid = document.getElementById('resourceGrid');
+  const typeIcons = { video:'🎬', doc:'📄', code:'💻' };
+  grid.innerHTML = items.map((r,i) => `
+    <div class="resource-card scroll-reveal sr-d${Math.min(i%5+1,5)}" data-idx="${i}">
+      <div class="rc-header">
+        <span class="rc-type ${r.t}">${r.t==='video'?'视频':r.t==='doc'?'文档':'代码'}</span>
+        <span class="rc-dur">${r.d}</span>
+      </div>
+      <h3>${typeIcons[r.t]||''} ${r.h}</h3>
+      <p class="rc-desc">${r.p}</p>
+      <div class="rc-meta">
+        <span>👤 ${r.author}</span>
+        <span class="rc-label">${r.level}</span>
+      </div>
+      <div class="rc-tags">${(r.tags||[]).map(t=>`<span class="rc-tag">${t}</span>`).join('')}</div>
+    </div>
+  `).join('');
+  // Click to select
+  grid.querySelectorAll('.resource-card').forEach(card => {
+    card.addEventListener('click', function() {
+      grid.querySelectorAll('.resource-card').forEach(c=>c.classList.remove('selected'));
+      this.classList.add('selected');
+      ST.resourceClicks++; ST.sections.resources=true; updateLearnIndicator();
+    });
+  });
+  // Scroll reveal
+  setTimeout(() => {
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});
+    },{threshold:.1});
+    grid.querySelectorAll('.scroll-reveal').forEach(el=>obs.observe(el));
+  },100);
+}
+
+/* ═══ Section engagement ═══ */
+function trackSectionEngagement() {
+  ['profile','path','practice','evaluation','resources'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if(e.isIntersecting){ST.sections[id]=true;updateLearnIndicator();obs.unobserve(el);} });
+    }, {threshold:.3});
+    obs.observe(el);
+  });
+}
+
+function updateLearnIndicator() {
+  const el = document.getElementById('learnIndicator'), text = document.getElementById('lpiText');
+  const done = Object.values(ST.sections).filter(Boolean).length;
+  if (done >= 4) { el.className='learn-progress-indicator visible ready'; text.textContent='可以考核了'; }
+  else if (done >= 1) { el.className='learn-progress-indicator visible'; text.textContent=`学习中 ${done}/5`; }
+  else { el.className='learn-progress-indicator visible'; text.textContent='浏览中'; }
+}
+
+/* ═══ Bar / stat animations ═══ */
+function animateStats() {
+  document.querySelectorAll('.bar-fill[data-width]').forEach(el => {
+    if (el.dataset.animated) return; el.dataset.animated='1';
+    el.style.width='0%';
+    const o = new IntersectionObserver(entries => {
+      entries.forEach(e => { if(e.isIntersecting){ el.style.width=el.dataset.width+'%'; o.unobserve(el); } });
+    }, {threshold:.3}); o.observe(el);
+  });
+  document.querySelectorAll('[data-count]').forEach(el => {
+    if (el.dataset.counted) return; el.dataset.counted='1';
+    const o = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const target = parseInt(e.target.dataset.count)||0;
+          let cur=0; const step=target/(1400/16);
+          const t=setInterval(()=>{cur+=step;if(cur>=target){cur=target;clearInterval(t)}e.target.textContent=Math.floor(cur);},16);
+          o.unobserve(el);
+        }
+      });
+    }, {threshold:.5}); o.observe(el);
+  });
+}
+
+/* ═══ INIT ═══ */
+window.addEventListener('DOMContentLoaded', () => {
+  initState();
+  document.getElementById('sendBtn').addEventListener('click', sendMessage);
+  document.getElementById('chatInput').addEventListener('keydown', e => { if(e.key==='Enter') sendMessage(); });
+  document.getElementById('nextStepBtn').addEventListener('click', enterLearningSpace);
+
+  // Nav link to daoxue
+  document.querySelector('#navLinks a[data-page="daoxue"]').addEventListener('click', e => {
+    e.preventDefault();
+    if (!document.getElementById('page-daoxue').classList.contains('active')) backToDaoxue();
+    setNavActive(e.currentTarget);
+  });
+
+  // Learning space nav links
+  document.querySelectorAll('.ls-link').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      setNavActive(a);
+      const target = a.getAttribute('href'); if (!target) return;
+      if (!document.getElementById('page-learn').classList.contains('active')) {
+        document.getElementById('page-daoxue').classList.remove('active');
+        document.getElementById('page-learn').classList.add('active');
+        ST.sections = { profile:false, path:false, practice:false, evaluation:false, resources:false };
+        ST.resourceClicks = 0; ST.practiceAttempts = 0;
+        localStorage.setItem('cryd_round', String(ST.round));
+        renderProfile(ST.mastery);
+        renderPath(pathByRound[Math.min(ST.round, pathByRound.length-1)]);
+        renderPractice(practiceByRound[Math.min(ST.round, practiceByRound.length-1)]);
+        renderEval(evalByRound[Math.min(ST.round, evalByRound.length-1)]);
+        renderResources(resourcesByRound[Math.min(ST.round, resourcesByRound.length-1)]);
+        const s = statByRound[Math.min(ST.round, statByRound.length-1)];
+        setTimeout(() => {
+          document.getElementById('statQ').setAttribute('data-count', String(s.q));
+          document.getElementById('statRate').setAttribute('data-count', String(s.rate));
+          document.getElementById('statWeak').setAttribute('data-count', String(s.weak));
+        }, 100);
+        document.getElementById('learnIndicator').classList.add('visible');
+        updateLearnIndicator();
+        trackSectionEngagement();
+      }
+      const el = document.querySelector(target);
+      if (el) el.scrollIntoView({behavior:'smooth'});
+    });
+  });
+
+  function setNavActive(el) {
+    document.querySelectorAll('#navLinks a').forEach(a=>a.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // Resource sort
+  document.querySelectorAll('.resource-sort-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.resource-sort-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      const sort = this.dataset.sort;
+      if (sort==='all') _renderResourceCards(allResources);
+      else _renderResourceCards(allResources.filter(r=>r.t===sort));
+    });
+  });
+
+  setTimeout(animateStats, 300);
+});
+</script>
+</body>
+</html>

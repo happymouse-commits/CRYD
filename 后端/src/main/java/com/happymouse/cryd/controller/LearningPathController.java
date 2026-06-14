@@ -5,6 +5,9 @@ import com.happymouse.cryd.model.entity.LearningCheckin;
 import com.happymouse.cryd.model.entity.LearningPath;
 import com.happymouse.cryd.repository.LearningCheckinRepository;
 import com.happymouse.cryd.repository.LearningPathRepository;
+import com.happymouse.cryd.repository.StudentRepository;
+import com.happymouse.cryd.model.entity.Student;
+import com.happymouse.cryd.service.OnboardingService;
 import com.happymouse.cryd.service.agent.PathPlannerAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,24 +31,41 @@ public class LearningPathController {
     private final LearningPathRepository pathRepo;
     private final PathPlannerAgent pathPlannerAgent;
     private final LearningCheckinRepository checkinRepo;
+    private final StudentRepository studentRepo;
+    private final OnboardingService onboardingService;
 
     public LearningPathController(LearningPathRepository pathRepo,
                                    PathPlannerAgent pathPlannerAgent,
-                                   LearningCheckinRepository checkinRepo) {
+                                   LearningCheckinRepository checkinRepo,
+                                   StudentRepository studentRepo,
+                                   OnboardingService onboardingService) {
         this.pathRepo = pathRepo;
         this.pathPlannerAgent = pathPlannerAgent;
         this.checkinRepo = checkinRepo;
+        this.studentRepo = studentRepo;
+        this.onboardingService = onboardingService;
+    }
+
+    /** 监控：未完成AI导学不能生成/查看学习路径 */
+    private boolean isOnboardingDone(Long sysUserId) {
+        Student s = studentRepo.findByUsername("student_" + sysUserId).orElse(null);
+        if (s == null) return false;
+        return onboardingService.calcCompleteness(s) >= 80;
     }
 
     // 获取学生活跃路径
     @GetMapping("/student/{studentId}")
     public Result<List<LearningPath>> getPaths(@PathVariable Long studentId) {
+        if (!isOnboardingDone(studentId))
+            return Result.error(403, "请先完成AI导学，让我了解你的学习情况再生成学习路径");
         return Result.success(pathRepo.findByStudentId(studentId));
     }
 
     // 获取活跃路径
     @GetMapping("/student/{studentId}/active")
     public Result<LearningPath> getActivePath(@PathVariable Long studentId) {
+        if (!isOnboardingDone(studentId))
+            return Result.error(403, "请先完成AI导学");
         return Result.success(pathRepo.findByStudentIdAndStatus(studentId, "active").orElse(null));
     }
 
@@ -69,6 +89,8 @@ public class LearningPathController {
     // AI生成个性化学习路径
     @PostMapping("/generate/{studentId}")
     public Result<LearningPath> generatePath(@PathVariable Long studentId) {
+        if (!isOnboardingDone(studentId))
+            return Result.error(403, "请先完成AI导学，让我了解你的学习情况再生成学习路径");
         try {
             var request = new com.happymouse.cryd.model.dto.ChatRequest();
             request.setStudentId(studentId);

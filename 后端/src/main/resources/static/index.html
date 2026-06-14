@@ -5,13 +5,22 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CRYD - 个性化学习多智能体系统</title>
-    <script type="module" crossorigin src="/assets/index-CnXzHNKY.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/_plugin-vue_export-helper-ll9QNsmW.js">
-    <link rel="modulepreload" crossorigin href="/assets/chunk-CilyBKbf.js">
-    <link rel="modulepreload" crossorigin href="/assets/runtime-dom_esm-bundler-BTm_yNIO.js">
-    <link rel="stylesheet" crossorigin href="/assets/index.css-C_gDB-KB.css">
+    <!-- 3D 模型查看器（异步加载，不阻塞页面） -->
+    <script>
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = 'https://cdn.jsdelivr.net/npm/@google/model-viewer@4.3.1/dist/model-viewer.min.js';
+      s.onload = function(){ window.__modelViewerReady = true; };
+      s.onerror = function(){ window.__modelViewerReady = false; };
+      document.head.appendChild(s);
+    </script>
+    <script type="module" crossorigin src="/assets/index-BNbKpDX_.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/_plugin-vue_export-helper-B4G-s9fo.js">
+    <link rel="modulepreload" crossorigin href="/assets/router-BUutN9qO.js">
+    <link rel="modulepreload" crossorigin href="/assets/runtime-dom_esm-bundler-DJHADrtQ.js">
+    <link rel="stylesheet" crossorigin href="/assets/index.css-DKVoYq6g.css">
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app"></div>
   </body>
 </html>
