@@ -25,24 +25,6 @@ jobs:
           mvn package -DskipTests -B -q
           ls -lh target/*.jar
 
-      - name: Build Docker image
-        run: |
-          docker build -t cryd:latest .
-          docker tag cryd:latest ghcr.io/${{ github.repository_owner }}/cryd:latest
-          docker tag cryd:latest ghcr.io/${{ github.repository_owner }}/cryd:${{ github.sha }}
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push Docker image
-        run: |
-          docker push ghcr.io/${{ github.repository_owner }}/cryd:latest
-          docker push ghcr.io/${{ github.repository_owner }}/cryd:${{ github.sha }}
-
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
