@@ -49,14 +49,17 @@ jobs:
 
           # Start and verify
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }} << 'REMOTE'
-            systemctl start cryd-v2
-            sleep 10
-            if systemctl is-active --quiet cryd-v2; then
-              echo "✅ CRYD v2 deployed"
-              curl -s -o /dev/null -w "HTTP: %{http_code}\n" http://localhost:8081/
-            else
-              echo "❌ Start failed"
-              journalctl -u cryd-v2 -n 20 --no-pager
-              exit 1
-            fi
+            # Start and verify (retry up to 3 times, Spring Boot needs ~20s)
+            for i in 1 2 3; do
+              sleep 10
+              HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/ || echo "000")
+              if [ "$HTTP" != "000" ]; then
+                echo "✅ CRYD v2 deployed — HTTP $HTTP"
+                exit 0
+              fi
+              echo "⏳ Retry $i/3..."
+            done
+            echo "❌ Start failed"
+            journalctl -u cryd-v2 -n 20 --no-pager
+            exit 1
           REMOTE
