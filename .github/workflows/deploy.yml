@@ -1,61 +1,80 @@
-name: Deploy to Alibaba Cloud ECS
+name: CRYD CI/CD — Build & Deploy
 
 on:
   push:
     branches: [master]
 
 jobs:
-  build-and-notify:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
         with:
-          node-version: 22
+          java-version: 21
+          distribution: temurin
+          cache: maven
 
-      - name: Build frontend
+      - name: Build with Maven
         run: |
-          cd frontend
-          npm install
-          npm run build
+          cd 后端
+          mvn package -DskipTests -B -q
+          ls -lh target/*.jar
 
-      # ---- 邮件通知（ECS cron 会自动拉取部署） ----
-      - name: Check email config
-        id: mail-check
-        if: always()
+      - name: Build Docker image
         run: |
-          if [ -n "${{ secrets.MAIL_USERNAME }}" ]; then
-            echo "enabled=true" >> $GITHUB_OUTPUT
-          else
-            echo "enabled=false" >> $GITHUB_OUTPUT
-            echo "Email notification skipped (MAIL_USERNAME not set)"
-          fi
+          docker build -t cryd:latest .
+          docker tag cryd:latest ghcr.io/${{ github.repository_owner }}/cryd:latest
+          docker tag cryd:latest ghcr.io/${{ github.repository_owner }}/cryd:${{ github.sha }}
 
-      - name: Send email notification
-        if: always() && steps.mail-check.outputs.enabled == 'true'
-        uses: dawidd6/action-send-mail@v4
+      - name: Login to GHCR
+        uses: docker/login-action@v3
         with:
-          server_address: smtp.qq.com
-          server_port: 587
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: 📦 CRYD 代码已推送 - ${{ github.event.head_commit.message }}
-          to: ${{ secrets.MAIL_TO }}
-          from: ${{ secrets.MAIL_USERNAME }}
-          body: |
-            <h2>📦 代码已推送到 master</h2>
-            <p>ECS 服务器将定时拉取并自动部署。</p>
-            <table border="0" cellpadding="4">
-              <tr><td><b>仓库</b></td><td>${{ github.repository }}</td></tr>
-              <tr><td><b>提交</b></td><td>${{ github.event.head_commit.message }}</td></tr>
-              <tr><td><b>操作人</b></td><td>${{ github.actor }}</td></tr>
-              <tr><td><b>分支</b></td><td>master</td></tr>
-            </table>
-            <br>
-            <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">🔗 查看构建详情</a>
-            <br><br>
-            <small>🤖 CRYD 智能体协同学习平台 · 自动部署</small>
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/cryd:latest
+          docker push ghcr.io/${{ github.repository_owner }}/cryd:${{ github.sha }}
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cryd-jar
+          path: 后端/target/*.jar
+
+      - name: Deploy to ECS
+        run: |
+          # Set up SSH
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ECS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # Stop service
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }} \
+            "systemctl stop cryd-v2 || true; cp /opt/cryd-v2/app/cryd-1.0.0.jar /opt/cryd-v2/app/cryd-1.0.0.jar.bak 2>/dev/null || true"
+
+          # Upload JAR
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            后端/target/cryd-1.0.0.jar \
+            ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }}:/opt/cryd-v2/app/cryd-1.0.0.jar
+
+          # Start and verify
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }} << 'REMOTE'
+            systemctl start cryd-v2
+            sleep 10
+            if systemctl is-active --quiet cryd-v2; then
+              echo "✅ CRYD v2 deployed"
+              curl -s -o /dev/null -w "HTTP: %{http_code}\n" http://localhost:8081/
+            else
+              echo "❌ Start failed"
+              journalctl -u cryd-v2 -n 20 --no-pager
+              exit 1
+            fi
+          REMOTE
